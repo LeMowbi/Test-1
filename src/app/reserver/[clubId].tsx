@@ -35,6 +35,7 @@ export default function ReserverScreen() {
   const [players, setPlayers] = useState(4);
   const [payment, setPayment] = useState<string | null>(null);
   const [split, setSplit] = useState(false);
+  const [paying, setPaying] = useState(false);
   const [done, setDone] = useState(false);
 
   if (!club) {
@@ -46,12 +47,20 @@ export default function ReserverScreen() {
   }
 
   const slots = Array.from(new Set([...SAMPLE_SLOTS, ...(state.clubSlots[club.id] ?? [])])).sort();
+  // Créneaux déjà réservés (payés) pour ce club + cette date → indisponibles.
+  const taken = state.reservations.filter((r) => r.clubId === club.id && r.date === date).map((r) => r.time);
   const perPlayer = Math.round(club.priceFrom / players);
+  const amount = split ? perPlayer : club.priceFrom;
 
-  const confirm = () => {
-    if (!date || !slot || !payment) return;
-    addReservation({ clubId: club.id, clubName: club.name, date, time: slot, players, payment: paymentLabel(payment) });
-    setDone(true);
+  const pay = () => {
+    if (!date || !slot || !payment || paying) return;
+    setPaying(true);
+    // Paiement simulé : le créneau n'est validé/réservé qu'une fois le paiement "effectué".
+    setTimeout(() => {
+      addReservation({ clubId: club.id, clubName: club.name, date, time: slot, players, payment: paymentLabel(payment) });
+      setPaying(false);
+      setDone(true);
+    }, 900);
   };
 
   if (done) {
@@ -60,10 +69,10 @@ export default function ReserverScreen() {
         <Card style={{ alignItems: 'center', paddingVertical: spacing.xl, marginTop: spacing.lg }}>
           <Ionicons name="checkmark-circle" size={56} color={colors.green} />
           <Txt variant="h2" style={{ marginTop: spacing.md }}>
-            Réservation confirmée
+            Créneau réservé & payé
           </Txt>
           <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
-            (Démo — aucun paiement réel n’a été effectué.)
+            (Démo — paiement simulé, aucun débit réel.)
           </Txt>
           <View style={styles.summary}>
             <Row label="Terrain" value={club.name} />
@@ -71,12 +80,11 @@ export default function ReserverScreen() {
             <Row label="Heure" value={slot!} />
             <Row label="Joueurs" value={`${players}`} />
             <Row label="Paiement" value={paymentLabel(payment)} />
-            {split ? <Row label="Part / joueur" value={`≈ ${fcfa(perPlayer)}`} /> : null}
-            <Row label="Tarif indicatif" value={`dès ${fcfa(club.priceFrom)}/h`} />
+            {split ? <Row label="Part / joueur" value={`≈ ${fcfa(perPlayer)}`} /> : <Row label="Montant payé" value={`≈ ${fcfa(amount)}`} />}
           </View>
           <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
             <Button label="Retour à l'accueil" onPress={() => router.push('/')} full />
-            <Button label="Réserver un autre créneau" variant="ghost" onPress={() => setDone(false)} full />
+            <Button label="Réserver un autre créneau" variant="ghost" onPress={() => { setDone(false); setSlot(null); }} full />
           </View>
         </Card>
       </Screen>
@@ -90,17 +98,27 @@ export default function ReserverScreen() {
       </Txt>
       <View style={styles.wrap}>
         {dates.map((d) => (
-          <Chip key={d} label={d} active={d === date} onPress={() => setDate(d)} size="lg" />
+          <Chip key={d} label={d} active={d === date} onPress={() => { setDate(d); setSlot(null); }} size="lg" />
         ))}
       </View>
 
       <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-        Choisis un créneau
+        Choisis un créneau {date ? '' : '(choisis d’abord une date)'}
       </Txt>
       <View style={styles.wrap}>
-        {slots.map((s) => (
-          <Chip key={s} label={s} active={s === slot} onPress={() => setSlot(s)} size="lg" />
-        ))}
+        {slots.map((s) => {
+          const isTaken = !!date && taken.includes(s);
+          return (
+            <Chip
+              key={s}
+              label={isTaken ? `${s} · réservé` : s}
+              active={s === slot}
+              disabled={!date || isTaken}
+              onPress={() => setSlot(s)}
+              size="lg"
+            />
+          );
+        })}
       </View>
 
       <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
@@ -125,16 +143,22 @@ export default function ReserverScreen() {
             Diviser entre joueurs
           </Txt>
           <Txt variant="muted">
-            {split ? `Chacun paie ≈ ${fcfa(perPlayer)}` : `Chacun paie sa part (terrain ÷ joueurs)`}
+            {split ? `Chacun paie ≈ ${fcfa(perPlayer)}` : 'Chacun paie sa part (terrain ÷ joueurs)'}
           </Txt>
         </View>
         <Switch value={split} onValueChange={setSplit} trackColor={{ true: colors.gold, false: colors.border }} thumbColor={colors.white} />
       </Card>
 
       <View style={{ marginTop: spacing.xl }}>
-        <Button label="Confirmer la réservation" icon="checkmark" onPress={confirm} disabled={!date || !slot || !payment} full />
+        <Button
+          label={paying ? 'Paiement en cours…' : `Payer ≈ ${fcfa(amount)}`}
+          icon={paying ? 'hourglass' : 'card'}
+          onPress={pay}
+          disabled={!date || !slot || !payment || paying}
+          full
+        />
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-          Prototype : paiement simulé, réservation enregistrée sur ton téléphone.
+          Le créneau n’est réservé qu’une fois le paiement effectué (paiement simulé en démo).
         </Txt>
       </View>
     </Screen>

@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ClubCard } from '@/components/ClubCard';
@@ -36,7 +37,7 @@ export default function HomeScreen() {
   return (
     <Screen>
       {/* Hero */}
-      <View style={styles.hero}>
+      <LinearGradient colors={['#1B1812', colors.bg]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.hero}>
         <View style={styles.brandRow}>
           <Logo size={30} />
           <View style={styles.cityChip}>
@@ -52,7 +53,7 @@ export default function HomeScreen() {
         <Txt variant="muted" style={{ marginTop: 4 }}>
           Réserve un terrain, trouve un partenaire ou un coach — partout à Abidjan.
         </Txt>
-      </View>
+      </LinearGradient>
 
       {/* Actions rapides */}
       <View style={styles.grid}>
@@ -124,7 +125,14 @@ export default function HomeScreen() {
 }
 
 const styles = StyleSheet.create({
-  hero: { marginTop: spacing.md, marginBottom: spacing.lg },
+  hero: {
+    marginTop: spacing.sm,
+    marginBottom: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: radius.xl,
+    borderWidth: 1,
+    borderColor: colors.border,
+  },
   brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   cityChip: {
     flexDirection: 'row',

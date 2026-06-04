@@ -10,15 +10,21 @@ export function Chip({
   onPress,
   size = 'md',
   icon,
+  disabled,
 }: {
   label: string;
   active?: boolean;
   onPress?: () => void;
   size?: 'md' | 'lg';
   icon?: IconName;
+  disabled?: boolean;
 }) {
   return (
-    <Pressable onPress={onPress} style={[styles.base, size === 'lg' && styles.lg, active && styles.active]}>
+    <Pressable
+      onPress={disabled ? undefined : onPress}
+      disabled={disabled}
+      style={[styles.base, size === 'lg' && styles.lg, active && styles.active, disabled && styles.disabled]}
+    >
       {icon ? <Ionicons name={icon} size={13} color={active ? colors.onGold : colors.textMuted} /> : null}
       <Txt variant="small" color={active ? colors.onGold : colors.text} style={{ fontWeight: '600' }}>
         {label}
@@ -41,4 +47,5 @@ const styles = StyleSheet.create({
   },
   lg: { paddingHorizontal: spacing.lg },
   active: { backgroundColor: colors.gold, borderColor: colors.gold },
+  disabled: { opacity: 0.4 },
 });

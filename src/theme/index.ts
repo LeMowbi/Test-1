@@ -10,8 +10,10 @@ export const colors = {
   borderSoft: 'rgba(255,255,255,0.06)',
 
   gold: '#C9A24B',
+  goldDark: '#A07E2C',
   goldSoft: 'rgba(201,162,75,0.14)',
   green: '#1FB57A',
+  greenDark: '#178A5C',
   greenSoft: 'rgba(31,181,122,0.14)',
 
   text: '#F5F5F2',
@@ -41,5 +43,13 @@ export const font = {
   },
 } as const;
 
-export const theme = { colors, spacing, radius, font };
+export const shadowCard = {
+  shadowColor: '#000',
+  shadowOpacity: 0.35,
+  shadowRadius: 16,
+  shadowOffset: { width: 0, height: 10 },
+  elevation: 6,
+} as const;
+
+export const theme = { colors, spacing, radius, font, shadowCard };
 export default theme;

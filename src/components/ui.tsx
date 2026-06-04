@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
 import {
   Pressable,
@@ -9,7 +10,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { colors, font, radius, spacing } from '@/theme';
+import { colors, font, radius, shadowCard, spacing } from '@/theme';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -98,6 +99,7 @@ export function Card({
 
 const card = StyleSheet.create({
   base: {
+    ...shadowCard,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -129,6 +131,41 @@ export function Button({
   disabled?: boolean;
 }) {
   const tone = btnTones[variant];
+  const inner = (
+    <>
+      {icon ? <Ionicons name={icon} size={size === 'sm' ? 16 : 18} color={tone.fg} /> : null}
+      <Text style={[btn.label, size === 'sm' && { fontSize: font.size.sm }, { color: tone.fg }]}>
+        {label}
+      </Text>
+    </>
+  );
+
+  // Variante primaire : dégradé or (effet premium).
+  if (variant === 'primary') {
+    return (
+      <Pressable
+        onPress={onPress}
+        disabled={disabled}
+        style={({ pressed }) => [
+          shadowCard,
+          { borderRadius: size === 'sm' ? radius.sm : radius.md },
+          full && { alignSelf: 'stretch' },
+          pressed && { opacity: 0.9 },
+          disabled && { opacity: 0.45 },
+        ]}
+      >
+        <LinearGradient
+          colors={[colors.gold, colors.goldDark]}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={[btn.base, size === 'sm' && btn.sm, { borderColor: 'transparent' }]}
+        >
+          {inner}
+        </LinearGradient>
+      </Pressable>
+    );
+  }
+
   return (
     <Pressable
       onPress={onPress}
@@ -142,10 +179,7 @@ export function Button({
         disabled && { opacity: 0.45 },
       ]}
     >
-      {icon ? <Ionicons name={icon} size={size === 'sm' ? 16 : 18} color={tone.fg} /> : null}
-      <Text style={[btn.label, size === 'sm' && { fontSize: font.size.sm }, { color: tone.fg }]}>
-        {label}
-      </Text>
+      {inner}
     </Pressable>
   );
 }

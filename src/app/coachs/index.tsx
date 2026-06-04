@@ -3,8 +3,10 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
-import { Card, Tag, Txt } from '@/components/ui';
+import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
+import { getClub } from '@/data/clubs';
 import { coaches, type Coach } from '@/data/coaches';
+import { useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
@@ -49,6 +51,11 @@ function CoachRow({ coach }: { coach: Coach }) {
 }
 
 export default function CoachsScreen() {
+  const { state } = useApp();
+  const clubCoaches = Object.entries(state.clubCoaches).flatMap(([clubId, list]) =>
+    list.map((c) => ({ ...c, clubName: getClub(clubId)?.name ?? 'Club' }))
+  );
+
   return (
     <Screen back title="Coachs" subtitle="Réserve un entraînement à Abidjan">
       <View style={styles.note}>
@@ -57,9 +64,30 @@ export default function CoachsScreen() {
           Profils de démonstration — à remplacer par de vrais coachs partenaires.
         </Txt>
       </View>
+
       {coaches.map((c) => (
         <CoachRow key={c.id} coach={c} />
       ))}
+
+      {clubCoaches.length > 0 ? (
+        <View style={{ marginTop: spacing.xl }}>
+          <SectionHeader title="Coachs des clubs" />
+          {clubCoaches.map((c) => (
+            <Card key={c.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <IconCircle icon="person" color={colors.gold} bg={colors.goldSoft} size={40} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3" style={{ fontSize: 15 }}>
+                  {c.name}
+                </Txt>
+                <Txt variant="muted">
+                  {c.specialty} · {c.clubName}
+                </Txt>
+              </View>
+              <Tag label="Club" tone="neutral" />
+            </Card>
+          ))}
+        </View>
+      ) : null}
     </Screen>
   );
 }

@@ -20,12 +20,32 @@ const ALL_TIMES = [
 
 export default function ClubAdmin() {
   const router = useRouter();
-  const { state, setClubMode, setManagedClub, addClubSlot, removeClubSlot, addClubPhoto, removeClubPhoto } = useApp();
+  const {
+    state,
+    setClubMode,
+    setManagedClub,
+    addClubSlot,
+    removeClubSlot,
+    addClubPhoto,
+    removeClubPhoto,
+    addClubOffer,
+    removeClubOffer,
+    addClubCoach,
+    removeClubCoach,
+  } = useApp();
+
   const [url, setUrl] = useState('');
+  const [offerKind, setOfferKind] = useState<'offre' | 'actu'>('offre');
+  const [offerTitle, setOfferTitle] = useState('');
+  const [offerDetail, setOfferDetail] = useState('');
+  const [coachName, setCoachName] = useState('');
+  const [coachSpec, setCoachSpec] = useState('');
 
   const club = getClub(state.managedClubId) ?? clubsByName[0];
   const openSlots = state.clubSlots[club.id] ?? [];
   const photos = state.clubPhotos[club.id] ?? [];
+  const offers = state.clubOffers[club.id] ?? [];
+  const coaches = state.clubCoaches[club.id] ?? [];
   const reservations = state.reservations.filter((r) => r.clubId === club.id);
   const comps = [
     ...state.myCompetitions.filter((c) => c.clubId === club.id),
@@ -41,6 +61,18 @@ export default function ClubAdmin() {
       addClubPhoto(club.id, url.trim());
       setUrl('');
     }
+  };
+  const submitOffer = () => {
+    if (offerTitle.trim().length < 2) return;
+    addClubOffer(club.id, offerKind, offerTitle, offerDetail);
+    setOfferTitle('');
+    setOfferDetail('');
+  };
+  const submitCoach = () => {
+    if (coachName.trim().length < 2) return;
+    addClubCoach(club.id, coachName, coachSpec);
+    setCoachName('');
+    setCoachSpec('');
   };
 
   return (
@@ -80,7 +112,7 @@ export default function ClubAdmin() {
             {photos.map((uri) => (
               <View key={uri}>
                 <ClubPhoto uri={uri} accent={club.accent} initials={initials(club.name)} height={90} width={120} rounded={radius.md} />
-                <Pressable onPress={() => removeClubPhoto(club.id, uri)} style={styles.removePhoto} hitSlop={6}>
+                <Pressable onPress={() => removeClubPhoto(club.id, uri)} style={styles.removeBadge} hitSlop={6}>
                   <Ionicons name="close" size={14} color={colors.white} />
                 </Pressable>
               </View>
@@ -92,21 +124,72 @@ export default function ClubAdmin() {
               </Txt>
             </Pressable>
           </ScrollView>
-
-          <View style={styles.urlRow}>
-            <TextInput
-              value={url}
-              onChangeText={setUrl}
-              placeholder="…ou coller un lien d'image (https://)"
-              placeholderTextColor={colors.textFaint}
-              autoCapitalize="none"
-              style={styles.input}
-            />
+          <View style={styles.inlineRow}>
+            <TextInput value={url} onChangeText={setUrl} placeholder="…ou coller un lien d'image (https://)" placeholderTextColor={colors.textFaint} autoCapitalize="none" style={styles.input} />
             <Button size="sm" label="Ajouter" icon="add" onPress={addPhotoFromUrl} />
           </View>
-          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-            Sans photo ajoutée, des visuels illustratifs sont affichés aux joueurs.
-          </Txt>
+        </Card>
+      </View>
+
+      {/* Offres & actus */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Offres & actus" />
+        <Card>
+          <Txt variant="muted">Publie ce que tu veux : promotions, événements, infos du club.</Txt>
+          <View style={[styles.wrap, { marginTop: spacing.md }]}>
+            <Chip label="Offre" active={offerKind === 'offre'} onPress={() => setOfferKind('offre')} />
+            <Chip label="Actu" active={offerKind === 'actu'} onPress={() => setOfferKind('actu')} />
+          </View>
+          <TextInput value={offerTitle} onChangeText={setOfferTitle} placeholder="Titre (ex. -20% le mardi)" placeholderTextColor={colors.textFaint} style={styles.input} />
+          <TextInput value={offerDetail} onChangeText={setOfferDetail} placeholder="Détail (optionnel)" placeholderTextColor={colors.textFaint} style={styles.input} />
+          <View style={{ marginTop: spacing.sm }}>
+            <Button size="sm" label="Publier" icon="add" onPress={submitOffer} />
+          </View>
+          <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+            {offers.length === 0 ? (
+              <Txt variant="small" color={colors.textFaint}>Aucune publication — les offres par défaut sont affichées aux joueurs.</Txt>
+            ) : (
+              offers.map((o) => (
+                <View key={o.id} style={styles.listRow}>
+                  <Tag label={o.kind === 'actu' ? 'Actu' : 'Offre'} tone={o.kind === 'actu' ? 'green' : 'gold'} />
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body" style={{ fontWeight: '600' }}>{o.title}</Txt>
+                    {o.detail ? <Txt variant="muted">{o.detail}</Txt> : null}
+                  </View>
+                  <Pressable onPress={() => removeClubOffer(club.id, o.id)} hitSlop={8}>
+                    <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                  </Pressable>
+                </View>
+              ))
+            )}
+          </View>
+        </Card>
+      </View>
+
+      {/* Coachs du club */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Coachs du club" />
+        <Card>
+          <Txt variant="muted">Ajoute les coachs de ton club.</Txt>
+          <TextInput value={coachName} onChangeText={setCoachName} placeholder="Nom du coach" placeholderTextColor={colors.textFaint} style={styles.input} />
+          <TextInput value={coachSpec} onChangeText={setCoachSpec} placeholder="Spécialité (ex. Initiation, Compétition)" placeholderTextColor={colors.textFaint} style={styles.input} />
+          <View style={{ marginTop: spacing.sm }}>
+            <Button size="sm" label="Ajouter le coach" icon="add" onPress={submitCoach} />
+          </View>
+          <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+            {coaches.map((c) => (
+              <View key={c.id} style={styles.listRow}>
+                <IconCircle icon="person" color={colors.gold} bg={colors.goldSoft} size={36} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
+                  <Txt variant="muted">{c.specialty}</Txt>
+                </View>
+                <Pressable onPress={() => removeClubCoach(club.id, c.id)} hitSlop={8}>
+                  <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                </Pressable>
+              </View>
+            ))}
+          </View>
         </Card>
       </View>
 
@@ -114,7 +197,7 @@ export default function ClubAdmin() {
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Créneaux ouverts à la réservation" />
         <Card>
-          <Txt variant="muted">Créneaux actuellement ouverts (touche pour retirer) :</Txt>
+          <Txt variant="muted">Créneaux ouverts (touche pour retirer) :</Txt>
           <View style={styles.wrap}>
             {openSlots.length === 0 ? (
               <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
@@ -148,8 +231,7 @@ export default function ClubAdmin() {
         {reservations.length === 0 ? (
           <Card>
             <Txt variant="muted">
-              Aucune réservation pour {club.name} pour l’instant. Réserve un créneau depuis la fiche du club pour la voir
-              apparaître ici.
+              Aucune réservation pour {club.name} pour l’instant. Réserve un créneau depuis la fiche du club pour la voir apparaître ici.
             </Txt>
           </Card>
         ) : (
@@ -162,7 +244,7 @@ export default function ClubAdmin() {
                 </Txt>
                 <Txt variant="muted">{r.players} joueurs{r.payment ? ` · ${r.payment}` : ''}</Txt>
               </View>
-              <Tag label="À confirmer" tone="gold" />
+              <Tag label="Payé" tone="green" />
             </Card>
           ))
         )}
@@ -210,7 +292,7 @@ const styles = StyleSheet.create({
     borderRadius: radius.pill,
     backgroundColor: colors.greenSoft,
   },
-  removePhoto: {
+  removeBadge: {
     position: 'absolute',
     top: 4,
     right: 4,
@@ -231,9 +313,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  urlRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  inlineRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   input: {
-    flex: 1,
     backgroundColor: colors.bg,
     borderWidth: 1,
     borderColor: colors.border,
@@ -242,5 +324,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     fontSize: 14,
+    marginTop: spacing.sm,
+    flex: 1,
   },
 });

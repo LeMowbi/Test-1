@@ -211,6 +211,16 @@ export function clubOffers(club: Club) {
   return club.offers && club.offers.length ? club.offers : DEFAULT_OFFERS;
 }
 
+// Publication d'un club (offre ou actualité) — texte libre géré par le club.
+export type ClubPost = { id?: string; kind: 'offre' | 'actu'; title: string; detail: string };
+
+// Offres/actus à afficher : celles gérées par le club si présentes, sinon les offres par défaut.
+export function offersForClub(club: Club, managed: ClubPost[] = []): ClubPost[] {
+  if (managed.length) return managed;
+  const base = club.offers && club.offers.length ? club.offers : DEFAULT_OFFERS;
+  return base.map((o) => ({ kind: 'offre' as const, title: o.title, detail: o.detail }));
+}
+
 // Galerie d'un club = photos ajoutées par le club (extra) + photos par défaut.
 export function clubGallery(club: Club, extra: string[] = []): string[] {
   const base = club.photos && club.photos.length ? club.photos : defaultClubPhotos(club.id);

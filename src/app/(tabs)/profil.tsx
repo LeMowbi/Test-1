@@ -15,7 +15,7 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { state, stats, setLevel, setDefaultVisibility, setReservationResult, signOut, resetAll } = useApp();
+  const { state, stats, setLevel, setDefaultVisibility, setReservationResult, cancelReservation, signOut, resetAll } = useApp();
   const { account, level, defaultVisibility, reservations } = state;
 
   const [editing, setEditing] = useState(false);
@@ -121,6 +121,7 @@ export default function ProfilScreen() {
                   <Button size="sm" label="J'ai perdu" icon="close" variant="danger" onPress={() => setReservationResult(r.id, 'loss')} full />
                 </View>
               </View>
+              <Button size="sm" label="Annuler la réservation" variant="ghost" onPress={() => cancelReservation(r.id)} />
             </Card>
           ))
         )}
@@ -201,6 +202,7 @@ export default function ProfilScreen() {
       </View>
 
       <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+        <Button label="Mentions légales & CGU" icon="document-text-outline" variant="ghost" onPress={() => router.push('/legal')} />
         <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={signOut} />
         <Button label="Réinitialiser la démo" icon="refresh" variant="ghost" onPress={resetAll} />
       </View>

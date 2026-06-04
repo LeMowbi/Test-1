@@ -38,6 +38,8 @@ type AppState = {
   reservations: Reservation[];
   favoriteClubIds: string[];
   clubPhotos: Record<string, string[]>;
+  clubOffers: Record<string, { id: string; kind: 'offre' | 'actu'; title: string; detail: string }[]>;
+  clubCoaches: Record<string, { id: string; name: string; specialty: string }[]>;
   clubMode: boolean;
   managedClubId: string;
   clubSlots: Record<string, string[]>;
@@ -57,6 +59,8 @@ const initialState: AppState = {
   reservations: [],
   favoriteClubIds: [],
   clubPhotos: {},
+  clubOffers: {},
+  clubCoaches: {},
   clubMode: false,
   managedClubId: 'padelta',
   clubSlots: {},
@@ -68,6 +72,7 @@ type AppContextType = {
   stats: Stats;
   setAccount: (a: Account) => void;
   updateAccount: (patch: Partial<Account>) => void;
+  loadDemo: () => void;
   signOut: () => void;
   setLevel: (n: number) => void;
   setDefaultVisibility: (v: Visibility) => void;
@@ -76,9 +81,14 @@ type AppContextType = {
   addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => void;
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt'>) => void;
   setReservationResult: (id: string, result: 'win' | 'loss') => void;
+  cancelReservation: (id: string) => void;
   toggleFavorite: (clubId: string) => void;
   addClubPhoto: (clubId: string, uri: string) => void;
   removeClubPhoto: (clubId: string, uri: string) => void;
+  addClubOffer: (clubId: string, kind: 'offre' | 'actu', title: string, detail: string) => void;
+  removeClubOffer: (clubId: string, id: string) => void;
+  addClubCoach: (clubId: string, name: string, specialty: string) => void;
+  removeClubCoach: (clubId: string, id: string) => void;
   setClubMode: (on: boolean) => void;
   setManagedClub: (id: string) => void;
   addClubSlot: (clubId: string, slot: string) => void;
@@ -137,6 +147,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateAccount: (patch) =>
         setState((s) => ({ ...s, account: s.account ? { ...s.account, ...patch } : s.account })),
       signOut: () => setState((s) => ({ ...s, account: null })),
+      loadDemo: () =>
+        setState(() => ({
+          ...initialState,
+          account: { firstName: 'Invité', lastName: 'Démo', phone: '+225 07 00 00 00 00' },
+          level: 3.5,
+          favoriteClubIds: ['padelta'],
+          reservations: [
+            { id: uid(), clubId: 'padelta', clubName: 'Padelta', date: "Aujourd'hui", time: '19:00', players: 4, payment: 'Orange Money', createdAt: Date.now() },
+            { id: uid(), clubId: 'padel-zone-4', clubName: 'Padel Zone 4', date: 'Sem. dernière', time: '18:00', players: 4, payment: 'Wave', createdAt: Date.now() - 86400000, result: 'win', resultAt: Date.now() - 86400000 },
+          ],
+        })),
       setLevel: (n) => setState((s) => ({ ...s, level: Math.min(7, Math.max(1, n)) })),
       setDefaultVisibility: (v) => setState((s) => ({ ...s, defaultVisibility: v })),
       addReview: (clubId, rating, text) =>
@@ -160,6 +181,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             r.id === id && !r.result ? { ...r, result, resultAt: Date.now() } : r
           ),
         })),
+      cancelReservation: (id) =>
+        setState((s) => ({ ...s, reservations: s.reservations.filter((r) => r.id !== id) })),
       toggleFavorite: (clubId) =>
         setState((s) => ({
           ...s,
@@ -177,6 +200,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({
           ...s,
           clubPhotos: { ...s.clubPhotos, [clubId]: (s.clubPhotos[clubId] ?? []).filter((x) => x !== uri) },
+        })),
+      addClubOffer: (clubId, kind, title, detail) =>
+        setState((s) => {
+          const t = title.trim();
+          if (!t) return s;
+          const existing = s.clubOffers[clubId] ?? [];
+          return {
+            ...s,
+            clubOffers: { ...s.clubOffers, [clubId]: [{ id: uid(), kind, title: t, detail: detail.trim() }, ...existing] },
+          };
+        }),
+      removeClubOffer: (clubId, id) =>
+        setState((s) => ({
+          ...s,
+          clubOffers: { ...s.clubOffers, [clubId]: (s.clubOffers[clubId] ?? []).filter((o) => o.id !== id) },
+        })),
+      addClubCoach: (clubId, name, specialty) =>
+        setState((s) => {
+          const n = name.trim();
+          if (!n) return s;
+          const existing = s.clubCoaches[clubId] ?? [];
+          return {
+            ...s,
+            clubCoaches: { ...s.clubCoaches, [clubId]: [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach' }, ...existing] },
+          };
+        }),
+      removeClubCoach: (clubId, id) =>
+        setState((s) => ({
+          ...s,
+          clubCoaches: { ...s.clubCoaches, [clubId]: (s.clubCoaches[clubId] ?? []).filter((c) => c.id !== id) },
         })),
       setClubMode: (on) => setState((s) => ({ ...s, clubMode: on })),
       setManagedClub: (id) => setState((s) => ({ ...s, managedClubId: id })),

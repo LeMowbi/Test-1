@@ -6,7 +6,7 @@ import { ClubPhoto } from '@/components/ClubPhoto';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
-import { clubGallery, clubOffers, getClub } from '@/data/clubs';
+import { clubGallery, getClub, offersForClub } from '@/data/clubs';
 import { seedReviews } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
@@ -33,7 +33,7 @@ export default function ClubDetail() {
 
   const fav = state.favoriteClubIds.includes(club.id);
   const gallery = clubGallery(club, state.clubPhotos[club.id] ?? []);
-  const offers = clubOffers(club);
+  const offers = offersForClub(club, state.clubOffers[club.id] ?? []);
   const reviews = [
     ...state.userReviews.filter((r) => r.clubId === club.id),
     ...seedReviews.filter((r) => r.clubId === club.id),
@@ -49,29 +49,29 @@ export default function ClubDetail() {
 
   return (
     <Screen back>
-      {/* Galerie photos */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm }}>
-        {gallery.map((uri, i) => (
-          <ClubPhoto key={`${uri}-${i}`} uri={uri} accent={club.accent} initials={initials(club.name)} height={190} width={300} />
-        ))}
-      </ScrollView>
-
-      <View style={{ marginTop: spacing.lg, flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
-        <View style={{ flex: 1 }}>
-          <Txt variant="display" style={{ fontSize: 28 }}>
-            {club.name}
-          </Txt>
-          <View style={styles.areaRow}>
-            <Ionicons name="location-outline" size={15} color={colors.textMuted} />
-            <Txt variant="muted">
-              {club.area} · {club.city}
-            </Txt>
-          </View>
-        </View>
+      {/* Photo héros */}
+      <View>
+        <ClubPhoto
+          uri={gallery[0]}
+          accent={club.accent}
+          initials={initials(club.name)}
+          height={220}
+          overlay
+          caption={club.name}
+          subtitle={`${club.area} · ${club.city}`}
+        />
         <Pressable onPress={() => toggleFavorite(club.id)} hitSlop={8} style={styles.favBtn}>
-          <Ionicons name={fav ? 'heart' : 'heart-outline'} size={22} color={fav ? colors.danger : colors.text} />
+          <Ionicons name={fav ? 'heart' : 'heart-outline'} size={22} color={fav ? colors.danger : colors.white} />
         </Pressable>
       </View>
+
+      {gallery.length > 1 ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginTop: spacing.sm }}>
+          {gallery.slice(1).map((uri, i) => (
+            <ClubPhoto key={`${uri}-${i}`} uri={uri} accent={club.accent} height={72} width={104} rounded={radius.md} />
+          ))}
+        </ScrollView>
+      ) : null}
 
       <View style={styles.tags}>
         <Tag label={club.type} tone="neutral" />
@@ -113,18 +113,19 @@ export default function ClubDetail() {
         </Txt>
       </Card>
 
-      {/* Actus & offres */}
+      {/* Offres & actus (gérées par le club) */}
       <Card style={{ marginTop: spacing.lg }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
           <Ionicons name="megaphone-outline" size={18} color={colors.gold} />
-          <Txt variant="h3">Actus & offres</Txt>
+          <Txt variant="h3">Offres & actus</Txt>
         </View>
         {offers.map((o, i) => (
-          <View key={o.title} style={{ marginTop: i === 0 ? 0 : spacing.sm }}>
-            <Txt variant="body" style={{ fontWeight: '700' }}>
+          <View key={o.id ?? o.title} style={{ marginTop: i === 0 ? 0 : spacing.md }}>
+            <Tag label={o.kind === 'actu' ? 'Actu' : 'Offre'} tone={o.kind === 'actu' ? 'green' : 'gold'} />
+            <Txt variant="body" style={{ fontWeight: '700', marginTop: 4 }}>
               {o.title}
             </Txt>
-            <Txt variant="muted">{o.detail}</Txt>
+            {o.detail ? <Txt variant="muted">{o.detail}</Txt> : null}
           </View>
         ))}
       </Card>
@@ -187,18 +188,18 @@ export default function ClubDetail() {
 }
 
 const styles = StyleSheet.create({
-  areaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: spacing.sm },
   favBtn: {
-    width: 44,
-    height: 44,
+    position: 'absolute',
+    top: spacing.md,
+    right: spacing.md,
+    width: 42,
+    height: 42,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.overlay,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  tags: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md, flexWrap: 'wrap' },
+  tags: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, flexWrap: 'wrap' },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, alignItems: 'stretch' },
   amenities: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md },
   amenity: { flexDirection: 'row', alignItems: 'center', gap: 4 },
