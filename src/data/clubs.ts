@@ -190,16 +190,26 @@ export const SAMPLE_SLOTS = [
   '17:00', '18:00', '19:00', '20:00', '21:00',
 ];
 
-// Photos illustratives LIBRES DE DROITS (service de placeholder par mot-clé "padel"),
-// chargées sur l'appareil. À remplacer par les photos officielles de chaque club.
-function flickr(lock: number): string {
-  return `https://loremflickr.com/800/600/padel,court?lock=${lock}`;
+// Vraies photos de padel LIBRES DE DROITS (Pexels), chargées sur l'appareil.
+// Illustratives — à remplacer par les photos officielles de chaque club.
+function pexels(id: number): string {
+  return `https://images.pexels.com/photos/${id}/pexels-photo-${id}.jpeg?auto=compress&cs=tinysrgb&w=900`;
 }
+
+const PADEL_PHOTOS = [
+  pexels(33641987), // joueur sur terrain de padel couvert
+  pexels(32474981), // terrain de padel intérieur (sol bleu)
+  pexels(32897040), // terrain de padel intérieur avec raquette & balles
+  pexels(31559322), // joueuse avec raquette de padel
+  pexels(31559327), // joueuse de padel (extérieur, été)
+  pexels(34079475), // joueuse en plein match
+  pexels(4536850), // raquette de padel et balles sur le terrain
+];
 
 export function defaultClubPhotos(clubId: string): string[] {
   const i = Math.max(0, clubs.findIndex((c) => c.id === clubId));
-  const base = 11 + i * 3;
-  return [flickr(base), flickr(base + 1), flickr(base + 2)];
+  const start = (i * 2) % PADEL_PHOTOS.length;
+  return [0, 1, 2].map((k) => PADEL_PHOTOS[(start + k) % PADEL_PHOTOS.length]);
 }
 
 export const DEFAULT_OFFERS = [
