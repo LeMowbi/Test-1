@@ -1,19 +1,19 @@
 {
   "expo": {
-    "name": "PadelCI",
-    "slug": "padelci",
+    "name": "PadelCo",
+    "slug": "padelco",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "padelci",
+    "scheme": "padelco",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0E0F12",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ci.padelci.app"
+      "bundleIdentifier": "ci.padelco.app"
     },
     "android": {
-      "package": "ci.padelci.app",
+      "package": "ci.padelco.app",
       "adaptiveIcon": {
         "backgroundColor": "#0E0F12",
         "foregroundImage": "./assets/images/android-icon-foreground.png",

@@ -1,4 +1,4 @@
-# PadelCI 🎾 — l'app du padel à Abidjan
+# PadelCo 🎾 — l'app du padel à Abidjan
 
 Application mobile (iOS + Android, et web) pour **réserver un terrain de padel à Abidjan, trouver
 un partenaire / adversaire / coéquipier, trouver un coach, organiser des compétitions** et suivre

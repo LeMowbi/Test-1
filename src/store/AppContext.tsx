@@ -32,7 +32,7 @@ type AppState = {
   clubSlots: Record<string, string[]>;
 };
 
-const STORAGE_KEY = 'padelci_state_v1';
+const STORAGE_KEY = 'padelco_state_v1';
 
 const initialState: AppState = {
   wins: 0,

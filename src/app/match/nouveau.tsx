@@ -99,7 +99,7 @@ export default function NouveauMatch() {
           onPress={() => setVisibility('public')}
           icon="earth"
           title="Public"
-          desc="Visible par tous les joueurs de PadelCI."
+          desc="Visible par tous les joueurs de PadelCo."
         />
         <VisibilityOption
           active={visibility === 'amis'}

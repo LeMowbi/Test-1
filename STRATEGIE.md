@@ -1,4 +1,4 @@
-# PadelCI — Stratégie, faisabilité & mise en marché
+# PadelCo — Stratégie, faisabilité & mise en marché
 
 Ce document répond à tes questions : **est-ce possible ?**, **comment coder l'app ?**,
 **comment la mettre en ligne sur Apple et Android ?**, **comment la présenter aux terrains ?**,

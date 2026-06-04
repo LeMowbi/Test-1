@@ -4,6 +4,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ClubCard } from '@/components/ClubCard';
 import { CompetitionCard } from '@/components/CompetitionCard';
+import { Logo } from '@/components/Logo';
 import { MatchCard } from '@/components/MatchCard';
 import { Screen } from '@/components/Screen';
 import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
@@ -39,9 +40,7 @@ export default function HomeScreen() {
       {/* Hero */}
       <View style={styles.hero}>
         <View style={styles.brandRow}>
-          <Txt variant="label" color={colors.gold}>
-            PADELCI
-          </Txt>
+          <Logo size={30} />
           <View style={styles.cityChip}>
             <Ionicons name="location-outline" size={13} color={colors.textMuted} />
             <Txt variant="small" color={colors.textMuted}>
