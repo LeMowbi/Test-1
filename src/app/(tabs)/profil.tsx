@@ -100,7 +100,7 @@ export default function ProfilScreen() {
                     {r.clubName}
                   </Txt>
                   <Txt variant="muted">
-                    {r.date} · {r.time} · {r.players} joueurs
+                    {r.date} · {r.time} · {r.players} joueurs{r.payment ? ` · ${r.payment}` : ''}
                   </Txt>
                 </View>
               </View>

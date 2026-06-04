@@ -15,6 +15,7 @@ export type Reservation = {
   date: string;
   time: string;
   players: number;
+  payment: string;
   createdAt: number;
 };
 

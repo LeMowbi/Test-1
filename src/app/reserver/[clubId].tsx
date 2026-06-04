@@ -3,9 +3,11 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { PaymentMethods } from '@/components/PaymentMethods';
 import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, Txt } from '@/components/ui';
 import { SAMPLE_SLOTS, getClub } from '@/data/clubs';
+import { paymentLabel } from '@/data/payments';
 import { useApp } from '@/store/AppContext';
 import { fcfa } from '@/lib/format';
 import { colors, spacing } from '@/theme';
@@ -31,6 +33,7 @@ export default function ReserverScreen() {
   const [date, setDate] = useState<string | null>(null);
   const [slot, setSlot] = useState<string | null>(null);
   const [players, setPlayers] = useState(4);
+  const [payment, setPayment] = useState<string | null>(null);
   const [done, setDone] = useState(false);
 
   if (!club) {
@@ -44,8 +47,15 @@ export default function ReserverScreen() {
   const slots = Array.from(new Set([...SAMPLE_SLOTS, ...(state.clubSlots[club.id] ?? [])])).sort();
 
   const confirm = () => {
-    if (!date || !slot) return;
-    addReservation({ clubId: club.id, clubName: club.name, date, time: slot, players });
+    if (!date || !slot || !payment) return;
+    addReservation({
+      clubId: club.id,
+      clubName: club.name,
+      date,
+      time: slot,
+      players,
+      payment: paymentLabel(payment),
+    });
     setDone(true);
   };
 
@@ -65,6 +75,7 @@ export default function ReserverScreen() {
             <Row label="Date" value={date!} />
             <Row label="Heure" value={slot!} />
             <Row label="Joueurs" value={`${players}`} />
+            <Row label="Paiement" value={paymentLabel(payment)} />
             <Row label="Tarif indicatif" value={`dès ${fcfa(club.priceFrom)}/h`} />
           </View>
           <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
@@ -105,10 +116,17 @@ export default function ReserverScreen() {
         ))}
       </View>
 
+      <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
+        Mode de paiement
+      </Txt>
+      <View style={{ marginTop: spacing.sm }}>
+        <PaymentMethods value={payment} onChange={setPayment} />
+      </View>
+
       <View style={{ marginTop: spacing.xl }}>
-        <Button label="Confirmer la réservation" icon="checkmark" onPress={confirm} disabled={!date || !slot} full />
+        <Button label="Confirmer la réservation" icon="checkmark" onPress={confirm} disabled={!date || !slot || !payment} full />
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-          Prototype : la réservation est simulée et enregistrée sur ton téléphone.
+          Prototype : paiement simulé, réservation enregistrée sur ton téléphone.
         </Txt>
       </View>
     </Screen>

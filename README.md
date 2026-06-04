@@ -11,6 +11,7 @@ ses résultats. Conçue avec un design sobre « luxe + sport ».
 ## Fonctionnalités (toutes présentes ✅)
 
 - **Réservation** d'un terrain par créneau horaire, partout à Abidjan.
+- **Paiement (simulé)** : Wave, Orange Money, MTN/Moov Money, carte bancaire ou espèces au club — prêt à brancher sur un vrai paiement (CinetPay/PayDunya) plus tard.
 - **Tous les clubs réels** d'Abidjan, présentés **à égalité, sans classement « meilleur club »**.
 - **Position Google Maps** pour chaque club (bouton « Carte »).
 - **Photos provisoires** (les vraies photos nécessitent l'accord des clubs — voir STRATEGIE.md).

@@ -109,7 +109,7 @@ export default function ClubAdmin() {
                 <Txt variant="h3" style={{ fontSize: 15 }}>
                   {r.date} · {r.time}
                 </Txt>
-                <Txt variant="muted">{r.players} joueurs</Txt>
+                <Txt variant="muted">{r.players} joueurs{r.payment ? ` · ${r.payment}` : ''}</Txt>
               </View>
               <Tag label="À confirmer" tone="gold" />
             </Card>
