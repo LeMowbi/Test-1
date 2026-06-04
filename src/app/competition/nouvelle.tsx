@@ -6,7 +6,6 @@ import { Screen } from '@/components/Screen';
 import { Button, Txt } from '@/components/ui';
 import { clubs } from '@/data/clubs';
 import { COMP_FORMATS } from '@/data/competitions';
-import { currentUser } from '@/data/user';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -46,7 +45,7 @@ export default function NouvelleCompetition() {
   const params = useLocalSearchParams<{ as?: string; clubId?: string }>();
   const asClub = params.as === 'club';
   const club = asClub ? clubs.find((c) => c.id === params.clubId) : undefined;
-  const { addCompetition } = useApp();
+  const { state, addCompetition } = useApp();
 
   const [title, setTitle] = useState('');
   const [reward, setReward] = useState('');
@@ -61,7 +60,7 @@ export default function NouvelleCompetition() {
     addCompetition({
       title: title.trim(),
       organizerType: asClub ? 'club' : 'joueur',
-      organizer: club?.name ?? currentUser.name,
+      organizer: club?.name ?? state.account?.firstName ?? 'Joueur',
       clubId: club?.id,
       clubName: club?.name,
       date,

@@ -16,6 +16,8 @@ export type Club = {
   reviewsCount: number; // démo
   mapsQuery: string; // requête Google Maps
   accent: string; // couleur du visuel placeholder
+  photos?: string[]; // photos officielles (sinon photos illustratives par défaut)
+  offers?: { title: string; detail: string }[];
 };
 
 export const CITY = 'Abidjan';
@@ -187,3 +189,30 @@ export const SAMPLE_SLOTS = [
   '07:00', '08:00', '09:00', '10:00', '11:00',
   '17:00', '18:00', '19:00', '20:00', '21:00',
 ];
+
+// Photos illustratives LIBRES DE DROITS (service de placeholder par mot-clé "padel"),
+// chargées sur l'appareil. À remplacer par les photos officielles de chaque club.
+function flickr(lock: number): string {
+  return `https://loremflickr.com/800/600/padel,court?lock=${lock}`;
+}
+
+export function defaultClubPhotos(clubId: string): string[] {
+  const i = Math.max(0, clubs.findIndex((c) => c.id === clubId));
+  const base = 11 + i * 3;
+  return [flickr(base), flickr(base + 1), flickr(base + 2)];
+}
+
+export const DEFAULT_OFFERS = [
+  { title: 'Happy hour', detail: '-20% en semaine de 12h à 15h.' },
+  { title: 'Initiation offerte', detail: '1ʳᵉ séance découverte gratuite.' },
+];
+
+export function clubOffers(club: Club) {
+  return club.offers && club.offers.length ? club.offers : DEFAULT_OFFERS;
+}
+
+// Galerie d'un club = photos ajoutées par le club (extra) + photos par défaut.
+export function clubGallery(club: Club, extra: string[] = []): string[] {
+  const base = club.photos && club.photos.length ? club.photos : defaultClubPhotos(club.id);
+  return [...extra, ...base];
+}

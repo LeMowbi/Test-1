@@ -1,12 +1,19 @@
 // État global de l'app (prototype) + persistance locale via AsyncStorage.
-// Gère : stats auto-déclarées, avis ajoutés, matchs/compétitions/réservations
-// créés par l'utilisateur, et le mode « Espace Club ».
+// Gère : compte local, niveau de jeu, favoris, avis, matchs/compétitions/réservations,
+// résultats validés par partie, photos gérées par les clubs, et mode « Espace Club ».
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { Competition } from '@/data/competitions';
 import type { Match, Visibility } from '@/data/matches';
 import type { Review } from '@/data/reviews';
+
+export type Account = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  photoUri?: string;
+};
 
 export type Reservation = {
   id: string;
@@ -17,33 +24,39 @@ export type Reservation = {
   players: number;
   payment: string;
   createdAt: number;
+  result?: 'win' | 'loss';
+  resultAt?: number;
 };
 
 type AppState = {
-  wins: number;
-  losses: number;
-  played: number;
+  account: Account | null;
+  level: number; // 1.0 → 7.0
   defaultVisibility: Visibility;
   userReviews: Review[];
   myMatches: Match[];
   myCompetitions: Competition[];
   reservations: Reservation[];
+  favoriteClubIds: string[];
+  clubPhotos: Record<string, string[]>;
   clubMode: boolean;
   managedClubId: string;
   clubSlots: Record<string, string[]>;
 };
 
-const STORAGE_KEY = 'padelco_state_v1';
+export type Stats = { wins: number; losses: number; played: number; winRate: number; streak: number };
+
+const STORAGE_KEY = 'padelco_state_v2';
 
 const initialState: AppState = {
-  wins: 0,
-  losses: 0,
-  played: 0,
+  account: null,
+  level: 3.0,
   defaultVisibility: 'public',
   userReviews: [],
   myMatches: [],
   myCompetitions: [],
   reservations: [],
+  favoriteClubIds: [],
+  clubPhotos: {},
   clubMode: false,
   managedClubId: 'padelta',
   clubSlots: {},
@@ -52,13 +65,20 @@ const initialState: AppState = {
 type AppContextType = {
   state: AppState;
   hydrated: boolean;
-  recordWin: () => void;
-  recordLoss: () => void;
+  stats: Stats;
+  setAccount: (a: Account) => void;
+  updateAccount: (patch: Partial<Account>) => void;
+  signOut: () => void;
+  setLevel: (n: number) => void;
   setDefaultVisibility: (v: Visibility) => void;
   addReview: (clubId: string, rating: number, text: string) => void;
   addMatch: (m: Omit<Match, 'id' | 'createdByMe'>) => void;
   addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => void;
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt'>) => void;
+  setReservationResult: (id: string, result: 'win' | 'loss') => void;
+  toggleFavorite: (clubId: string) => void;
+  addClubPhoto: (clubId: string, uri: string) => void;
+  removeClubPhoto: (clubId: string, uri: string) => void;
   setClubMode: (on: boolean) => void;
   setManagedClub: (id: string) => void;
   addClubSlot: (clubId: string, slot: string) => void;
@@ -70,68 +90,93 @@ const AppContext = createContext<AppContextType | null>(null);
 
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 
+function computeStats(reservations: Reservation[]): Stats {
+  const decided = reservations.filter((r) => r.result);
+  const wins = decided.filter((r) => r.result === 'win').length;
+  const played = decided.length;
+  const losses = played - wins;
+  const winRate = played > 0 ? Math.round((wins / played) * 100) : 0;
+  let streak = 0;
+  for (const r of [...decided].sort((a, b) => (b.resultAt ?? 0) - (a.resultAt ?? 0))) {
+    if (r.result === 'win') streak++;
+    else break;
+  }
+  return { wins, losses, played, winRate, streak };
+}
+
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(initialState);
   const [hydrated, setHydrated] = useState(false);
 
-  // Chargement initial
   useEffect(() => {
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
         if (raw) setState({ ...initialState, ...JSON.parse(raw) });
       } catch {
-        // ignore — on repart sur l'état par défaut
+        // état par défaut
       } finally {
         setHydrated(true);
       }
     })();
   }, []);
 
-  // Sauvegarde à chaque changement (après hydratation)
   useEffect(() => {
     if (!hydrated) return;
     AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
   }, [state, hydrated]);
 
+  const stats = useMemo(() => computeStats(state.reservations), [state.reservations]);
+
   const api = useMemo<AppContextType>(
     () => ({
       state,
       hydrated,
-      recordWin: () =>
-        setState((s) => ({ ...s, wins: s.wins + 1, played: s.played + 1 })),
-      recordLoss: () =>
-        setState((s) => ({ ...s, losses: s.losses + 1, played: s.played + 1 })),
+      stats,
+      setAccount: (a) => setState((s) => ({ ...s, account: a })),
+      updateAccount: (patch) =>
+        setState((s) => ({ ...s, account: s.account ? { ...s.account, ...patch } : s.account })),
+      signOut: () => setState((s) => ({ ...s, account: null })),
+      setLevel: (n) => setState((s) => ({ ...s, level: Math.min(7, Math.max(1, n)) })),
       setDefaultVisibility: (v) => setState((s) => ({ ...s, defaultVisibility: v })),
       addReview: (clubId, rating, text) =>
         setState((s) => ({
           ...s,
           userReviews: [
-            {
-              id: uid(),
-              clubId,
-              author: 'Vous',
-              rating,
-              text: text.trim() || 'Bonne expérience.',
-              date: "À l'instant",
-            },
+            { id: uid(), clubId, author: 'Vous', rating, text: text.trim() || 'Bonne expérience.', date: "À l'instant" },
             ...s.userReviews,
           ],
         })),
       addMatch: (m) =>
-        setState((s) => ({
-          ...s,
-          myMatches: [{ ...m, id: uid(), createdByMe: true }, ...s.myMatches],
-        })),
+        setState((s) => ({ ...s, myMatches: [{ ...m, id: uid(), createdByMe: true }, ...s.myMatches] })),
       addCompetition: (c) =>
-        setState((s) => ({
-          ...s,
-          myCompetitions: [{ ...c, id: uid(), createdByMe: true }, ...s.myCompetitions],
-        })),
+        setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true }, ...s.myCompetitions] })),
       addReservation: (r) =>
+        setState((s) => ({ ...s, reservations: [{ ...r, id: uid(), createdAt: Date.now() }, ...s.reservations] })),
+      setReservationResult: (id, result) =>
         setState((s) => ({
           ...s,
-          reservations: [{ ...r, id: uid(), createdAt: Date.now() }, ...s.reservations],
+          reservations: s.reservations.map((r) =>
+            r.id === id && !r.result ? { ...r, result, resultAt: Date.now() } : r
+          ),
+        })),
+      toggleFavorite: (clubId) =>
+        setState((s) => ({
+          ...s,
+          favoriteClubIds: s.favoriteClubIds.includes(clubId)
+            ? s.favoriteClubIds.filter((x) => x !== clubId)
+            : [...s.favoriteClubIds, clubId],
+        })),
+      addClubPhoto: (clubId, uri) =>
+        setState((s) => {
+          const existing = s.clubPhotos[clubId] ?? [];
+          if (!uri || existing.includes(uri)) return s;
+          return { ...s, clubPhotos: { ...s.clubPhotos, [clubId]: [...existing, uri] } };
+        }),
+      removeClubPhoto: (clubId, uri) =>
+        setState((s) => ({
+          ...s,
+          clubPhotos: { ...s.clubPhotos, [clubId]: (s.clubPhotos[clubId] ?? []).filter((x) => x !== uri) },
         })),
       setClubMode: (on) => setState((s) => ({ ...s, clubMode: on })),
       setManagedClub: (id) => setState((s) => ({ ...s, managedClubId: id })),
@@ -139,22 +184,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => {
           const existing = s.clubSlots[clubId] ?? [];
           if (existing.includes(slot)) return s;
-          return {
-            ...s,
-            clubSlots: { ...s.clubSlots, [clubId]: [...existing, slot].sort() },
-          };
+          return { ...s, clubSlots: { ...s.clubSlots, [clubId]: [...existing, slot].sort() } };
         }),
       removeClubSlot: (clubId, slot) =>
         setState((s) => ({
           ...s,
-          clubSlots: {
-            ...s.clubSlots,
-            [clubId]: (s.clubSlots[clubId] ?? []).filter((x) => x !== slot),
-          },
+          clubSlots: { ...s.clubSlots, [clubId]: (s.clubSlots[clubId] ?? []).filter((x) => x !== slot) },
         })),
       resetAll: () => setState(initialState),
     }),
-    [state, hydrated]
+    [state, hydrated, stats]
   );
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;

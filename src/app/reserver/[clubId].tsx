@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Switch, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { PaymentMethods } from '@/components/PaymentMethods';
 import { Screen } from '@/components/Screen';
@@ -34,6 +34,7 @@ export default function ReserverScreen() {
   const [slot, setSlot] = useState<string | null>(null);
   const [players, setPlayers] = useState(4);
   const [payment, setPayment] = useState<string | null>(null);
+  const [split, setSplit] = useState(false);
   const [done, setDone] = useState(false);
 
   if (!club) {
@@ -45,17 +46,11 @@ export default function ReserverScreen() {
   }
 
   const slots = Array.from(new Set([...SAMPLE_SLOTS, ...(state.clubSlots[club.id] ?? [])])).sort();
+  const perPlayer = Math.round(club.priceFrom / players);
 
   const confirm = () => {
     if (!date || !slot || !payment) return;
-    addReservation({
-      clubId: club.id,
-      clubName: club.name,
-      date,
-      time: slot,
-      players,
-      payment: paymentLabel(payment),
-    });
+    addReservation({ clubId: club.id, clubName: club.name, date, time: slot, players, payment: paymentLabel(payment) });
     setDone(true);
   };
 
@@ -76,6 +71,7 @@ export default function ReserverScreen() {
             <Row label="Heure" value={slot!} />
             <Row label="Joueurs" value={`${players}`} />
             <Row label="Paiement" value={paymentLabel(payment)} />
+            {split ? <Row label="Part / joueur" value={`≈ ${fcfa(perPlayer)}`} /> : null}
             <Row label="Tarif indicatif" value={`dès ${fcfa(club.priceFrom)}/h`} />
           </View>
           <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
@@ -123,6 +119,18 @@ export default function ReserverScreen() {
         <PaymentMethods value={payment} onChange={setPayment} />
       </View>
 
+      <Card style={styles.split}>
+        <View style={{ flex: 1 }}>
+          <Txt variant="h3" style={{ fontSize: 15 }}>
+            Diviser entre joueurs
+          </Txt>
+          <Txt variant="muted">
+            {split ? `Chacun paie ≈ ${fcfa(perPlayer)}` : `Chacun paie sa part (terrain ÷ joueurs)`}
+          </Txt>
+        </View>
+        <Switch value={split} onValueChange={setSplit} trackColor={{ true: colors.gold, false: colors.border }} thumbColor={colors.white} />
+      </Card>
+
       <View style={{ marginTop: spacing.xl }}>
         <Button label="Confirmer la réservation" icon="checkmark" onPress={confirm} disabled={!date || !slot || !payment} full />
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
@@ -146,6 +154,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  split: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.lg },
   summary: { alignSelf: 'stretch', marginTop: spacing.lg, gap: spacing.sm },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

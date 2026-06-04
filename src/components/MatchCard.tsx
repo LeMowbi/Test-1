@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Button, Card, Tag, Txt } from './ui';
 import type { Match } from '@/data/matches';
+import { inviteToMatch } from '@/lib/share';
 import { colors, spacing } from '@/theme';
 
 export function MatchCard({ match }: { match: Match }) {
@@ -33,7 +34,7 @@ export function MatchCard({ match }: { match: Match }) {
         </View>
         <View style={styles.meta}>
           <Ionicons name="podium-outline" size={14} color={colors.textMuted} />
-          <Txt variant="muted">{match.level}</Txt>
+          <Txt variant="muted">Niveau {match.levelValue.toFixed(1)}</Txt>
         </View>
       </View>
 
@@ -41,12 +42,15 @@ export function MatchCard({ match }: { match: Match }) {
         <Txt variant="muted">
           {match.spotsLeft} place{match.spotsLeft > 1 ? 's' : ''} · Hôte : {match.host}
         </Txt>
-        <Button
-          size="sm"
-          label={joined ? 'Inscrit ✓' : 'Rejoindre'}
-          variant={joined ? 'secondary' : 'primary'}
-          onPress={() => setJoined((v) => !v)}
-        />
+        <View style={styles.actions}>
+          <Button size="sm" label="Inviter" icon="share-social" variant="secondary" onPress={() => inviteToMatch(match)} />
+          <Button
+            size="sm"
+            label={joined ? 'Inscrit ✓' : 'Rejoindre'}
+            variant={joined ? 'secondary' : 'primary'}
+            onPress={() => setJoined((v) => !v)}
+          />
+        </View>
       </View>
     </Card>
   );
@@ -56,10 +60,6 @@ const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   metaRow: { flexDirection: 'row', gap: spacing.lg, marginTop: spacing.sm },
   meta: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-  },
+  footer: { marginTop: spacing.md, gap: spacing.sm },
+  actions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end' },
 });

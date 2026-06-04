@@ -4,24 +4,24 @@ import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { ClubCard } from '@/components/ClubCard';
 import { Screen } from '@/components/Screen';
-import { Txt } from '@/components/ui';
-import { clubsByName, type Club } from '@/data/clubs';
+import { EmptyState, Txt } from '@/components/ui';
+import { clubsByName } from '@/data/clubs';
+import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
-const FILTERS: Array<{ key: string; match: (c: Club) => boolean }> = [
-  { key: 'Tous', match: () => true },
-  { key: 'Couvert', match: (c) => c.type === 'Couvert' },
-  { key: 'Extérieur', match: (c) => c.type === 'Extérieur' },
-  { key: 'Mixte', match: (c) => c.type === 'Mixte' },
-];
+const FILTERS = ['Tous', 'Favoris', 'Couvert', 'Extérieur', 'Mixte'];
 
 export default function TerrainsScreen() {
+  const { state } = useApp();
   const [filter, setFilter] = useState('Tous');
 
   const list = useMemo(() => {
-    const f = FILTERS.find((x) => x.key === filter) ?? FILTERS[0];
-    return clubsByName.filter(f.match);
-  }, [filter]);
+    if (filter === 'Favoris') return clubsByName.filter((c) => state.favoriteClubIds.includes(c.id));
+    if (filter === 'Couvert' || filter === 'Extérieur' || filter === 'Mixte') {
+      return clubsByName.filter((c) => c.type === filter);
+    }
+    return clubsByName;
+  }, [filter, state.favoriteClubIds]);
 
   return (
     <Screen title="Terrains" subtitle={`${clubsByName.length} clubs de padel à Abidjan`}>
@@ -43,7 +43,7 @@ export default function TerrainsScreen() {
         contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.md }}
       >
         {FILTERS.map((f) => (
-          <Chip key={f.key} label={f.key} active={f.key === filter} onPress={() => setFilter(f.key)} size="lg" />
+          <Chip key={f} label={f} active={f === filter} onPress={() => setFilter(f)} size="lg" />
         ))}
       </ScrollView>
 
@@ -51,9 +51,11 @@ export default function TerrainsScreen() {
         Ordre alphabétique — aucun classement entre clubs.
       </Txt>
 
-      {list.map((c) => (
-        <ClubCard key={c.id} club={c} />
-      ))}
+      {list.length === 0 ? (
+        <EmptyState icon="heart-outline" title="Aucun favori" text="Touche le cœur sur un terrain pour l’ajouter ici." />
+      ) : (
+        list.map((c) => <ClubCard key={c.id} club={c} />)
+      )}
     </Screen>
   );
 }

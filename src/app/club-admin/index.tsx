@@ -1,12 +1,16 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { ClubPhoto } from '@/components/ClubPhoto';
 import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { clubsByName, getClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { useApp } from '@/store/AppContext';
+import { initials } from '@/lib/format';
+import { pickImage } from '@/lib/pickImage';
 import { colors, radius, spacing } from '@/theme';
 
 const ALL_TIMES = [
@@ -16,15 +20,28 @@ const ALL_TIMES = [
 
 export default function ClubAdmin() {
   const router = useRouter();
-  const { state, setClubMode, setManagedClub, addClubSlot, removeClubSlot } = useApp();
+  const { state, setClubMode, setManagedClub, addClubSlot, removeClubSlot, addClubPhoto, removeClubPhoto } = useApp();
+  const [url, setUrl] = useState('');
 
   const club = getClub(state.managedClubId) ?? clubsByName[0];
   const openSlots = state.clubSlots[club.id] ?? [];
+  const photos = state.clubPhotos[club.id] ?? [];
   const reservations = state.reservations.filter((r) => r.clubId === club.id);
   const comps = [
     ...state.myCompetitions.filter((c) => c.clubId === club.id),
     ...seedCompetitions.filter((c) => c.clubId === club.id),
   ];
+
+  const addPhotoFromDevice = async () => {
+    const uri = await pickImage();
+    if (uri) addClubPhoto(club.id, uri);
+  };
+  const addPhotoFromUrl = () => {
+    if (/^https?:\/\//.test(url.trim())) {
+      addClubPhoto(club.id, url.trim());
+      setUrl('');
+    }
+  };
 
   return (
     <Screen back title="Espace Club" subtitle="Gérez votre club">
@@ -41,12 +58,7 @@ export default function ClubAdmin() {
           <Txt variant="h3">Compte club (démo)</Txt>
           <Txt variant="muted">Active le mode gérant sur cet appareil.</Txt>
         </View>
-        <Switch
-          value={state.clubMode}
-          onValueChange={setClubMode}
-          trackColor={{ true: colors.gold, false: colors.border }}
-          thumbColor={colors.white}
-        />
+        <Switch value={state.clubMode} onValueChange={setClubMode} trackColor={{ true: colors.gold, false: colors.border }} thumbColor={colors.white} />
       </Card>
 
       {/* Club géré */}
@@ -57,6 +69,45 @@ export default function ClubAdmin() {
             <Chip key={c.id} label={c.name} active={c.id === club.id} onPress={() => setManagedClub(c.id)} />
           ))}
         </View>
+      </View>
+
+      {/* Photos du terrain */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Photos du terrain" />
+        <Card>
+          <Txt variant="muted">Ajoute les vraies photos de ton club (visibles par les joueurs).</Txt>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginTop: spacing.md }}>
+            {photos.map((uri) => (
+              <View key={uri}>
+                <ClubPhoto uri={uri} accent={club.accent} initials={initials(club.name)} height={90} width={120} rounded={radius.md} />
+                <Pressable onPress={() => removeClubPhoto(club.id, uri)} style={styles.removePhoto} hitSlop={6}>
+                  <Ionicons name="close" size={14} color={colors.white} />
+                </Pressable>
+              </View>
+            ))}
+            <Pressable onPress={addPhotoFromDevice} style={styles.addTile}>
+              <Ionicons name="camera-outline" size={22} color={colors.gold} />
+              <Txt variant="small" color={colors.gold} style={{ marginTop: 4 }}>
+                Ajouter
+              </Txt>
+            </Pressable>
+          </ScrollView>
+
+          <View style={styles.urlRow}>
+            <TextInput
+              value={url}
+              onChangeText={setUrl}
+              placeholder="…ou coller un lien d'image (https://)"
+              placeholderTextColor={colors.textFaint}
+              autoCapitalize="none"
+              style={styles.input}
+            />
+            <Button size="sm" label="Ajouter" icon="add" onPress={addPhotoFromUrl} />
+          </View>
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+            Sans photo ajoutée, des visuels illustratifs sont affichés aux joueurs.
+          </Txt>
+        </Card>
       </View>
 
       {/* Créneaux */}
@@ -71,7 +122,7 @@ export default function ClubAdmin() {
               </Txt>
             ) : (
               openSlots.map((s) => (
-                <Pressable key={s} onPress={() => removeClubSlot(club.id, s)} style={[styles.openSlot]}>
+                <Pressable key={s} onPress={() => removeClubSlot(club.id, s)} style={styles.openSlot}>
                   <Txt variant="small" color={colors.green} style={{ fontWeight: '600' }}>
                     {s}
                   </Txt>
@@ -158,5 +209,38 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
     backgroundColor: colors.greenSoft,
+  },
+  removePhoto: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 22,
+    height: 22,
+    borderRadius: radius.pill,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  addTile: {
+    width: 120,
+    height: 90,
+    borderRadius: radius.md,
+    borderWidth: 1,
+    borderColor: colors.border,
+    backgroundColor: colors.surfaceAlt,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  urlRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
+  input: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    color: colors.text,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 14,
   },
 });

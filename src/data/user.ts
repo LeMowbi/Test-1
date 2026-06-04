@@ -1,13 +1,6 @@
-// Utilisateur courant — données de DÉMONSTRATION.
+// Amis — données de DÉMONSTRATION. Le compte de l'utilisateur vit dans le store (AppContext).
 
 export type Friend = { id: string; name: string; level: string };
-
-export const currentUser = {
-  name: 'Moustapha',
-  handle: '@moustapha',
-  city: 'Abidjan',
-  level: 'Intermédiaire',
-};
 
 export const seedFriends: Friend[] = [
   { id: 'f1', name: 'Karim', level: 'Intermédiaire' },

@@ -3,11 +3,11 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { LevelStepper } from '@/components/LevelStepper';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Txt, type IconName } from '@/components/ui';
 import { clubsByName } from '@/data/clubs';
-import { LEVELS, MATCH_TYPES, type Visibility } from '@/data/matches';
-import { currentUser } from '@/data/user';
+import { MATCH_TYPES, levelLabel, type Visibility } from '@/data/matches';
 import { useApp } from '@/store/AppContext';
 import { colors, spacing } from '@/theme';
 
@@ -20,12 +20,12 @@ export default function NouveauMatch() {
 
   const [clubId, setClubId] = useState<string | null>(null);
   const [type, setType] = useState<(typeof MATCH_TYPES)[number]>('Cherche partenaire');
-  const [level, setLevel] = useState(currentUser.level);
+  const [levelValue, setLevelValue] = useState(state.level);
   const [date, setDate] = useState<string | null>(null);
   const [time, setTime] = useState<string | null>(null);
   const [visibility, setVisibility] = useState<Visibility>(state.defaultVisibility);
 
-  const ready = clubId && date && time;
+  const ready = !!clubId && !!date && !!time;
 
   const create = () => {
     if (!clubId || !date || !time) return;
@@ -35,11 +35,11 @@ export default function NouveauMatch() {
       clubName: club.name,
       date,
       time,
-      level,
+      levelValue,
       type,
       spotsLeft: 1,
       visibility,
-      host: currentUser.name,
+      host: state.account?.firstName ?? 'Joueur',
     });
     router.replace('/matchs');
   };
@@ -60,11 +60,12 @@ export default function NouveauMatch() {
         ))}
       </View>
 
-      <Label text="Niveau" />
-      <View style={styles.wrap}>
-        {LEVELS.map((l) => (
-          <Chip key={l} label={l} active={l === level} onPress={() => setLevel(l)} />
-        ))}
+      <Label text="Niveau du match" />
+      <View style={{ alignItems: 'center', marginTop: spacing.sm }}>
+        <LevelStepper value={levelValue} onChange={setLevelValue} />
+        <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
+          {levelLabel(levelValue)}
+        </Txt>
       </View>
 
       <Label text="Date" />
@@ -83,20 +84,8 @@ export default function NouveauMatch() {
 
       <Label text="Qui peut voir ce match ?" />
       <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-        <VisibilityOption
-          active={visibility === 'public'}
-          onPress={() => setVisibility('public')}
-          icon="earth"
-          title="Public"
-          desc="Visible par tous les joueurs de PadelCo."
-        />
-        <VisibilityOption
-          active={visibility === 'amis'}
-          onPress={() => setVisibility('amis')}
-          icon="people"
-          title="Amis uniquement"
-          desc="Visible seulement par tes amis."
-        />
+        <VisibilityOption active={visibility === 'public'} onPress={() => setVisibility('public')} icon="earth" title="Public" desc="Visible par tous les joueurs de PadelCo." />
+        <VisibilityOption active={visibility === 'amis'} onPress={() => setVisibility('amis')} icon="people" title="Amis uniquement" desc="Visible seulement par tes amis." />
       </View>
 
       <View style={{ marginTop: spacing.xl }}>
@@ -134,11 +123,7 @@ function VisibilityOption({
         <Txt variant="h3">{title}</Txt>
         <Txt variant="muted">{desc}</Txt>
       </View>
-      <Ionicons
-        name={active ? 'radio-button-on' : 'radio-button-off'}
-        size={22}
-        color={active ? colors.gold : colors.textFaint}
-      />
+      <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? colors.gold : colors.textFaint} />
     </Card>
   );
 }

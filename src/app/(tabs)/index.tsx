@@ -10,7 +10,6 @@ import { Card, IconCircle, SectionHeader, Txt } from '@/components/ui';
 import { clubsByName } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { seedMatches } from '@/data/matches';
-import { currentUser } from '@/data/user';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -43,12 +42,12 @@ export default function HomeScreen() {
           <View style={styles.cityChip}>
             <Ionicons name="location-outline" size={13} color={colors.textMuted} />
             <Txt variant="small" color={colors.textMuted}>
-              {currentUser.city}
+              Abidjan
             </Txt>
           </View>
         </View>
         <Txt variant="display" style={{ marginTop: spacing.sm }}>
-          Bonjour, {currentUser.name}
+          Bonjour, {state.account?.firstName ?? ''}
         </Txt>
         <Txt variant="muted" style={{ marginTop: 4 }}>
           Réserve un terrain, trouve un partenaire ou un coach — partout à Abidjan.

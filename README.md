@@ -10,18 +10,19 @@ ses résultats. Conçue avec un design sobre « luxe + sport ».
 
 ## Fonctionnalités (toutes présentes ✅)
 
+- **Création de compte** : prénom, nom, numéro de téléphone (+225), photo optionnelle.
 - **Réservation** d'un terrain par créneau horaire, partout à Abidjan.
-- **Paiement (simulé)** : Wave, Orange Money, MTN/Moov Money, carte bancaire ou espèces au club — prêt à brancher sur un vrai paiement (CinetPay/PayDunya) plus tard.
+- **Paiement (simulé)** : Wave, Orange Money, MTN/Moov Money, carte ou espèces — + **partage de l'addition** entre joueurs. Prêt à brancher sur CinetPay/PayDunya.
 - **Tous les clubs réels** d'Abidjan, présentés **à égalité, sans classement « meilleur club »**.
-- **Position Google Maps** pour chaque club (bouton « Carte »).
-- **Photos provisoires** (les vraies photos nécessitent l'accord des clubs — voir STRATEGIE.md).
-- **Trouver un match** : partenaire, adversaire ou coéquipier.
-- **Visibilité des matchs : Public ou Amis uniquement.**
+- **Photos réelles** des terrains (libres de droits, avec repli automatique) + **Google Maps**.
+- **Favoris** : enregistre tes clubs préférés.
+- **Trouver un match** : partenaire / adversaire / coéquipier, **visibilité Public ou Amis**, **invitation par lien**.
+- **Niveau de jeu (1–7)** + filtre « à mon niveau ».
 - **Coachs** : liste + réservation de séance.
 - **Compétitions avec récompenses**, créées **par les clubs OU par les joueurs**.
-- **Notation & avis** des terrains par les utilisateurs (sans réordonner la liste des clubs).
-- **Statistiques auto-déclarées** : victoires / défaites / parties jouées (« J'ai gagné / perdu »).
-- **Espace Club** : les terrains gèrent leurs **créneaux, réservations et compétitions**.
+- **Notation & avis** des terrains (sans réordonner la liste des clubs).
+- **Victoires / défaites validées par partie jouée** (après une réservation) + historique & série.
+- **Espace Club** : les terrains gèrent leurs **photos, créneaux, réservations et compétitions**.
 - **Découvrir le padel** : définition + règles essentielles.
 
 ## Lancer le prototype
@@ -55,10 +56,11 @@ src/
 ## Données
 
 - Les **noms et quartiers des clubs sont réels** (vérifiés) ; **tarifs indicatifs** et **photos
-  provisoires** sont à confirmer/remplacer avec chaque club.
-- Coachs, matchs et certains avis sont des **exemples de démonstration**.
+  illustratives libres de droits** sont à confirmer/remplacer par les visuels officiels de chaque club.
+- Compte, coachs, matchs et certains avis sont des **exemples de démonstration** (profil local,
+  téléphone non vérifié — la vraie auth SMS viendra avec le back-end).
 
 ## Vérifié
 
 - `npx tsc --noEmit` : OK.
-- `npx expo export --platform web` : 21 écrans rendus sans erreur.
+- `npx expo export --platform web` : 22 écrans rendus sans erreur.

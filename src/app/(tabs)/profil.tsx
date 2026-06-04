@@ -1,63 +1,155 @@
 import { Ionicons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { LevelStepper } from '@/components/LevelStepper';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
-import { currentUser, seedFriends } from '@/data/user';
+import { levelLabel } from '@/data/matches';
+import { seedFriends } from '@/data/user';
 import { useApp } from '@/store/AppContext';
 import { initials } from '@/lib/format';
+import { pickImage } from '@/lib/pickImage';
 import { colors, radius, spacing } from '@/theme';
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { state, recordWin, recordLoss, setDefaultVisibility, resetAll } = useApp();
-  const { wins, losses, played, defaultVisibility, reservations } = state;
-  const winRate = played > 0 ? Math.round((wins / played) * 100) : 0;
+  const { state, stats, setLevel, setDefaultVisibility, setReservationResult, signOut, resetAll } = useApp();
+  const { account, level, defaultVisibility, reservations } = state;
+
+  const [editing, setEditing] = useState(false);
+
+  if (!account) return null; // protégé par l'onboarding
+
+  const toValidate = reservations.filter((r) => !r.result);
+  const history = reservations
+    .filter((r) => r.result)
+    .sort((a, b) => (b.resultAt ?? 0) - (a.resultAt ?? 0));
 
   return (
     <Screen title="Profil">
-      {/* En-tête joueur */}
-      <Card style={{ marginTop: spacing.sm }}>
-        <View style={styles.head}>
-          <View style={styles.avatar}>
-            <Txt variant="display" color={colors.gold}>
-              {initials(currentUser.name)}
-            </Txt>
-          </View>
-          <View style={{ flex: 1 }}>
-            <Txt variant="h2">{currentUser.name}</Txt>
-            <Txt variant="muted">{currentUser.handle}</Txt>
-            <View style={{ marginTop: spacing.sm }}>
-              <Tag label={currentUser.level} tone="gold" icon="ribbon" />
+      {/* Compte */}
+      {editing ? (
+        <EditAccount onDone={() => setEditing(false)} />
+      ) : (
+        <Card style={{ marginTop: spacing.sm }}>
+          <View style={styles.head}>
+            <View style={styles.avatar}>
+              {account.photoUri ? (
+                <Image source={{ uri: account.photoUri }} style={styles.avatarImg} contentFit="cover" />
+              ) : (
+                <Txt variant="display" color={colors.gold}>
+                  {initials(`${account.firstName} ${account.lastName}`)}
+                </Txt>
+              )}
+            </View>
+            <View style={{ flex: 1 }}>
+              <Txt variant="h2">
+                {account.firstName} {account.lastName}
+              </Txt>
+              <Txt variant="muted">{account.phone}</Txt>
+              <View style={{ marginTop: spacing.sm }}>
+                <Tag label={`Niveau ${level.toFixed(1)} · ${levelLabel(level)}`} tone="gold" icon="ribbon" />
+              </View>
             </View>
           </View>
-        </View>
-      </Card>
-
-      {/* Statistiques */}
-      <View style={{ marginTop: spacing.lg }}>
-        <SectionHeader title="Mes statistiques" />
-        <View style={styles.stats}>
-          <Stat value={wins} label="Victoires" color={colors.green} />
-          <Stat value={losses} label="Défaites" color={colors.danger} />
-          <Stat value={played} label="Parties" color={colors.text} />
-          <Stat value={`${winRate}%`} label="Réussite" color={colors.gold} />
-        </View>
-        <Card style={{ marginTop: spacing.md }}>
-          <Txt variant="h3">Enregistrer un résultat</Txt>
-          <Txt variant="muted" style={{ marginTop: 2 }}>
-            C’est toi qui déclares tes résultats, en toute confiance.
-          </Txt>
           <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
-            <View style={{ flex: 1 }}>
-              <Button label="J'ai gagné" icon="trophy" onPress={recordWin} full />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Button label="J'ai perdu" icon="close" variant="danger" onPress={recordLoss} full />
-            </View>
+            <Button size="sm" label="Modifier le profil" icon="create-outline" variant="secondary" onPress={() => setEditing(true)} />
+          </View>
+        </Card>
+      )}
+
+      {/* Niveau */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Mon niveau de jeu" />
+        <Card>
+          <Txt variant="muted" style={{ marginBottom: spacing.md }}>
+            Échelle 1.0 (débutant) à 7.0 (pro). Aide à trouver des joueurs de ton niveau.
+          </Txt>
+          <View style={{ alignItems: 'center' }}>
+            <LevelStepper value={level} onChange={setLevel} />
+            <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
+              {levelLabel(level)}
+            </Txt>
           </View>
         </Card>
       </View>
+
+      {/* Statistiques */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Mes statistiques" />
+        <View style={styles.stats}>
+          <Stat value={stats.wins} label="Victoires" color={colors.green} />
+          <Stat value={stats.losses} label="Défaites" color={colors.danger} />
+          <Stat value={stats.played} label="Parties" color={colors.text} />
+          <Stat value={`${stats.winRate}%`} label="Réussite" color={colors.gold} />
+        </View>
+        <Card style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+          <IconCircle icon="flame" color={colors.gold} bg={colors.goldSoft} size={40} />
+          <Txt variant="body">
+            Série actuelle : <Txt variant="body" color={colors.gold} style={{ fontWeight: '700' }}>{stats.streak} victoire{stats.streak > 1 ? 's' : ''}</Txt>
+          </Txt>
+        </Card>
+      </View>
+
+      {/* Parties à valider */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title={`Parties à valider · ${toValidate.length}`} />
+        {reservations.length === 0 ? (
+          <Card>
+            <Txt variant="muted">Réserve un terrain pour pouvoir enregistrer tes résultats.</Txt>
+          </Card>
+        ) : toValidate.length === 0 ? (
+          <Card>
+            <Txt variant="muted">Aucune partie en attente. Bien joué !</Txt>
+          </Card>
+        ) : (
+          toValidate.map((r) => (
+            <Card key={r.id} style={{ marginBottom: spacing.sm }}>
+              <Txt variant="h3" style={{ fontSize: 15 }}>
+                {r.clubName}
+              </Txt>
+              <Txt variant="muted" style={{ marginTop: 2 }}>
+                {r.date} · {r.time} · {r.players} joueurs
+              </Txt>
+              <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
+                <View style={{ flex: 1 }}>
+                  <Button size="sm" label="J'ai gagné" icon="trophy" onPress={() => setReservationResult(r.id, 'win')} full />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button size="sm" label="J'ai perdu" icon="close" variant="danger" onPress={() => setReservationResult(r.id, 'loss')} full />
+                </View>
+              </View>
+            </Card>
+          ))
+        )}
+      </View>
+
+      {/* Historique */}
+      {history.length > 0 ? (
+        <View style={{ marginTop: spacing.xl }}>
+          <SectionHeader title="Historique" />
+          <Card>
+            {history.map((r, i) => (
+              <View key={r.id}>
+                {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+                <View style={styles.histRow}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body" style={{ fontWeight: '600' }}>
+                      {r.clubName}
+                    </Txt>
+                    <Txt variant="muted">
+                      {r.date} · {r.time}
+                    </Txt>
+                  </View>
+                  <Tag label={r.result === 'win' ? 'Victoire' : 'Défaite'} tone={r.result === 'win' ? 'green' : 'danger'} />
+                </View>
+              </View>
+            ))}
+          </Card>
+        </View>
+      ) : null}
 
       {/* Visibilité par défaut */}
       <View style={{ marginTop: spacing.xl }}>
@@ -67,46 +159,10 @@ export default function ProfilScreen() {
             Qui voit tes matchs quand tu en crées un ?
           </Txt>
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-            <VisChip
-              active={defaultVisibility === 'public'}
-              icon="earth"
-              label="Public"
-              onPress={() => setDefaultVisibility('public')}
-            />
-            <VisChip
-              active={defaultVisibility === 'amis'}
-              icon="people"
-              label="Amis"
-              onPress={() => setDefaultVisibility('amis')}
-            />
+            <VisChip active={defaultVisibility === 'public'} icon="earth" label="Public" onPress={() => setDefaultVisibility('public')} />
+            <VisChip active={defaultVisibility === 'amis'} icon="people" label="Amis" onPress={() => setDefaultVisibility('amis')} />
           </View>
         </Card>
-      </View>
-
-      {/* Réservations */}
-      <View style={{ marginTop: spacing.xl }}>
-        <SectionHeader title="Mes réservations" />
-        {reservations.length === 0 ? (
-          <Card>
-            <Txt variant="muted">Aucune réservation pour l’instant.</Txt>
-          </Card>
-        ) : (
-          reservations.map((r) => (
-            <Card key={r.id} style={{ marginBottom: spacing.sm }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <IconCircle icon="calendar" color={colors.green} bg={colors.greenSoft} size={40} />
-                <View style={{ flex: 1 }}>
-                  <Txt variant="h3" style={{ fontSize: 15 }}>
-                    {r.clubName}
-                  </Txt>
-                  <Txt variant="muted">
-                    {r.date} · {r.time} · {r.players} joueurs{r.payment ? ` · ${r.payment}` : ''}
-                  </Txt>
-                </View>
-              </View>
-            </Card>
-          ))
-        )}
       </View>
 
       {/* Amis */}
@@ -138,16 +194,58 @@ export default function ProfilScreen() {
           <IconCircle icon="business" />
           <View style={{ flex: 1 }}>
             <Txt variant="h3">Tu gères un club ?</Txt>
-            <Txt variant="muted">Ouvre l’Espace Club : créneaux, réservations, compétitions.</Txt>
+            <Txt variant="muted">Ouvre l’Espace Club : photos, créneaux, réservations, compétitions.</Txt>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </Card>
       </View>
 
-      <View style={{ marginTop: spacing.xl }}>
+      <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+        <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={signOut} />
         <Button label="Réinitialiser la démo" icon="refresh" variant="ghost" onPress={resetAll} />
       </View>
     </Screen>
+  );
+}
+
+function EditAccount({ onDone }: { onDone: () => void }) {
+  const { state, updateAccount } = useApp();
+  const a = state.account!;
+  const [firstName, setFirstName] = useState(a.firstName);
+  const [lastName, setLastName] = useState(a.lastName);
+  const [phone, setPhone] = useState(a.phone);
+  const [photoUri, setPhotoUri] = useState<string | undefined>(a.photoUri);
+
+  const choose = async () => {
+    const uri = await pickImage();
+    if (uri) setPhotoUri(uri);
+  };
+  const save = () => {
+    updateAccount({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), photoUri });
+    onDone();
+  };
+
+  return (
+    <Card style={{ marginTop: spacing.sm }}>
+      <View style={{ alignItems: 'center' }}>
+        <Pressable onPress={choose} style={styles.avatar}>
+          {photoUri ? (
+            <Image source={{ uri: photoUri }} style={styles.avatarImg} contentFit="cover" />
+          ) : (
+            <Ionicons name="camera-outline" size={26} color={colors.textMuted} />
+          )}
+        </Pressable>
+      </View>
+      <TextInput value={firstName} onChangeText={setFirstName} placeholder="Prénom" placeholderTextColor={colors.textFaint} style={styles.input} />
+      <TextInput value={lastName} onChangeText={setLastName} placeholder="Nom" placeholderTextColor={colors.textFaint} style={styles.input} />
+      <TextInput value={phone} onChangeText={setPhone} placeholder="Téléphone" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
+      <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
+        <View style={{ flex: 1 }}>
+          <Button label="Enregistrer" icon="checkmark" onPress={save} full />
+        </View>
+        <Button label="Annuler" variant="ghost" onPress={onDone} />
+      </View>
+    </Card>
   );
 }
 
@@ -194,7 +292,9 @@ const styles = StyleSheet.create({
     backgroundColor: colors.goldSoft,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
+  avatarImg: { width: '100%', height: '100%' },
   stats: { flexDirection: 'row', gap: spacing.sm },
   stat: {
     flex: 1,
@@ -205,6 +305,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     alignItems: 'center',
   },
+  histRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   visChip: {
     flex: 1,
     flexDirection: 'row',
@@ -228,4 +329,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   clubCta: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  input: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    color: colors.text,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    fontSize: 15,
+  },
 });
