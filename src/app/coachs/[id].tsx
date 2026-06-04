@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Chip } from '@/components/Chip';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
@@ -11,16 +12,6 @@ import { colors, radius, spacing } from '@/theme';
 
 const DATES = ["Aujourd'hui", 'Demain', 'Samedi', 'Dimanche'];
 const TIMES = ['08:00', '10:00', '17:00', '18:00', '19:00'];
-
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Txt variant="small" color={active ? '#10120F' : colors.text} style={{ fontWeight: '600' }}>
-        {label}
-      </Txt>
-    </Pressable>
-  );
-}
 
 export default function CoachDetail() {
   const { id } = useLocalSearchParams();
@@ -90,7 +81,7 @@ export default function CoachDetail() {
           </Txt>
           <View style={styles.wrap}>
             {DATES.map((d) => (
-              <Chip key={d} label={d} active={d === date} onPress={() => setDate(d)} />
+              <Chip key={d} label={d} active={d === date} onPress={() => setDate(d)} size="lg" />
             ))}
           </View>
           <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
@@ -98,17 +89,11 @@ export default function CoachDetail() {
           </Txt>
           <View style={styles.wrap}>
             {TIMES.map((t) => (
-              <Chip key={t} label={t} active={t === time} onPress={() => setTime(t)} />
+              <Chip key={t} label={t} active={t === time} onPress={() => setTime(t)} size="lg" />
             ))}
           </View>
           <View style={{ marginTop: spacing.xl }}>
-            <Button
-              label="Réserver la séance"
-              icon="calendar"
-              onPress={() => setBooked(true)}
-              disabled={!date || !time}
-              full
-            />
+            <Button label="Réserver la séance" icon="calendar" onPress={() => setBooked(true)} disabled={!date || !time} full />
           </View>
         </>
       )}
@@ -128,13 +113,4 @@ const styles = StyleSheet.create({
   },
   specs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  chip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
 });

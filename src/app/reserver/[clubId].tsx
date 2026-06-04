@@ -1,13 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useMemo, useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, Txt } from '@/components/ui';
 import { SAMPLE_SLOTS, getClub } from '@/data/clubs';
 import { useApp } from '@/store/AppContext';
 import { fcfa } from '@/lib/format';
-import { colors, radius, spacing } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
@@ -16,19 +17,8 @@ function nextDays(n: number) {
   return Array.from({ length: n }, (_, i) => {
     const d = new Date(now);
     d.setDate(now.getDate() + i);
-    const label = i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : `${DAYS[d.getDay()]} ${d.getDate()}`;
-    return label;
+    return i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : `${DAYS[d.getDay()]} ${d.getDate()}`;
   });
-}
-
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Txt variant="small" color={active ? '#10120F' : colors.text} style={{ fontWeight: '600' }}>
-        {label}
-      </Txt>
-    </Pressable>
-  );
 }
 
 export default function ReserverScreen() {
@@ -93,7 +83,7 @@ export default function ReserverScreen() {
       </Txt>
       <View style={styles.wrap}>
         {dates.map((d) => (
-          <Chip key={d} label={d} active={d === date} onPress={() => setDate(d)} />
+          <Chip key={d} label={d} active={d === date} onPress={() => setDate(d)} size="lg" />
         ))}
       </View>
 
@@ -102,7 +92,7 @@ export default function ReserverScreen() {
       </Txt>
       <View style={styles.wrap}>
         {slots.map((s) => (
-          <Chip key={s} label={s} active={s === slot} onPress={() => setSlot(s)} />
+          <Chip key={s} label={s} active={s === slot} onPress={() => setSlot(s)} size="lg" />
         ))}
       </View>
 
@@ -111,7 +101,7 @@ export default function ReserverScreen() {
       </Txt>
       <View style={styles.wrap}>
         {[2, 3, 4].map((p) => (
-          <Chip key={p} label={`${p} joueurs`} active={p === players} onPress={() => setPlayers(p)} />
+          <Chip key={p} label={`${p} joueurs`} active={p === players} onPress={() => setPlayers(p)} size="lg" />
         ))}
       </View>
 
@@ -138,15 +128,6 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  chip: {
-    paddingHorizontal: spacing.lg,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
   summary: { alignSelf: 'stretch', marginTop: spacing.lg, gap: spacing.sm },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });

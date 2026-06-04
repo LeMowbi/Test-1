@@ -1,13 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { PhotoPlaceholder } from './PhotoPlaceholder';
 import { RatingStars } from './RatingStars';
 import { Card, Tag, Txt } from './ui';
 import type { Club } from '@/data/clubs';
 import { fcfa, initials } from '@/lib/format';
-import { colors, radius, spacing } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const router = useRouter();

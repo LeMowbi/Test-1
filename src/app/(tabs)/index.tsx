@@ -1,14 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { ClubCard } from '@/components/ClubCard';
 import { CompetitionCard } from '@/components/CompetitionCard';
 import { Logo } from '@/components/Logo';
 import { MatchCard } from '@/components/MatchCard';
 import { Screen } from '@/components/Screen';
-import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
-import { clubs } from '@/data/clubs';
+import { Card, IconCircle, SectionHeader, Txt } from '@/components/ui';
+import { clubsByName } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { seedMatches } from '@/data/matches';
 import { currentUser } from '@/data/user';
@@ -28,7 +27,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { state } = useApp();
 
-  const nearbyClubs = [...clubs].sort((a, b) => a.name.localeCompare(b.name));
+  const nearbyClubs = clubsByName;
   const matches = [...state.myMatches, ...seedMatches]
     .filter((m) => m.visibility === 'public' || m.visibility === 'amis')
     .slice(0, 3);

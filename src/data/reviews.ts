@@ -18,7 +18,3 @@ export const seedReviews: Review[] = [
   { id: 'r5', clubId: 'abidjan-padel', author: 'Marina', rating: 5, text: "L'appli du club rend la résa très rapide.", date: 'Avr. 2026' },
   { id: 'r6', clubId: 'padel-magic', author: 'Yann', rating: 4, text: 'Sympa de jouer près de l’Hôtel Ivoire, beau cadre.', date: 'Mars 2026' },
 ];
-
-export function reviewsForClub(clubId: string, extra: Review[] = []): Review[] {
-  return [...extra, ...seedReviews].filter((r) => r.clubId === clubId);
-}

@@ -1,6 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
@@ -178,8 +177,8 @@ function VisChip({
 }) {
   return (
     <Pressable onPress={onPress} style={[styles.visChip, active && styles.visChipActive]}>
-      <Ionicons name={icon} size={16} color={active ? '#10120F' : colors.textMuted} />
-      <Txt variant="small" color={active ? '#10120F' : colors.text} style={{ fontWeight: '600' }}>
+      <Ionicons name={icon} size={16} color={active ? colors.onGold : colors.textMuted} />
+      <Txt variant="small" color={active ? colors.onGold : colors.text} style={{ fontWeight: '600' }}>
         {label}
       </Txt>
     </Pressable>

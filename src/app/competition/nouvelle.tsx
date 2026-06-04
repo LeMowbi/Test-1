@@ -1,6 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, TextInput, View } from 'react-native';
+import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Txt } from '@/components/ui';
 import { clubs } from '@/data/clubs';
@@ -12,16 +13,6 @@ import { colors, radius, spacing } from '@/theme';
 const DATES = ['Ce week-end', 'Sam. prochain', 'Dim. prochain', 'Dans 2 semaines'];
 const LEVELS = ['Tous niveaux', 'Débutant', 'Intermédiaire', 'Avancé'];
 const SLOTS = [4, 8, 16, 24];
-
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Txt variant="small" color={active ? '#10120F' : colors.text} style={{ fontWeight: '600' }}>
-        {label}
-      </Txt>
-    </Pressable>
-  );
-}
 
 function Field({
   label,
@@ -65,17 +56,15 @@ export default function NouvelleCompetition() {
   const [level, setLevel] = useState('Tous niveaux');
   const [slots, setSlots] = useState(8);
 
-  const ready = title.trim().length > 1 && reward.trim().length > 1 && date;
-
   const create = () => {
-    if (!ready) return;
+    if (title.trim().length < 2 || reward.trim().length < 2 || !date) return;
     addCompetition({
       title: title.trim(),
       organizerType: asClub ? 'club' : 'joueur',
       organizer: club?.name ?? currentUser.name,
       clubId: club?.id,
       clubName: club?.name,
-      date: date!,
+      date,
       format,
       level,
       reward: reward.trim(),
@@ -85,6 +74,8 @@ export default function NouvelleCompetition() {
     });
     router.replace(asClub ? '/club-admin' : '/competitions');
   };
+
+  const ready = title.trim().length > 1 && reward.trim().length > 1 && !!date;
 
   return (
     <Screen back title="Créer une compétition" subtitle={asClub ? `Pour ${club?.name ?? 'votre club'}` : 'En tant que joueur'}>
@@ -137,15 +128,6 @@ export default function NouvelleCompetition() {
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
   input: {
     backgroundColor: colors.surface,
     borderWidth: 1,

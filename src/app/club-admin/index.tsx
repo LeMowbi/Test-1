@@ -1,10 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React from 'react';
 import { Pressable, StyleSheet, Switch, View } from 'react-native';
+import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
-import { clubs, getClub } from '@/data/clubs';
+import { clubsByName, getClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
@@ -18,7 +18,7 @@ export default function ClubAdmin() {
   const router = useRouter();
   const { state, setClubMode, setManagedClub, addClubSlot, removeClubSlot } = useApp();
 
-  const club = getClub(state.managedClubId) ?? clubs[0];
+  const club = getClub(state.managedClubId) ?? clubsByName[0];
   const openSlots = state.clubSlots[club.id] ?? [];
   const reservations = state.reservations.filter((r) => r.clubId === club.id);
   const comps = [
@@ -53,18 +53,9 @@ export default function ClubAdmin() {
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Club géré" />
         <View style={styles.wrap}>
-          {[...clubs]
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .map((c) => {
-              const active = c.id === club.id;
-              return (
-                <Pressable key={c.id} onPress={() => setManagedClub(c.id)} style={[styles.chip, active && styles.chipActive]}>
-                  <Txt variant="small" color={active ? '#10120F' : colors.text} style={{ fontWeight: '600' }}>
-                    {c.name}
-                  </Txt>
-                </Pressable>
-              );
-            })}
+          {clubsByName.map((c) => (
+            <Chip key={c.id} label={c.name} active={c.id === club.id} onPress={() => setManagedClub(c.id)} />
+          ))}
         </View>
       </View>
 
@@ -80,7 +71,7 @@ export default function ClubAdmin() {
               </Txt>
             ) : (
               openSlots.map((s) => (
-                <Pressable key={s} onPress={() => removeClubSlot(club.id, s)} style={[styles.chip, styles.chipOpen]}>
+                <Pressable key={s} onPress={() => removeClubSlot(club.id, s)} style={[styles.openSlot]}>
                   <Txt variant="small" color={colors.green} style={{ fontWeight: '600' }}>
                     {s}
                   </Txt>
@@ -94,12 +85,7 @@ export default function ClubAdmin() {
           </Txt>
           <View style={styles.wrap}>
             {ALL_TIMES.filter((t) => !openSlots.includes(t)).map((t) => (
-              <Pressable key={t} onPress={() => addClubSlot(club.id, t)} style={[styles.chip]}>
-                <Ionicons name="add" size={13} color={colors.textMuted} />
-                <Txt variant="small" color={colors.text} style={{ fontWeight: '600' }}>
-                  {t}
-                </Txt>
-              </Pressable>
+              <Chip key={t} label={t} icon="add" onPress={() => addClubSlot(club.id, t)} />
             ))}
           </View>
         </Card>
@@ -164,17 +150,13 @@ export default function ClubAdmin() {
 const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  chip: {
+  openSlot: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    backgroundColor: colors.greenSoft,
   },
-  chipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
-  chipOpen: { backgroundColor: colors.greenSoft, borderColor: 'transparent' },
 });

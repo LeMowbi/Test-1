@@ -10,7 +10,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Txt } from './ui';
-import { colors, font, radius, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
 type Props = {
   children: React.ReactNode;

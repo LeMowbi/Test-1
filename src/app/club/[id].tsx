@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { PhotoPlaceholder } from '@/components/PhotoPlaceholder';
 import { RatingStars } from '@/components/RatingStars';

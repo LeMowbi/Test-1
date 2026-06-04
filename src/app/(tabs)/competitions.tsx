@@ -1,12 +1,13 @@
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { View } from 'react-native';
 import { CompetitionCard } from '@/components/CompetitionCard';
 import { Screen } from '@/components/Screen';
-import { Button, EmptyState, Txt } from '@/components/ui';
+import { SegmentedControl } from '@/components/SegmentedControl';
+import { Button, EmptyState } from '@/components/ui';
 import { seedCompetitions } from '@/data/competitions';
 import { useApp } from '@/store/AppContext';
-import { colors, radius, spacing } from '@/theme';
+import { spacing } from '@/theme';
 
 const TABS = ['Toutes', 'Par les clubs', 'Par les joueurs'] as const;
 
@@ -15,8 +16,7 @@ export default function CompetitionsScreen() {
   const { state } = useApp();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Toutes');
 
-  const all = [...state.myCompetitions, ...seedCompetitions];
-  const list = all.filter((c) => {
+  const list = [...state.myCompetitions, ...seedCompetitions].filter((c) => {
     if (tab === 'Par les clubs') return c.organizerType === 'club';
     if (tab === 'Par les joueurs') return c.organizerType === 'joueur';
     return true;
@@ -28,18 +28,7 @@ export default function CompetitionsScreen() {
         <Button label="Créer une compétition" icon="add" onPress={() => router.push('/competition/nouvelle')} full />
       </View>
 
-      <View style={styles.segment}>
-        {TABS.map((t) => {
-          const active = t === tab;
-          return (
-            <Pressable key={t} onPress={() => setTab(t)} style={[styles.segBtn, active && styles.segActive]}>
-              <Txt variant="small" color={active ? colors.text : colors.textMuted} style={{ fontWeight: '600' }} numberOfLines={1}>
-                {t}
-              </Txt>
-            </Pressable>
-          );
-        })}
-      </View>
+      <SegmentedControl options={TABS} value={tab} onChange={setTab} />
 
       {list.length === 0 ? (
         <EmptyState icon="trophy-outline" title="Aucune compétition" text="Lance ton propre tournoi ou défi entre amis." />
@@ -49,18 +38,3 @@ export default function CompetitionsScreen() {
     </Screen>
   );
 }
-
-const styles = StyleSheet.create({
-  segment: {
-    flexDirection: 'row',
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-    borderRadius: radius.md,
-    padding: 4,
-    gap: 4,
-    marginVertical: spacing.lg,
-  },
-  segBtn: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, borderRadius: radius.sm },
-  segActive: { backgroundColor: colors.surfaceAlt },
-});

@@ -1,27 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import React, { useState } from 'react';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
+import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Txt } from '@/components/ui';
-import { clubs } from '@/data/clubs';
+import { Button, Card, Txt, type IconName } from '@/components/ui';
+import { clubsByName } from '@/data/clubs';
 import { LEVELS, MATCH_TYPES, type Visibility } from '@/data/matches';
 import { currentUser } from '@/data/user';
 import { useApp } from '@/store/AppContext';
-import { colors, radius, spacing } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 const DATES = ["Aujourd'hui", 'Demain', 'Samedi', 'Dimanche'];
 const TIMES = ['08:00', '10:00', '17:00', '18:00', '19:00', '20:00'];
-
-function Chip({ label, active, onPress }: { label: string; active: boolean; onPress: () => void }) {
-  return (
-    <Pressable onPress={onPress} style={[styles.chip, active && styles.chipActive]}>
-      <Txt variant="small" color={active ? '#10120F' : colors.text} style={{ fontWeight: '600' }}>
-        {label}
-      </Txt>
-    </Pressable>
-  );
-}
 
 export default function NouveauMatch() {
   const router = useRouter();
@@ -37,13 +28,13 @@ export default function NouveauMatch() {
   const ready = clubId && date && time;
 
   const create = () => {
-    if (!ready) return;
-    const club = clubs.find((c) => c.id === clubId)!;
+    if (!clubId || !date || !time) return;
+    const club = clubsByName.find((c) => c.id === clubId)!;
     addMatch({
       clubId: club.id,
       clubName: club.name,
-      date: date!,
-      time: time!,
+      date,
+      time,
       level,
       type,
       spotsLeft: 1,
@@ -64,11 +55,9 @@ export default function NouveauMatch() {
 
       <Label text="Terrain" />
       <View style={styles.wrap}>
-        {[...clubs]
-          .sort((a, b) => a.name.localeCompare(b.name))
-          .map((c) => (
-            <Chip key={c.id} label={c.name} active={c.id === clubId} onPress={() => setClubId(c.id)} />
-          ))}
+        {clubsByName.map((c) => (
+          <Chip key={c.id} label={c.name} active={c.id === clubId} onPress={() => setClubId(c.id)} />
+        ))}
       </View>
 
       <Label text="Niveau" />
@@ -134,7 +123,7 @@ function VisibilityOption({
 }: {
   active: boolean;
   onPress: () => void;
-  icon: keyof typeof import('@expo/vector-icons').Ionicons.glyphMap;
+  icon: IconName;
   title: string;
   desc: string;
 }) {
@@ -156,15 +145,6 @@ function VisibilityOption({
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  chip: {
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    borderRadius: radius.pill,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
-  },
-  chipActive: { backgroundColor: colors.gold, borderColor: colors.gold },
   visOpt: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   visActive: { borderColor: colors.gold },
 });

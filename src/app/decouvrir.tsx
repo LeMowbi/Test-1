@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import React from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Card, IconCircle, Txt } from '@/components/ui';

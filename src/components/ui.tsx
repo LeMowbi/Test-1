@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { colors, font, radius, spacing } from '@/theme';
 
-type IconName = keyof typeof Ionicons.glyphMap;
+export type IconName = keyof typeof Ionicons.glyphMap;
 
 /* ---------------------------------- Texte --------------------------------- */
 
@@ -151,7 +151,7 @@ export function Button({
 }
 
 const btnTones: Record<BtnVariant, { bg: string; fg: string; border: string }> = {
-  primary: { bg: colors.gold, fg: '#10120F', border: colors.gold },
+  primary: { bg: colors.gold, fg: colors.onGold, border: colors.gold },
   secondary: { bg: colors.surfaceAlt, fg: colors.text, border: colors.border },
   ghost: { bg: 'transparent', fg: colors.gold, border: 'transparent' },
   danger: { bg: colors.dangerSoft, fg: colors.danger, border: 'transparent' },

@@ -22,6 +22,7 @@ export const colors = {
   dangerSoft: 'rgba(229,72,77,0.14)',
   white: '#FFFFFF',
   black: '#000000',
+  onGold: '#10120F', // texte / icône posés sur le fond or
   overlay: 'rgba(0,0,0,0.55)',
 } as const;
 
@@ -40,15 +41,5 @@ export const font = {
   },
 } as const;
 
-export const shadow = {
-  card: {
-    shadowColor: '#000',
-    shadowOpacity: 0.3,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 8 },
-    elevation: 5,
-  },
-} as const;
-
-export const theme = { colors, spacing, radius, font, shadow };
+export const theme = { colors, spacing, radius, font };
 export default theme;

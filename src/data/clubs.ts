@@ -174,6 +174,9 @@ export const clubs: Club[] = [
   },
 ];
 
+// Clubs triés par nom — réutilisé tel quel (ordre alphabétique, aucun classement).
+export const clubsByName = [...clubs].sort((a, b) => a.name.localeCompare(b.name));
+
 export function getClub(id?: string | string[]): Club | undefined {
   const key = Array.isArray(id) ? id[0] : id;
   return clubs.find((c) => c.id === key);
