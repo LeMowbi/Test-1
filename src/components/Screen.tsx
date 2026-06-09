@@ -50,7 +50,7 @@ export function Screen({
           </TouchableOpacity>
         ) : null}
         <View style={{ flex: 1 }}>
-          {title ? <Txt variant="h1">{title}</Txt> : null}
+          {title ? <Txt variant="h1" style={{ fontSize: 28 }}>{title}</Txt> : null}
           {subtitle ? (
             <Txt variant="muted" style={{ marginTop: 2 }}>
               {subtitle}

@@ -1,43 +1,73 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { LevelStepper } from '@/components/LevelStepper';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Txt, type IconName } from '@/components/ui';
-import { clubsByName } from '@/data/clubs';
-import { MATCH_TYPES, levelLabel, type Visibility } from '@/data/matches';
+import { SAMPLE_SLOTS, clubsByName } from '@/data/clubs';
+import { seedCompetitions } from '@/data/competitions';
+import { LOOKING_OPTIONS, levelLabel, type Looking } from '@/data/matches';
 import { useApp } from '@/store/AppContext';
-import { colors, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
-const DATES = ["Aujourd'hui", 'Demain', 'Samedi', 'Dimanche'];
-const TIMES = ['08:00', '10:00', '17:00', '18:00', '19:00', '20:00'];
+const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
+
+function nextDays(n: number) {
+  const now = new Date();
+  return Array.from({ length: n }, (_, i) => {
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    d.setHours(0, 0, 0, 0);
+    const label = i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : `${DAYS[d.getDay()]} ${d.getDate()}`;
+    return { label, value: d.getTime() };
+  });
+}
 
 export default function NouveauMatch() {
   const router = useRouter();
-  const { state, addMatch } = useApp();
+  const { state, addReservation, addMatch } = useApp();
 
+  const dates = useMemo(() => nextDays(5), []);
   const [clubId, setClubId] = useState<string | null>(null);
-  const [type, setType] = useState<(typeof MATCH_TYPES)[number]>('Cherche partenaire');
-  const [levelValue, setLevelValue] = useState(state.level);
   const [date, setDate] = useState<string | null>(null);
-  const [time, setTime] = useState<string | null>(null);
-  const [visibility, setVisibility] = useState<Visibility>(state.defaultVisibility);
+  const [slot, setSlot] = useState<string | null>(null);
+  const [levelValue, setLevelValue] = useState(state.level);
+  const [looking, setLooking] = useState<Looking>('partenaire');
+  const [places, setPlaces] = useState(1);
+  const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [visibility, setVisibility] = useState(state.defaultVisibility);
 
-  const ready = !!clubId && !!date && !!time;
+  const club = clubsByName.find((c) => c.id === clubId) ?? null;
+  const openSlots = club ? state.clubSlots[club.id] ?? SAMPLE_SLOTS : [];
+  const taken = club ? state.reservations.filter((r) => r.clubId === club.id && r.date === date).map((r) => r.time) : [];
+  const selectedDayValue = dates.find((d) => d.label === date)?.value;
+  const comps = club ? [...seedCompetitions, ...state.myCompetitions].filter((c) => c.clubId === club.id) : [];
+  const compToday = !!date && comps.some((c) => c.date === date);
+
+  const ready = !!club && !!date && !!slot && !compToday;
+
+  const toggleFriend = (id: string) => setFriendIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   const create = () => {
-    if (!clubId || !date || !time) return;
-    const club = clubsByName.find((c) => c.id === clubId)!;
+    if (!club || !date || !slot) return;
+    const dayValue = selectedDayValue ?? Date.now();
+    const [h, m] = slot.split(':').map(Number);
+    const startsAt = dayValue + h * 3600000 + m * 60000;
+    if (startsAt <= Date.now()) return;
+    const invited = state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false }));
+    addReservation({ clubId: club.id, clubName: club.name, date, time: slot, startsAt, players: 4, invited });
     addMatch({
       clubId: club.id,
       clubName: club.name,
       date,
-      time,
+      time: slot,
+      startsAt,
       levelValue,
-      type,
-      spotsLeft: 1,
+      looking,
+      total: 4,
+      spotsLeft: places,
       visibility,
       host: state.account?.firstName ?? 'Joueur',
     });
@@ -46,18 +76,52 @@ export default function NouveauMatch() {
 
   return (
     <Screen back title="Créer un match">
-      <Label text="Type de recherche" />
-      <View style={styles.wrap}>
-        {MATCH_TYPES.map((t) => (
-          <Chip key={t} label={t} active={t === type} onPress={() => setType(t)} />
-        ))}
-      </View>
+      <Card style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+        <Ionicons name="tennisball" size={22} color={colors.gold} />
+        <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+          Groupe incomplet ou seul ? Réserve un terrain et ouvre des places — on te trouve des joueurs.
+        </Txt>
+      </Card>
 
       <Label text="Terrain" />
       <View style={styles.wrap}>
         {clubsByName.map((c) => (
-          <Chip key={c.id} label={c.name} active={c.id === clubId} onPress={() => setClubId(c.id)} />
+          <Chip key={c.id} label={c.name} active={c.id === clubId} onPress={() => { setClubId(c.id); setSlot(null); }} />
         ))}
+      </View>
+
+      <Label text="Date" />
+      <View style={styles.wrap}>
+        {dates.map((d) => (
+          <Chip key={d.label} label={d.label} active={d.label === date} onPress={() => { setDate(d.label); setSlot(null); }} size="lg" />
+        ))}
+      </View>
+
+      {compToday ? (
+        <View style={styles.banner}>
+          <Ionicons name="trophy" size={16} color={colors.gold} />
+          <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+            Compétition ce jour à {club?.name} — terrain indisponible.
+          </Txt>
+        </View>
+      ) : null}
+
+      <Label text={club ? 'Créneau' : 'Créneau (choisis d’abord un terrain)'} />
+      <View style={styles.wrap}>
+        {openSlots.map((s) => {
+          const isTaken = !!date && taken.includes(s);
+          const [hh, mm] = s.split(':').map(Number);
+          const slotTs = (selectedDayValue ?? 0) + hh * 3600000 + mm * 60000;
+          const isPast = !!date && slotTs <= Date.now();
+          const blocked = !date || isTaken || compToday || isPast;
+          const label = isTaken ? `${s} · pris` : isPast ? `${s} · passé` : s;
+          return <Chip key={s} label={label} active={s === slot} disabled={blocked} onPress={() => setSlot(s)} size="lg" />;
+        })}
+        {club && openSlots.length === 0 ? (
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+            Aucun créneau ouvert par ce club.
+          </Txt>
+        ) : null}
       </View>
 
       <Label text="Niveau du match" />
@@ -68,28 +132,42 @@ export default function NouveauMatch() {
         </Txt>
       </View>
 
-      <Label text="Date" />
+      <Label text="Tu cherches" />
       <View style={styles.wrap}>
-        {DATES.map((d) => (
-          <Chip key={d} label={d} active={d === date} onPress={() => setDate(d)} />
+        {LOOKING_OPTIONS.map((o) => (
+          <Chip key={o.id} label={o.label} icon={o.icon as IconName} active={o.id === looking} onPress={() => setLooking(o.id)} />
         ))}
       </View>
 
-      <Label text="Heure" />
+      <Label text="Places à pourvoir" />
       <View style={styles.wrap}>
-        {TIMES.map((t) => (
-          <Chip key={t} label={t} active={t === time} onPress={() => setTime(t)} />
+        {[1, 2, 3].map((p) => (
+          <Chip key={p} label={`${p}`} active={p === places} onPress={() => setPlaces(p)} size="lg" />
         ))}
       </View>
+
+      {state.friends.length > 0 ? (
+        <>
+          <Label text="Inviter des amis (optionnel)" />
+          <View style={styles.wrap}>
+            {state.friends.map((f) => (
+              <Chip key={f.id} label={f.name} icon={friendIds.includes(f.id) ? 'checkmark' : 'person-add'} active={friendIds.includes(f.id)} onPress={() => toggleFriend(f.id)} />
+            ))}
+          </View>
+        </>
+      ) : null}
 
       <Label text="Qui peut voir ce match ?" />
-      <View style={{ gap: spacing.sm, marginTop: spacing.sm }}>
-        <VisibilityOption active={visibility === 'public'} onPress={() => setVisibility('public')} icon="earth" title="Public" desc="Visible par tous les joueurs de PadelConnect." />
-        <VisibilityOption active={visibility === 'amis'} onPress={() => setVisibility('amis')} icon="people" title="Amis uniquement" desc="Visible seulement par tes amis." />
+      <View style={styles.wrap}>
+        <Chip label="Public" icon="earth" active={visibility === 'public'} onPress={() => setVisibility('public')} size="lg" />
+        <Chip label="Amis uniquement" icon="people" active={visibility === 'amis'} onPress={() => setVisibility('amis')} size="lg" />
       </View>
 
       <View style={{ marginTop: spacing.xl }}>
-        <Button label="Publier le match" icon="checkmark" onPress={create} disabled={!ready} full />
+        <Button label="Créer le match & réserver le terrain" icon="checkmark" onPress={create} disabled={!ready} full />
+        <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+          Créer un match réserve le créneau. Le tarif se règle au club ; annulation jusqu'à 5h avant.
+        </Txt>
       </View>
     </Screen>
   );
@@ -103,33 +181,17 @@ function Label({ text }: { text: string }) {
   );
 }
 
-function VisibilityOption({
-  active,
-  onPress,
-  icon,
-  title,
-  desc,
-}: {
-  active: boolean;
-  onPress: () => void;
-  icon: IconName;
-  title: string;
-  desc: string;
-}) {
-  return (
-    <Card onPress={onPress} style={[styles.visOpt, active && styles.visActive]}>
-      <Ionicons name={icon} size={22} color={active ? colors.gold : colors.textMuted} />
-      <View style={{ flex: 1 }}>
-        <Txt variant="h3">{title}</Txt>
-        <Txt variant="muted">{desc}</Txt>
-      </View>
-      <Ionicons name={active ? 'radio-button-on' : 'radio-button-off'} size={22} color={active ? colors.gold : colors.textFaint} />
-    </Card>
-  );
-}
-
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  visOpt: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  visActive: { borderColor: colors.gold },
+  banner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.goldSoft,
+    borderWidth: 1,
+    borderColor: colors.gold,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
 });
