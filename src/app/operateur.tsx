@@ -29,7 +29,7 @@ export default function Operateur() {
   const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
 
   const sendHistory = (row: (typeof rows)[number]) => {
-    const lines = row.items.map((r) => `• ${r.date} ${r.time} · ${r.players} j · ${r.payment}`).join('\n');
+    const lines = row.items.map((r) => `• ${r.date} ${r.time} · ${r.players} j`).join('\n');
     const message =
       `PadelConnect — Historique des réservations\n${row.clubName}\n\n` +
       `${row.count} réservation${row.count > 1 ? 's' : ''} · volume ≈ ${fcfa(row.revenue)}\n` +

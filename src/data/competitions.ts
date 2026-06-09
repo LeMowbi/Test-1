@@ -26,7 +26,7 @@ export const seedCompetitions: Competition[] = [
     organizer: 'Padelta',
     clubId: 'padelta',
     clubName: 'Padelta',
-    date: 'Sam. 14 juin',
+    date: 'Demain',
     format: 'Poules + tableau final',
     level: 'Intermédiaire',
     reward: 'Bon d’achat 100 000 FCFA + lots partenaires',

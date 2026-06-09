@@ -7,7 +7,7 @@ export const colors = {
   bgElevated: '#FFFFFF',
   surface: '#FFFFFF',
   surfaceAlt: '#E9EFEC',
-  border: '#D8E1DC',
+  border: '#C7D6CF',
   borderSoft: 'rgba(0,0,0,0.06)',
 
   // Couleur principale = vert profond du terrain (CTA, niveau, premium). Texte blanc dessus.

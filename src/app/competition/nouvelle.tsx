@@ -9,7 +9,7 @@ import { COMP_FORMATS } from '@/data/competitions';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
-const DATES = ['Ce week-end', 'Sam. prochain', 'Dim. prochain', 'Dans 2 semaines'];
+const DATES = ["Aujourd'hui", 'Demain', 'Samedi', 'Dimanche'];
 const LEVELS = ['Tous niveaux', 'Débutant', 'Intermédiaire', 'Avancé'];
 const SLOTS = [4, 8, 16, 24];
 

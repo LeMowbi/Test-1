@@ -35,6 +35,7 @@ export default function ProfilScreen() {
   const [editing, setEditing] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
   const [fName, setFName] = useState('');
+  const [fPhone, setFPhone] = useState('');
   const [fLevel, setFLevel] = useState(3.0);
 
   if (!account) return null;
@@ -262,9 +263,16 @@ export default function ProfilScreen() {
                     {initials(f.name)}
                   </Txt>
                 </View>
-                <Txt variant="body" style={{ flex: 1, fontWeight: '600' }}>
-                  {f.name}
-                </Txt>
+                <View style={{ flex: 1 }}>
+                  <Txt variant="body" style={{ fontWeight: '600' }}>
+                    {f.name}
+                  </Txt>
+                  {f.phone ? (
+                    <Txt variant="small" color={colors.textFaint}>
+                      {f.phone}
+                    </Txt>
+                  ) : null}
+                </View>
                 <Tag label={`Niv. ${f.level.toFixed(1)}`} tone="neutral" />
                 <Pressable onPress={() => removeFriend(f.id)} hitSlop={8}>
                   <Ionicons name="close-circle" size={20} color={colors.textFaint} />
@@ -276,13 +284,17 @@ export default function ProfilScreen() {
           <Txt variant="label" color={colors.textFaint}>
             Ajouter un ami
           </Txt>
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: 2 }}>
+            Par numéro : il devient ton ami dès qu'il installe PadelConnect.
+          </Txt>
           <TextInput value={fName} onChangeText={setFName} placeholder="Nom de l'ami" placeholderTextColor={colors.textFaint} style={styles.input} />
+          <TextInput value={fPhone} onChangeText={setFPhone} placeholder="Numéro (+225…) — optionnel" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md }}>
             <Txt variant="muted">Niveau</Txt>
             <LevelStepper value={fLevel} onChange={setFLevel} />
           </View>
           <View style={{ marginTop: spacing.md }}>
-            <Button size="sm" label="Ajouter l'ami" icon="person-add" onPress={() => { addFriend(fName, fLevel); setFName(''); }} />
+            <Button size="sm" label="Ajouter l'ami" icon="person-add" onPress={() => { addFriend(fName, fPhone, fLevel); setFName(''); setFPhone(''); }} />
           </View>
         </Card>
       </View>

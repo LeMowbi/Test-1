@@ -24,6 +24,16 @@ const ACTIONS: Action[] = [
   { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.blue, bg: colors.blueSoft },
 ];
 
+function countdown(ts: number): string {
+  const diff = ts - Date.now();
+  if (diff <= 0) return 'maintenant';
+  const h = Math.floor(diff / 3600000);
+  const m = Math.floor((diff % 3600000) / 60000);
+  if (h >= 24) return `dans ${Math.round(h / 24)} j`;
+  if (h >= 1) return `dans ${h} h`;
+  return `dans ${m} min`;
+}
+
 export default function HomeScreen() {
   const router = useRouter();
   const { state } = useApp();
@@ -33,7 +43,10 @@ export default function HomeScreen() {
     .filter((m) => m.visibility === 'public' || m.visibility === 'amis')
     .slice(0, 3);
   const competitions = [...state.myCompetitions, ...seedCompetitions].slice(0, 2);
-  const nextReservation = state.reservations[0];
+  const now = Date.now();
+  const upcoming = [...state.reservations]
+    .filter((r) => !r.result && r.startsAt > now)
+    .sort((a, b) => a.startsAt - b.startsAt)[0];
 
   return (
     <Screen>
@@ -69,24 +82,29 @@ export default function HomeScreen() {
         ))}
       </View>
 
-      {/* Prochaine réservation */}
-      {nextReservation ? (
-        <Card style={styles.resa}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <IconCircle icon="calendar" color={colors.green} bg={colors.greenSoft} />
-            <View style={{ flex: 1 }}>
-              <Txt variant="label" color={colors.textFaint}>
-                Prochaine réservation
-              </Txt>
-              <Txt variant="h3" style={{ marginTop: 2 }}>
-                {nextReservation.clubName}
-              </Txt>
-              <Txt variant="muted">
-                {nextReservation.date} · {nextReservation.time} · {nextReservation.players} joueurs
-              </Txt>
-            </View>
+      {/* Rappel de match */}
+      {upcoming ? (
+        <LinearGradient colors={[colors.gold, colors.goldDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.reminder}>
+          <View style={styles.bell}>
+            <Ionicons name="notifications" size={20} color={colors.onGold} />
           </View>
-        </Card>
+          <View style={{ flex: 1 }}>
+            <Txt variant="label" color="rgba(255,255,255,0.85)">
+              Rappel de match
+            </Txt>
+            <Txt variant="h3" color={colors.white} style={{ marginTop: 2 }}>
+              {upcoming.clubName}
+            </Txt>
+            <Txt variant="small" color="rgba(255,255,255,0.92)">
+              {upcoming.date} à {upcoming.time} · {upcoming.players} joueurs
+            </Txt>
+          </View>
+          <View style={styles.countChip}>
+            <Txt variant="small" color={colors.onGold} style={{ fontWeight: '700' }}>
+              {countdown(upcoming.startsAt)}
+            </Txt>
+          </View>
+        </LinearGradient>
       ) : null}
 
       {/* Terrains */}
@@ -150,7 +168,28 @@ const styles = StyleSheet.create({
   },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
   tile: { width: '47%', flexGrow: 1, minHeight: 110, justifyContent: 'space-between' },
-  resa: { marginTop: spacing.lg },
+  reminder: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    marginTop: spacing.lg,
+    padding: spacing.lg,
+    borderRadius: radius.lg,
+  },
+  bell: {
+    width: 40,
+    height: 40,
+    borderRadius: radius.pill,
+    backgroundColor: 'rgba(255,255,255,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  countChip: {
+    backgroundColor: colors.white,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 6,
+  },
   section: { marginTop: spacing.xl },
   note: {
     flexDirection: 'row',

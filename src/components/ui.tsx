@@ -231,7 +231,7 @@ export function Tag({
 const tagTones: Record<TagTone, { bg: string; fg: string }> = {
   gold: { bg: colors.goldSoft, fg: colors.gold },
   green: { bg: colors.greenSoft, fg: colors.green },
-  neutral: { bg: colors.surfaceAlt, fg: colors.textMuted },
+  neutral: { bg: colors.surfaceAlt, fg: colors.text },
   danger: { bg: colors.dangerSoft, fg: colors.danger },
 };
 

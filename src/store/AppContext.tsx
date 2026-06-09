@@ -16,9 +16,8 @@ export type Reservation = {
   clubName: string;
   date: string;
   time: string;
-  startsAt: number; // horodatage réel du créneau (pour la règle des 5h)
+  startsAt: number; // horodatage réel du créneau (rappel, anti double-réservation)
   players: number;
-  payment: string;
   invited: Invited[];
   result?: 'win' | 'loss';
   resultAt?: number;
@@ -91,7 +90,7 @@ type AppContextType = {
   setReservationResult: (id: string, result: 'win' | 'loss') => void;
   cancelReservation: (id: string) => void;
   confirmInvite: (reservationId: string, friendId: string) => void;
-  addFriend: (name: string, level: number) => void;
+  addFriend: (name: string, phone: string, level: number) => void;
   removeFriend: (id: string) => void;
   toggleFavorite: (clubId: string) => void;
   addClubPhoto: (clubId: string, uri: string) => void;
@@ -105,6 +104,7 @@ type AppContextType = {
   setManagedClub: (id: string) => void;
   addClubSlot: (clubId: string, slot: string) => void;
   removeClubSlot: (clubId: string, slot: string) => void;
+  setClubSlots: (clubId: string, slots: string[]) => void;
   resetAll: () => void;
 };
 
@@ -166,8 +166,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             level: 3.5,
             favoriteClubIds: ['padelta'],
             reservations: [
-              { id: uid(), clubId: 'padelta', clubName: 'Padelta', date: "Aujourd'hui", time: '19:00', startsAt: now + 6 * 3600000, players: 4, payment: 'Wave', invited: [], createdAt: now },
-              { id: uid(), clubId: 'padel-zone-4', clubName: 'Padel Zone 4', date: 'Sem. dernière', time: '18:00', startsAt: now - 3 * 86400000, players: 4, payment: 'Espèces', invited: [], result: 'win', resultAt: now - 3 * 86400000, createdAt: now - 3 * 86400000 },
+              { id: uid(), clubId: 'padelta', clubName: 'Padelta', date: "Aujourd'hui", time: '19:00', startsAt: now + 6 * 3600000, players: 4, invited: [], createdAt: now },
+              { id: uid(), clubId: 'padel-zone-4', clubName: 'Padel Zone 4', date: 'Sem. dernière', time: '18:00', startsAt: now - 3 * 86400000, players: 4, invited: [], result: 'win', resultAt: now - 3 * 86400000, createdAt: now - 3 * 86400000 },
             ],
           };
         }),
@@ -206,11 +206,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               : r
           ),
         })),
-      addFriend: (name, level) =>
+      addFriend: (name, phone, level) =>
         setState((s) => {
           const n = name.trim();
           if (n.length < 2) return s;
-          return { ...s, friends: [{ id: uid(), name: n, level: clampLevel(level) }, ...s.friends] };
+          return { ...s, friends: [{ id: uid(), name: n, phone: phone.trim() || undefined, level: clampLevel(level) }, ...s.friends] };
         }),
       removeFriend: (id) => setState((s) => ({ ...s, friends: s.friends.filter((f) => f.id !== id) })),
       toggleFavorite: (clubId) =>
@@ -259,6 +259,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       removeClubSlot: (clubId, slot) =>
         setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: (s.clubSlots[clubId] ?? []).filter((x) => x !== slot) } })),
+      setClubSlots: (clubId, slots) =>
+        setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: [...slots].sort() } })),
       resetAll: () => setState(initialState),
     }),
     [state, hydrated, stats]

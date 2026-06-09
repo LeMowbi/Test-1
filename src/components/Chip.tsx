@@ -47,5 +47,5 @@ const styles = StyleSheet.create({
   },
   lg: { paddingHorizontal: spacing.lg },
   active: { backgroundColor: colors.gold, borderColor: colors.gold },
-  disabled: { opacity: 0.4 },
+  disabled: { backgroundColor: colors.surfaceAlt, borderColor: colors.border, opacity: 0.6 },
 });

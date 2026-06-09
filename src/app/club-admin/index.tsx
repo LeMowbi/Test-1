@@ -6,7 +6,7 @@ import { Chip } from '@/components/Chip';
 import { ClubPhoto } from '@/components/ClubPhoto';
 import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
-import { clubsByName, getClub } from '@/data/clubs';
+import { SAMPLE_SLOTS, clubsByName, getClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { useApp } from '@/store/AppContext';
 import { initials } from '@/lib/format';
@@ -24,8 +24,7 @@ export default function ClubAdmin() {
     state,
     setClubMode,
     setManagedClub,
-    addClubSlot,
-    removeClubSlot,
+    setClubSlots,
     addClubPhoto,
     removeClubPhoto,
     addClubOffer,
@@ -43,7 +42,13 @@ export default function ClubAdmin() {
   const [coachSpec, setCoachSpec] = useState('');
 
   const club = getClub(state.managedClubId) ?? clubsByName[0];
-  const openSlots = state.clubSlots[club.id] ?? [];
+  const openSlots = state.clubSlots[club.id] ?? SAMPLE_SLOTS;
+  const toggleSlot = (t: string) => {
+    const set = new Set(openSlots);
+    if (set.has(t)) set.delete(t);
+    else set.add(t);
+    setClubSlots(club.id, [...set]);
+  };
   const photos = state.clubPhotos[club.id] ?? [];
   const offers = state.clubOffers[club.id] ?? [];
   const coaches = state.clubCoaches[club.id] ?? [];
@@ -222,35 +227,19 @@ export default function ClubAdmin() {
         </Card>
       </View>
 
-      {/* Créneaux */}
+      {/* Disponibilités */}
       <View style={{ marginTop: spacing.xl }}>
-        <SectionHeader title="Créneaux ouverts à la réservation" />
+        <SectionHeader title="Disponibilités" />
         <Card>
-          <Txt variant="muted">Créneaux ouverts (touche pour retirer) :</Txt>
+          <Txt variant="muted">Touche un horaire pour l'ouvrir ou le fermer à la réservation.</Txt>
           <View style={styles.wrap}>
-            {openSlots.length === 0 ? (
-              <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-                Aucun créneau ajouté. Les créneaux standards restent proposés par défaut.
-              </Txt>
-            ) : (
-              openSlots.map((s) => (
-                <Pressable key={s} onPress={() => removeClubSlot(club.id, s)} style={styles.openSlot}>
-                  <Txt variant="small" color={colors.green} style={{ fontWeight: '600' }}>
-                    {s}
-                  </Txt>
-                  <Ionicons name="close" size={13} color={colors.green} />
-                </Pressable>
-              ))
-            )}
-          </View>
-          <Txt variant="muted" style={{ marginTop: spacing.lg }}>
-            Ajouter un créneau :
-          </Txt>
-          <View style={styles.wrap}>
-            {ALL_TIMES.filter((t) => !openSlots.includes(t)).map((t) => (
-              <Chip key={t} label={t} icon="add" onPress={() => addClubSlot(club.id, t)} />
+            {ALL_TIMES.map((t) => (
+              <Chip key={t} label={t} active={openSlots.includes(t)} onPress={() => toggleSlot(t)} />
             ))}
           </View>
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+            Les créneaux actifs (verts) sont réservables par les joueurs ; les autres sont fermés.
+          </Txt>
         </Card>
       </View>
 
@@ -271,9 +260,9 @@ export default function ClubAdmin() {
                 <Txt variant="h3" style={{ fontSize: 15 }}>
                   {r.date} · {r.time}
                 </Txt>
-                <Txt variant="muted">{r.players} joueurs{r.payment ? ` · ${r.payment}` : ''}</Txt>
+                <Txt variant="muted">{r.players} joueurs</Txt>
               </View>
-              <Tag label="Payé" tone="green" />
+              <Tag label="Réservé" tone="green" />
             </Card>
           ))
         )}
