@@ -8,8 +8,8 @@ node_modules/
 dist/
 
 # Build web empaqueté (artefact, non versionné)
-PadelCo-web.zip
-PadelCo-web.tar.gz
+*-web.zip
+*-web.tar.gz
 web-build/
 expo-env.d.ts
 

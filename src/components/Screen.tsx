@@ -20,6 +20,7 @@ type Props = {
   scroll?: boolean;
   headerRight?: React.ReactNode;
   contentStyle?: ViewStyle;
+  overlay?: React.ReactNode;
 };
 
 export function Screen({
@@ -30,6 +31,7 @@ export function Screen({
   scroll = true,
   headerRight,
   contentStyle,
+  overlay,
 }: Props) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -79,6 +81,7 @@ export function Screen({
       ) : (
         body
       )}
+      {overlay}
     </View>
   );
 }

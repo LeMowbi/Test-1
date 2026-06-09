@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Confetti } from '@/components/Confetti';
 import { LevelStepper } from '@/components/LevelStepper';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
@@ -32,6 +33,7 @@ export default function ProfilScreen() {
   const { account, level, defaultVisibility, reservations, friends, officialResults } = state;
 
   const [editing, setEditing] = useState(false);
+  const [celebrate, setCelebrate] = useState(false);
   const [fName, setFName] = useState('');
   const [fLevel, setFLevel] = useState(3.0);
 
@@ -50,7 +52,7 @@ export default function ProfilScreen() {
   ];
 
   return (
-    <Screen title="Profil">
+    <Screen title="Profil" overlay={celebrate ? <Confetti onDone={() => setCelebrate(false)} /> : null}>
       {editing ? (
         <EditAccount onDone={() => setEditing(false)} />
       ) : (
@@ -84,7 +86,7 @@ export default function ProfilScreen() {
       {/* Niveau (évolue via compétitions officielles) */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Mon niveau" />
-        <Card>
+        <Card style={{ borderColor: colors.gold }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <IconCircle icon="ribbon" />
             <View style={{ flex: 1 }}>
@@ -189,7 +191,7 @@ export default function ProfilScreen() {
                 ) : null}
                 <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
                   <View style={{ flex: 1 }}>
-                    <Button size="sm" label="J'ai gagné" icon="trophy" onPress={() => setReservationResult(r.id, 'win')} full />
+                    <Button size="sm" label="J'ai gagné" icon="trophy" onPress={() => { setReservationResult(r.id, 'win'); setCelebrate(true); }} full />
                   </View>
                   <View style={{ flex: 1 }}>
                     <Button size="sm" label="J'ai perdu" icon="close" variant="danger" onPress={() => setReservationResult(r.id, 'loss')} full />
