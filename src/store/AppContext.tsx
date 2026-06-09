@@ -37,6 +37,7 @@ type AppState = {
   favoriteClubIds: string[];
   friends: Friend[];
   officialResults: OfficialResult[];
+  compRegistrations: Record<string, { partner: string; at: number }>;
   clubPhotos: Record<string, string[]>;
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string }[]>;
@@ -63,6 +64,7 @@ const initialState: AppState = {
   favoriteClubIds: [],
   friends: seedFriends,
   officialResults: [],
+  compRegistrations: {},
   clubPhotos: {},
   clubOffers: {},
   clubCoaches: {},
@@ -86,6 +88,8 @@ type AppContextType = {
   addReview: (clubId: string, rating: number, text: string) => void;
   addMatch: (m: Omit<Match, 'id' | 'createdByMe'>) => void;
   addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => void;
+  registerCompetition: (id: string, partner: string) => void;
+  unregisterCompetition: (id: string) => void;
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt'>) => void;
   setReservationResult: (id: string, result: 'win' | 'loss') => void;
   cancelReservation: (id: string) => void;
@@ -190,6 +194,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         })),
       addMatch: (m) => setState((s) => ({ ...s, myMatches: [{ ...m, id: uid(), createdByMe: true }, ...s.myMatches] })),
       addCompetition: (c) => setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true }, ...s.myCompetitions] })),
+      registerCompetition: (id, partner) =>
+        setState((s) =>
+          s.compRegistrations[id]
+            ? s
+            : { ...s, compRegistrations: { ...s.compRegistrations, [id]: { partner: partner.trim() || 'Partenaire', at: Date.now() } } }
+        ),
+      unregisterCompetition: (id) =>
+        setState((s) => {
+          const next = { ...s.compRegistrations };
+          delete next[id];
+          return { ...s, compRegistrations: next };
+        }),
       addReservation: (r) =>
         setState((s) => {
           // Sécurité anti double-réservation : même club + même date + même heure.

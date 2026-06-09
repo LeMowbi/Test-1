@@ -111,13 +111,16 @@ export default function NouvelleCompetition() {
       </View>
 
       <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-        Nombre de places
+        Nombre d'équipes (places limitées)
       </Txt>
       <View style={styles.wrap}>
         {SLOTS.map((s) => (
-          <Chip key={s} label={`${s}`} active={s === slots} onPress={() => setSlots(s)} />
+          <Chip key={s} label={`${s} équipes`} active={s === slots} onPress={() => setSlots(s)} />
         ))}
       </View>
+      <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+        Chaque équipe compte 2 joueurs. L'inscription se ferme une fois toutes les places prises.
+      </Txt>
 
       <View style={{ marginTop: spacing.xl }}>
         <Button label="Publier la compétition" icon="trophy" onPress={create} disabled={!ready} full />

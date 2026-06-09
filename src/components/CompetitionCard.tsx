@@ -1,25 +1,26 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { Button, Card, Tag, Txt } from './ui';
+import { Card, Tag, Txt } from './ui';
 import type { Competition } from '@/data/competitions';
+import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
 export function CompetitionCard({ comp }: { comp: Competition }) {
   const router = useRouter();
-  const [registered, setRegistered] = useState(false);
+  const { state } = useApp();
   const byClub = comp.organizerType === 'club';
+  const registered = !!state.compRegistrations[comp.id];
+  const teams = comp.registered + (registered ? 1 : 0);
+  const left = Math.max(0, comp.slots - teams);
+  const full = left === 0;
+  const pct = Math.min(100, Math.round((teams / comp.slots) * 100));
 
   return (
     <Card onPress={() => router.push(`/competition/${comp.id}`)} style={{ marginBottom: spacing.md }}>
-      <View style={styles.topRow}>
+      <View style={styles.top}>
         <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', flex: 1 }}>
-          <Tag
-            label={byClub ? `Club · ${comp.organizer}` : `Joueur · ${comp.organizer}`}
-            tone={byClub ? 'neutral' : 'green'}
-            icon={byClub ? 'business' : 'person'}
-          />
+          <Tag label={byClub ? `Club · ${comp.organizer}` : `Joueur · ${comp.organizer}`} tone={byClub ? 'neutral' : 'green'} icon={byClub ? 'business' : 'person'} />
           {comp.official ? <Tag label="Officielle" tone="gold" icon="shield-checkmark" /> : null}
         </View>
         <Txt variant="muted">{comp.date}</Txt>
@@ -36,29 +37,28 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
         </Txt>
       </View>
 
-      <View style={styles.metaRow}>
-        <Txt variant="muted">{comp.format}</Txt>
-        <Txt variant="muted">·</Txt>
-        <Txt variant="muted">{comp.level}</Txt>
+      <View style={styles.barTrack}>
+        <View style={[styles.barFill, { width: (`${pct}%` as `${number}%`) }]} />
       </View>
 
       <View style={styles.footer}>
         <Txt variant="muted">
-          {comp.registered}/{comp.slots} inscrits · {comp.fee}
+          {teams}/{comp.slots} équipes · {comp.fee}
         </Txt>
-        <Button
-          size="sm"
-          label={registered ? 'Inscrit ✓' : "S'inscrire"}
-          variant={registered ? 'secondary' : 'primary'}
-          onPress={() => setRegistered((v) => !v)}
-        />
+        {registered ? (
+          <Tag label="Inscrit ✓" tone="green" />
+        ) : full ? (
+          <Tag label="Complet" tone="danger" />
+        ) : (
+          <Tag label={`${left} place${left > 1 ? 's' : ''}`} tone="gold" />
+        )}
       </View>
     </Card>
   );
 }
 
 const styles = StyleSheet.create({
-  topRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  top: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   reward: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -68,11 +68,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
     borderRadius: radius.md,
   },
-  metaRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md, flexWrap: 'wrap' },
-  footer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: spacing.md,
-  },
+  barTrack: { height: 6, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, marginTop: spacing.md, overflow: 'hidden' },
+  barFill: { height: 6, borderRadius: radius.pill, backgroundColor: colors.gold },
+  footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md },
 });

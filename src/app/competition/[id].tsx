@@ -1,21 +1,24 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
+import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
 import { seedCompetitions } from '@/data/competitions';
 import { useApp } from '@/store/AppContext';
-import { colors, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
 export default function CompetitionDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { state } = useApp();
-  const [registered, setRegistered] = useState(false);
+  const { state, registerCompetition, unregisterCompetition } = useApp();
 
   const key = Array.isArray(id) ? id[0] : id;
   const comp = [...state.myCompetitions, ...seedCompetitions].find((c) => c.id === key);
+
+  const [partnerId, setPartnerId] = useState<string | null>(null);
+  const [partnerName, setPartnerName] = useState('');
 
   if (!comp) {
     return (
@@ -25,15 +28,32 @@ export default function CompetitionDetail() {
     );
   }
 
+  const reg = state.compRegistrations[comp.id];
+  const registered = !!reg;
+  const teams = comp.registered + (registered ? 1 : 0);
+  const left = Math.max(0, comp.slots - teams);
+  const full = left === 0 && !registered;
+  const pct = Math.min(100, Math.round((teams / comp.slots) * 100));
+
   const byClub = comp.organizerType === 'club';
+  const partner = (partnerId ? state.friends.find((f) => f.id === partnerId)?.name : partnerName.trim()) ?? '';
+  const canRegister = !full && partner.length > 0;
+
+  const pickFriend = (fid: string) => {
+    setPartnerId((cur) => (cur === fid ? null : fid));
+    setPartnerName('');
+  };
 
   return (
     <Screen back title="Compétition">
-      <Tag
-        label={byClub ? `Organisé par ${comp.organizer}` : `Créé par ${comp.organizer} (joueur)`}
-        tone={byClub ? 'neutral' : 'green'}
-        icon={byClub ? 'business' : 'person'}
-      />
+      <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+        <Tag
+          label={byClub ? `Organisé par ${comp.organizer}` : `Créé par ${comp.organizer} (joueur)`}
+          tone={byClub ? 'neutral' : 'green'}
+          icon={byClub ? 'business' : 'person'}
+        />
+        {comp.official ? <Tag label="Officielle" tone="gold" icon="shield-checkmark" /> : null}
+      </View>
       <Txt variant="display" style={{ fontSize: 26, marginTop: spacing.md }}>
         {comp.title}
       </Txt>
@@ -55,7 +75,28 @@ export default function CompetitionDetail() {
         <Info icon="git-network-outline" label="Format" value={comp.format} />
         <Info icon="podium-outline" label="Niveau" value={comp.level} />
         <Info icon="cash-outline" label="Inscription" value={comp.fee} />
-        <Info icon="people-outline" label="Places" value={`${comp.registered}/${comp.slots} inscrits`} />
+      </Card>
+
+      {/* Places — limitées, en équipes */}
+      <Card style={{ marginTop: spacing.md }}>
+        <View style={styles.placesHead}>
+          <Txt variant="label" color={colors.textFaint}>
+            ÉQUIPES INSCRITES
+          </Txt>
+          <Txt variant="h3">
+            {teams}/{comp.slots}
+          </Txt>
+        </View>
+        <View style={styles.barTrack}>
+          <View style={[styles.barFill, { width: (`${pct}%` as `${number}%`) }]} />
+        </View>
+        <Txt variant="small" color={full ? colors.danger : colors.textMuted} style={{ marginTop: spacing.sm }}>
+          {registered
+            ? 'Ton équipe est inscrite.'
+            : full
+              ? 'Complet — toutes les places sont prises.'
+              : `Il reste ${left} place${left > 1 ? 's' : ''}.`}
+        </Txt>
       </Card>
 
       {byClub && comp.clubId ? (
@@ -67,18 +108,79 @@ export default function CompetitionDetail() {
         />
       ) : null}
 
-      <View style={{ marginTop: spacing.lg }}>
-        <Button
-          label={registered ? 'Inscription enregistrée ✓' : "S'inscrire à la compétition"}
-          icon={registered ? 'checkmark' : 'add'}
-          variant={registered ? 'secondary' : 'primary'}
-          onPress={() => setRegistered((v) => !v)}
-          full
-        />
-        <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-          Prototype : inscription simulée.
-        </Txt>
-      </View>
+      {/* Inscription en équipe */}
+      {registered ? (
+        <Card style={{ marginTop: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <Ionicons name="checkmark-circle" size={24} color={colors.green} />
+            <View style={{ flex: 1 }}>
+              <Txt variant="h3">Inscrit en équipe</Txt>
+              <Txt variant="muted">Avec {reg.partner}</Txt>
+            </View>
+          </View>
+          <View style={{ marginTop: spacing.md }}>
+            <Button label="Se désinscrire" icon="close" variant="danger" onPress={() => unregisterCompetition(comp.id)} full />
+          </View>
+        </Card>
+      ) : (
+        <View style={{ marginTop: spacing.lg }}>
+          <Txt variant="h3">S'inscrire en équipe</Txt>
+          <Txt variant="muted" style={{ marginTop: 2 }}>
+            Le padel se joue à 2 : choisis ton coéquipier.
+          </Txt>
+
+          {state.friends.length > 0 ? (
+            <>
+              <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>
+                PARMI TES AMIS
+              </Txt>
+              <View style={styles.wrap}>
+                {state.friends.map((f) => (
+                  <Chip
+                    key={f.id}
+                    label={f.name}
+                    icon={partnerId === f.id ? 'checkmark' : 'person-add'}
+                    active={partnerId === f.id}
+                    onPress={() => pickFriend(f.id)}
+                    disabled={full}
+                  />
+                ))}
+              </View>
+            </>
+          ) : null}
+
+          <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>
+            OU UN AUTRE NOM
+          </Txt>
+          <TextInput
+            value={partnerName}
+            onChangeText={(t) => {
+              setPartnerName(t);
+              setPartnerId(null);
+            }}
+            placeholder="Nom du coéquipier"
+            placeholderTextColor={colors.textFaint}
+            editable={!full}
+            style={styles.input}
+          />
+
+          <View style={{ marginTop: spacing.lg }}>
+            <Button
+              label={full ? 'Complet' : "S'inscrire en équipe"}
+              icon={full ? 'lock-closed' : 'add'}
+              onPress={() => {
+                if (!canRegister) return;
+                registerCompetition(comp.id, partner);
+              }}
+              disabled={!canRegister}
+              full
+            />
+          </View>
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+            Prototype : inscription enregistrée sur l'appareil. Le règlement se fait au club.
+          </Txt>
+        </View>
+      )}
     </Screen>
   );
 }
@@ -100,4 +202,18 @@ function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 const styles = StyleSheet.create({
   reward: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   info: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
+  placesHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+  barTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, marginTop: spacing.sm, overflow: 'hidden' },
+  barFill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.gold },
+  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  input: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    color: colors.text,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    fontSize: 15,
+  },
 });
