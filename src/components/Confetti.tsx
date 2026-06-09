@@ -3,7 +3,7 @@ import { Animated, Dimensions, StyleSheet, View } from 'react-native';
 import { colors } from '@/theme';
 
 const W = Dimensions.get('window').width;
-const PALETTE = [colors.gold, colors.green, '#16C5B6', '#FFFFFF', '#E5B45A'];
+const PALETTE = [colors.gold, colors.green, colors.blue, colors.lime, colors.danger];
 const PIECES = Array.from({ length: 26 }, (_, i) => ({
   left: Math.random() * W,
   size: 6 + Math.random() * 8,

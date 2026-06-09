@@ -18,10 +18,10 @@ import { colors, radius, spacing } from '@/theme';
 type Action = { icon: keyof typeof Ionicons.glyphMap; label: string; route: string; tint: string; bg: string };
 
 const ACTIONS: Action[] = [
-  { icon: 'calendar', label: 'Réserver un terrain', route: '/terrains', tint: colors.gold, bg: colors.goldSoft },
-  { icon: 'tennisball', label: 'Trouver un match', route: '/matchs', tint: colors.green, bg: colors.greenSoft },
-  { icon: 'school', label: 'Trouver un coach', route: '/coachs', tint: colors.gold, bg: colors.goldSoft },
-  { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.green, bg: colors.greenSoft },
+  { icon: 'calendar', label: 'Réserver un terrain', route: '/terrains', tint: colors.blue, bg: colors.blueSoft },
+  { icon: 'tennisball', label: 'Trouver un match', route: '/matchs', tint: colors.gold, bg: colors.goldSoft },
+  { icon: 'school', label: 'Trouver un coach', route: '/coachs', tint: colors.green, bg: colors.greenSoft },
+  { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.blue, bg: colors.blueSoft },
 ];
 
 export default function HomeScreen() {
@@ -39,7 +39,7 @@ export default function HomeScreen() {
     <Screen>
       <Reveal>
       {/* Hero */}
-      <LinearGradient colors={['#1B1812', colors.bg]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.hero}>
+      <LinearGradient colors={['#E6F1ED', colors.bg]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.hero}>
         <View style={styles.brandRow}>
           <Logo size={30} />
           <View style={styles.cityChip}>

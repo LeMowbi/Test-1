@@ -43,7 +43,7 @@ export default function Onboarding() {
   return (
     <View style={styles.root}>
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
-        <LinearGradient colors={['#1B1812', '#15171C', colors.bg]} style={styles.hero}>
+        <LinearGradient colors={['#E6F1ED', '#EEF4F1', colors.bg]} style={styles.hero}>
           <Logo size={40} />
           <Txt variant="display" style={{ fontSize: 30, marginTop: spacing.xl }}>
             Bienvenue 👋
