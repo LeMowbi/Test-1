@@ -1,15 +1,15 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Txt } from '@/components/ui';
 import { clubs } from '@/data/clubs';
 import { COMP_FORMATS } from '@/data/competitions';
+import { nextDays, type DayOption } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
-const DATES = ["Aujourd'hui", 'Demain', 'Samedi', 'Dimanche'];
 const LEVELS = ['Tous niveaux', 'Débutant', 'Intermédiaire', 'Avancé'];
 const SLOTS = [4, 8, 16, 24];
 
@@ -47,23 +47,25 @@ export default function NouvelleCompetition() {
   const club = asClub ? clubs.find((c) => c.id === params.clubId) : undefined;
   const { state, addCompetition } = useApp();
 
+  const dates = useMemo(() => nextDays(7), []);
   const [title, setTitle] = useState('');
   const [reward, setReward] = useState('');
   const [fee, setFee] = useState('Gratuit');
-  const [date, setDate] = useState<string | null>(null);
+  const [day, setDay] = useState<DayOption | null>(null);
   const [format, setFormat] = useState(COMP_FORMATS[2]);
   const [level, setLevel] = useState('Tous niveaux');
   const [slots, setSlots] = useState(8);
 
   const create = () => {
-    if (title.trim().length < 2 || reward.trim().length < 2 || !date) return;
+    if (title.trim().length < 2 || reward.trim().length < 2 || !day) return;
     addCompetition({
       title: title.trim(),
       organizerType: asClub ? 'club' : 'joueur',
       organizer: club?.name ?? state.account?.firstName ?? 'Joueur',
       clubId: club?.id,
       clubName: club?.name,
-      date,
+      date: day.label,
+      dateKey: day.key,
       format,
       level,
       reward: reward.trim(),
@@ -75,7 +77,7 @@ export default function NouvelleCompetition() {
     router.replace(asClub ? '/club-admin' : '/competitions');
   };
 
-  const ready = title.trim().length > 1 && reward.trim().length > 1 && !!date;
+  const ready = title.trim().length > 1 && reward.trim().length > 1 && !!day;
 
   return (
     <Screen back title="Créer une compétition" subtitle={asClub ? `Pour ${club?.name ?? 'votre club'}` : 'En tant que joueur'}>
@@ -87,8 +89,8 @@ export default function NouvelleCompetition() {
         Date
       </Txt>
       <View style={styles.wrap}>
-        {DATES.map((d) => (
-          <Chip key={d} label={d} active={d === date} onPress={() => setDate(d)} />
+        {dates.map((d) => (
+          <Chip key={d.key} label={d.label} active={d.key === day?.key} onPress={() => setDay(d)} />
         ))}
       </View>
 

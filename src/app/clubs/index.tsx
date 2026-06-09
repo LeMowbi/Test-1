@@ -11,7 +11,7 @@ import { colors, radius, spacing } from '@/theme';
 
 const FILTERS = ['Tous', 'Favoris', 'Couvert', 'Extérieur', 'Mixte'];
 
-export default function TerrainsScreen() {
+export default function ClubsScreen() {
   const { state } = useApp();
   const [filter, setFilter] = useState('Tous');
 
@@ -25,7 +25,7 @@ export default function TerrainsScreen() {
   }, [filter, state.favoriteClubIds, state.boostedClubIds]);
 
   return (
-    <Screen title="Terrains" subtitle={`${clubsByName.length} clubs de padel à Abidjan`}>
+    <Screen back title="Clubs" subtitle={`${clubsByName.length} clubs de padel à Abidjan`}>
       <Pressable
         style={styles.mapBtn}
         onPress={() => Linking.openURL('https://www.google.com/maps/search/?api=1&query=padel+Abidjan')}
@@ -53,7 +53,7 @@ export default function TerrainsScreen() {
       </Txt>
 
       {list.length === 0 ? (
-        <EmptyState icon="heart-outline" title="Aucun favori" text="Touche le cœur sur un terrain pour l’ajouter ici." />
+        <EmptyState icon="heart-outline" title="Aucun favori" text="Touche le cœur sur un club pour l’ajouter ici." />
       ) : (
         list.map((c) => <ClubCard key={c.id} club={c} />)
       )}

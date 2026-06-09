@@ -177,7 +177,7 @@ export default function ProfilScreen() {
                   {r.clubName}
                 </Txt>
                 <Txt variant="muted" style={{ marginTop: 2 }}>
-                  {r.date} · {r.time} · {r.players} joueurs
+                  {r.date} · {r.time} · {r.court}
                 </Txt>
                 {r.invited.length > 0 ? (
                   <View style={styles.invited}>
@@ -226,7 +226,7 @@ export default function ProfilScreen() {
                       {r.clubName}
                     </Txt>
                     <Txt variant="muted">
-                      {r.date} · {r.time}
+                      {r.date} · {r.time} · {r.court}
                     </Txt>
                   </View>
                   <Tag label={r.result === 'win' ? 'Victoire' : 'Défaite'} tone={r.result === 'win' ? 'green' : 'danger'} />
@@ -314,7 +314,7 @@ export default function ProfilScreen() {
           <IconCircle icon="stats-chart" color={colors.green} bg={colors.greenSoft} />
           <View style={{ flex: 1 }}>
             <Txt variant="h3">Espace opérateur (PadelConnect)</Txt>
-            <Txt variant="muted">Réservations payées & commission par club.</Txt>
+            <Txt variant="muted">Réservations reçues & commission par club.</Txt>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </Card>

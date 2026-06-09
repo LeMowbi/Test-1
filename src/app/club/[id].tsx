@@ -5,10 +5,12 @@ import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native
 import { ClubPhoto } from '@/components/ClubPhoto';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
-import { clubGallery, getClub, offersForClub } from '@/data/clubs';
+import { Button, Card, Divider, EmptyState, IconCircle, Tag, Txt } from '@/components/ui';
+import { clubGallery, defaultCourts, getClub, offersForClub } from '@/data/clubs';
+import { coaches } from '@/data/coaches';
 import { seedReviews } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
+import { callNumber } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { openMaps } from '@/lib/maps';
 import { colors, radius, spacing } from '@/theme';
@@ -35,6 +37,11 @@ export default function ClubDetail() {
   const boosted = state.boostedClubIds.includes(club.id);
   const gallery = clubGallery(club, state.clubPhotos[club.id] ?? []);
   const offers = offersForClub(club, state.clubOffers[club.id] ?? []);
+  const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
+  const clubCoaches = [
+    ...coaches.filter((c) => c.clubId === club.id).map((c) => ({ id: c.id, name: c.name, sub: c.level, phone: c.phone })),
+    ...(state.clubCoaches[club.id] ?? []).map((c) => ({ id: c.id, name: c.name, sub: c.specialty, phone: c.phone })),
+  ];
   const reviews = [
     ...state.userReviews.filter((r) => r.clubId === club.id),
     ...seedReviews.filter((r) => r.clubId === club.id),
@@ -77,7 +84,7 @@ export default function ClubDetail() {
       <View style={styles.tags}>
         {boosted ? <Tag label="Sponsorisé" tone="gold" icon="megaphone" /> : null}
         <Tag label={club.type} tone="neutral" />
-        <Tag label={`${club.courts} terrains`} tone="neutral" />
+        <Tag label={`${courtCount} terrain${courtCount > 1 ? 's' : ''}`} tone="neutral" />
         <Tag label={`${club.rating.toFixed(1)} ★ (${club.reviewsCount})`} tone="gold" />
       </View>
 
@@ -131,6 +138,34 @@ export default function ClubDetail() {
           </View>
         ))}
       </Card>
+
+      {/* Coachs du club */}
+      {clubCoaches.length > 0 ? (
+        <Card style={{ marginTop: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+            <Ionicons name="school-outline" size={18} color={colors.gold} />
+            <Txt variant="h3">Coachs du club</Txt>
+          </View>
+          <Txt variant="small" color={colors.textFaint}>
+            La réservation d'un cours se fait directement avec le coach.
+          </Txt>
+          {clubCoaches.map((c, i) => (
+            <View key={c.id}>
+              {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+              <View style={[styles.coachRow, { marginTop: i === 0 ? spacing.md : 0 }]}>
+                <IconCircle icon="person" color={colors.gold} bg={colors.goldSoft} size={38} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
+                  <Txt variant="muted">{c.sub}</Txt>
+                </View>
+                {c.phone ? (
+                  <Button size="sm" label="Appeler" icon="call" variant="secondary" onPress={() => callNumber(c.phone!)} />
+                ) : null}
+              </View>
+            </View>
+          ))}
+        </Card>
+      ) : null}
 
       {/* Avis */}
       <View style={{ marginTop: spacing.xl }}>
@@ -218,4 +253,5 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   reviewHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  coachRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
 });

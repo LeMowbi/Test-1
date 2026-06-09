@@ -1,24 +1,19 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useLocalSearchParams } from 'expo-router';
-import { useState } from 'react';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { Chip } from '@/components/Chip';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
-import { getCoach } from '@/data/coaches';
+import { getClub } from '@/data/clubs';
+import { coachClubName, getCoach } from '@/data/coaches';
+import { callNumber } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
-const DATES = ["Aujourd'hui", 'Demain', 'Samedi', 'Dimanche'];
-const TIMES = ['08:00', '10:00', '17:00', '18:00', '19:00'];
-
 export default function CoachDetail() {
   const { id } = useLocalSearchParams();
+  const router = useRouter();
   const coach = getCoach(id);
-  const [date, setDate] = useState<string | null>(null);
-  const [time, setTime] = useState<string | null>(null);
-  const [booked, setBooked] = useState(false);
 
   if (!coach) {
     return (
@@ -27,6 +22,8 @@ export default function CoachDetail() {
       </Screen>
     );
   }
+
+  const club = getClub(coach.clubId);
 
   return (
     <Screen back title="Coach">
@@ -39,9 +36,7 @@ export default function CoachDetail() {
           </View>
           <View style={{ flex: 1 }}>
             <Txt variant="h2">{coach.name}</Txt>
-            <Txt variant="muted">
-              {coach.level} · {coach.area}
-            </Txt>
+            <Txt variant="muted">{coach.level}</Txt>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
               <RatingStars value={coach.rating} size={14} />
               <Txt variant="small" color={colors.textMuted}>
@@ -58,47 +53,37 @@ export default function CoachDetail() {
             <Tag key={s} label={s} tone="neutral" />
           ))}
         </View>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: spacing.md }}>
-          <Txt variant="muted">Tarif indicatif</Txt>
-          <Txt variant="price">{fcfa(coach.pricePerHour)} / heure</Txt>
-        </View>
+        <Divider style={{ marginVertical: spacing.md }} />
+        <Info icon="business-outline" label="Club" value={coachClubName(coach)} />
+        <Info icon="call-outline" label="Téléphone" value={coach.phone} />
+        <Info icon="cash-outline" label="Tarif indicatif" value={`${fcfa(coach.pricePerHour)} / heure`} />
       </Card>
 
-      {booked ? (
-        <Card style={{ alignItems: 'center', paddingVertical: spacing.xl, marginTop: spacing.lg }}>
-          <Ionicons name="checkmark-circle" size={48} color={colors.green} />
-          <Txt variant="h3" style={{ marginTop: spacing.sm }}>
-            Demande envoyée
-          </Txt>
-          <Txt variant="muted" style={{ textAlign: 'center', marginTop: 4 }}>
-            {date} · {time} (démo)
-          </Txt>
-          <Button label="Choisir un autre créneau" variant="ghost" onPress={() => setBooked(false)} />
-        </Card>
-      ) : (
-        <>
-          <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.xl }}>
-            Choisis une date
-          </Txt>
-          <View style={styles.wrap}>
-            {DATES.map((d) => (
-              <Chip key={d} label={d} active={d === date} onPress={() => setDate(d)} size="lg" />
-            ))}
-          </View>
-          <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-            Choisis une heure
-          </Txt>
-          <View style={styles.wrap}>
-            {TIMES.map((t) => (
-              <Chip key={t} label={t} active={t === time} onPress={() => setTime(t)} size="lg" />
-            ))}
-          </View>
-          <View style={{ marginTop: spacing.xl }}>
-            <Button label="Réserver la séance" icon="calendar" onPress={() => setBooked(true)} disabled={!date || !time} full />
-          </View>
-        </>
-      )}
+      <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
+        <Button label={`Appeler · ${coach.phone}`} icon="call" onPress={() => callNumber(coach.phone)} full />
+        {club ? (
+          <Button label={`Voir ${club.name}`} icon="location-outline" variant="secondary" onPress={() => router.push(`/club/${club.id}`)} full />
+        ) : null}
+      </View>
+
+      <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.md, textAlign: 'center' }}>
+        La réservation d'un cours se fait directement avec le coach (appel / WhatsApp).
+      </Txt>
     </Screen>
+  );
+}
+
+function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; label: string; value: string }) {
+  return (
+    <View style={styles.info}>
+      <Ionicons name={icon} size={18} color={colors.textMuted} />
+      <Txt variant="muted" style={{ width: 110 }}>
+        {label}
+      </Txt>
+      <Txt variant="body" style={{ flex: 1, fontWeight: '600' }}>
+        {value}
+      </Txt>
+    </View>
   );
 }
 
@@ -113,5 +98,5 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   specs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  info: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
 });

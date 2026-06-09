@@ -6,6 +6,7 @@ import type { Competition } from '@/data/competitions';
 import type { Match, Visibility } from '@/data/matches';
 import type { Review } from '@/data/reviews';
 import { seedFriends, type Friend } from '@/data/user';
+import { dayKey, nextDays } from '@/lib/days';
 
 export type Account = { firstName: string; lastName: string; phone: string; photoUri?: string };
 export type Invited = { id: string; name: string; confirmed: boolean };
@@ -14,7 +15,9 @@ export type Reservation = {
   id: string;
   clubId: string;
   clubName: string;
-  date: string;
+  court: string; // terrain précis réservé (ex. « Terrain 2 »)
+  date: string; // libellé d'affichage (ex. « Demain »)
+  dateKey: string; // identité stable du jour (AAAA-MM-JJ) — base des calculs
   time: string;
   startsAt: number; // horodatage réel du créneau (rappel, anti double-réservation)
   players: number;
@@ -40,11 +43,12 @@ type AppState = {
   compRegistrations: Record<string, { partner: string; at: number }>;
   clubPhotos: Record<string, string[]>;
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu'; title: string; detail: string }[]>;
-  clubCoaches: Record<string, { id: string; name: string; specialty: string }[]>;
+  clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
   boostedClubIds: string[];
   clubMode: boolean;
   managedClubId: string;
-  clubSlots: Record<string, string[]>;
+  clubSlots: Record<string, string[]>; // horaires ouverts par club
+  clubCourts: Record<string, string[]>; // terrains (courts) gérés par club
 };
 
 export type Stats = { wins: number; losses: number; played: number; winRate: number; streak: number };
@@ -72,6 +76,7 @@ const initialState: AppState = {
   clubMode: false,
   managedClubId: 'padelta',
   clubSlots: {},
+  clubCourts: {},
 };
 
 type AppContextType = {
@@ -101,7 +106,7 @@ type AppContextType = {
   removeClubPhoto: (clubId: string, uri: string) => void;
   addClubOffer: (clubId: string, kind: 'offre' | 'actu', title: string, detail: string) => void;
   removeClubOffer: (clubId: string, id: string) => void;
-  addClubCoach: (clubId: string, name: string, specialty: string) => void;
+  addClubCoach: (clubId: string, name: string, specialty: string, phone: string) => void;
   removeClubCoach: (clubId: string, id: string) => void;
   toggleBoostClub: (clubId: string) => void;
   setClubMode: (on: boolean) => void;
@@ -109,6 +114,7 @@ type AppContextType = {
   addClubSlot: (clubId: string, slot: string) => void;
   removeClubSlot: (clubId: string, slot: string) => void;
   setClubSlots: (clubId: string, slots: string[]) => void;
+  setClubCourts: (clubId: string, courts: string[]) => void;
   resetAll: () => void;
 };
 
@@ -164,14 +170,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       loadDemo: () =>
         setState(() => {
           const now = Date.now();
+          const demain = nextDays(2)[1]; // jour « Demain » stable
+          const lastWeek = new Date(now - 3 * 86400000);
           return {
             ...initialState,
             account: { firstName: 'Invité', lastName: 'Démo', phone: '+225 07 00 00 00 00' },
             level: 3.5,
             favoriteClubIds: ['padelta'],
             reservations: [
-              { id: uid(), clubId: 'district-club', clubName: 'District Club', date: 'Demain', time: '18:00', startsAt: now + 20 * 3600000, players: 4, invited: [], createdAt: now },
-              { id: uid(), clubId: 'padel-zone-4', clubName: 'Padel Zone 4', date: 'Sem. dernière', time: '18:00', startsAt: now - 3 * 86400000, players: 4, invited: [], result: 'win', resultAt: now - 3 * 86400000, createdAt: now - 3 * 86400000 },
+              { id: uid(), clubId: 'district-club', clubName: 'District Club', court: 'Terrain 1', date: demain.label, dateKey: demain.key, time: '18:00', startsAt: demain.value + 18 * 3600000, players: 4, invited: [], createdAt: now },
+              { id: uid(), clubId: 'padel-zone-4', clubName: 'Padel Zone 4', court: 'Terrain 2', date: 'Sem. dernière', dateKey: dayKey(lastWeek), time: '18:00', startsAt: now - 3 * 86400000, players: 4, invited: [], result: 'win', resultAt: now - 3 * 86400000, createdAt: now - 3 * 86400000 },
             ],
           };
         }),
@@ -208,8 +216,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       addReservation: (r) =>
         setState((s) => {
-          // Sécurité anti double-réservation : même club + même date + même heure.
-          if (s.reservations.some((x) => x.clubId === r.clubId && x.date === r.date && x.time === r.time)) return s;
+          // Anti double-réservation : un même TERRAIN ne peut être pris 2× au même créneau.
+          // (Deux terrains différents au même horaire restent possibles.) Indexé sur dateKey.
+          if (s.reservations.some((x) => x.clubId === r.clubId && x.dateKey === r.dateKey && x.time === r.time && x.court === r.court)) return s;
           return { ...s, reservations: [{ ...r, id: uid(), createdAt: Date.now() }, ...s.reservations] };
         }),
       setReservationResult: (id, result) =>
@@ -256,12 +265,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       removeClubOffer: (clubId, id) =>
         setState((s) => ({ ...s, clubOffers: { ...s.clubOffers, [clubId]: (s.clubOffers[clubId] ?? []).filter((o) => o.id !== id) } })),
-      addClubCoach: (clubId, name, specialty) =>
+      addClubCoach: (clubId, name, specialty, phone) =>
         setState((s) => {
           const n = name.trim();
           if (!n) return s;
           const existing = s.clubCoaches[clubId] ?? [];
-          return { ...s, clubCoaches: { ...s.clubCoaches, [clubId]: [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach' }, ...existing] } };
+          return { ...s, clubCoaches: { ...s.clubCoaches, [clubId]: [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach', phone: phone.trim() || undefined }, ...existing] } };
         }),
       removeClubCoach: (clubId, id) =>
         setState((s) => ({ ...s, clubCoaches: { ...s.clubCoaches, [clubId]: (s.clubCoaches[clubId] ?? []).filter((c) => c.id !== id) } })),
@@ -282,6 +291,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: (s.clubSlots[clubId] ?? []).filter((x) => x !== slot) } })),
       setClubSlots: (clubId, slots) =>
         setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: [...slots].sort() } })),
+      setClubCourts: (clubId, courts) =>
+        setState((s) => ({ ...s, clubCourts: { ...s.clubCourts, [clubId]: courts } })),
       resetAll: () => setState(initialState),
     }),
     [state, hydrated, stats]

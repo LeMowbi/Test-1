@@ -1,4 +1,7 @@
 // Coachs — PROFILS DE DÉMONSTRATION (fictifs). À remplacer par de vrais coachs.
+// La réservation ne se fait PAS dans l'app : on affiche le numéro du coach et son club.
+
+import { getClub } from './clubs';
 
 export type Coach = {
   id: string;
@@ -6,6 +9,8 @@ export type Coach = {
   level: string;
   levelValue: number; // niveau enseigné (1.0 → 7.0), pour le classement
   area: string;
+  clubId: string; // club où le coach exerce
+  phone: string; // numéro direct (appel / WhatsApp)
   pricePerHour: number; // FCFA — indicatif
   rating: number;
   specialties: string[];
@@ -20,6 +25,8 @@ export const coaches: Coach[] = [
     level: 'Initiation & intermédiaire',
     levelValue: 3.0,
     area: 'Cocody',
+    clubId: 'padel-magic',
+    phone: '+225 07 07 12 34 56',
     pricePerHour: 15000,
     rating: 4.8,
     specialties: ['Service', 'Placement', 'Débutants'],
@@ -32,6 +39,8 @@ export const coaches: Coach[] = [
     level: 'Avancé & compétition',
     levelValue: 5.5,
     area: 'Marcory',
+    clubId: 'elite-club',
+    phone: '+225 05 04 23 45 67',
     pricePerHour: 18000,
     rating: 4.7,
     specialties: ['Jeu au filet', 'Tactique', 'Compétition'],
@@ -44,6 +53,8 @@ export const coaches: Coach[] = [
     level: 'Intermédiaire & avancé',
     levelValue: 4.5,
     area: 'Riviera',
+    clubId: 'abidjan-padel',
+    phone: '+225 01 02 34 56 78',
     pricePerHour: 16000,
     rating: 4.6,
     specialties: ['Sorties de mur', 'Régularité', 'Préparation physique'],
@@ -56,6 +67,8 @@ export const coaches: Coach[] = [
     level: 'Débutant & enfants',
     levelValue: 1.5,
     area: 'Zone 4',
+    clubId: 'padel-zone-4',
+    phone: '+225 07 08 45 67 89',
     pricePerHour: 14000,
     rating: 4.9,
     specialties: ['Enfants', 'Initiation', 'Ludique'],
@@ -67,4 +80,9 @@ export const coaches: Coach[] = [
 export function getCoach(id?: string | string[]): Coach | undefined {
   const key = Array.isArray(id) ? id[0] : id;
   return coaches.find((c) => c.id === key);
+}
+
+// Nom du club où exerce le coach (sinon son quartier).
+export function coachClubName(coach: Coach): string {
+  return getClub(coach.clubId)?.name ?? coach.area;
 }

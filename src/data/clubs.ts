@@ -190,6 +190,12 @@ export const SAMPLE_SLOTS = [
   '17:00', '18:00', '19:00', '20:00', '21:00',
 ];
 
+// Terrains (courts) par défaut d'un club : « Terrain 1 … N » selon son nombre de courts.
+// Les clubs peuvent ensuite les renommer / ajouter / retirer depuis l'Espace Club.
+export function defaultCourts(club: Club): string[] {
+  return Array.from({ length: Math.max(1, club.courts) }, (_, i) => `Terrain ${i + 1}`);
+}
+
 // Vraies photos de padel LIBRES DE DROITS (Pexels), chargées sur l'appareil.
 // Illustratives — à remplacer par les photos officielles de chaque club.
 function pexels(id: number): string {

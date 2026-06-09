@@ -1,13 +1,15 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
+import { Button, Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { getClub } from '@/data/clubs';
-import { coaches, type Coach } from '@/data/coaches';
+import { coachClubName, coaches, type Coach } from '@/data/coaches';
 import { useApp } from '@/store/AppContext';
+import { callNumber } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
@@ -32,27 +34,31 @@ function CoachRow({ coach }: { coach: Coach }) {
         </View>
         <View style={{ flex: 1 }}>
           <Txt variant="h3">{coach.name}</Txt>
-          <Txt variant="muted">
-            {coach.level} · {coach.area}
-          </Txt>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 }}>
-            <RatingStars value={coach.rating} size={13} />
+          <Txt variant="muted">{coach.level}</Txt>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 }}>
+            <Ionicons name="business-outline" size={13} color={colors.textMuted} />
             <Txt variant="small" color={colors.textMuted}>
-              {coach.rating.toFixed(1)}
+              {coachClubName(coach)}
             </Txt>
           </View>
         </View>
         <View style={{ alignItems: 'flex-end', gap: 4 }}>
           <Tag label={`Niv. ${coach.levelValue.toFixed(1)}`} tone="gold" />
-          <Txt variant="price" style={{ fontSize: 15 }}>
-            {fcfa(coach.pricePerHour)}
-          </Txt>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+            <RatingStars value={coach.rating} size={12} />
+            <Txt variant="small" color={colors.textMuted}>
+              {coach.rating.toFixed(1)}
+            </Txt>
+          </View>
         </View>
       </View>
       <View style={styles.specs}>
         {coach.specialties.map((s) => (
           <Tag key={s} label={s} tone="neutral" />
         ))}
+      </View>
+      <View style={{ marginTop: spacing.md }}>
+        <Button size="sm" label={`Appeler · ${coach.phone}`} icon="call" onPress={() => callNumber(coach.phone)} full />
       </View>
     </Card>
   );
@@ -68,7 +74,14 @@ export default function CoachsScreen() {
   );
 
   return (
-    <Screen back title="Coachs" subtitle="Classés par niveau — trouve le bon entraîneur">
+    <Screen back title="Coachs" subtitle="Classés par niveau — contacte-les directement">
+      <View style={styles.note}>
+        <Ionicons name="information-circle-outline" size={15} color={colors.textFaint} />
+        <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
+          La réservation se fait directement avec le coach, par téléphone. Tu trouves ici son numéro et son club.
+        </Txt>
+      </View>
+
       <View style={{ marginTop: spacing.xs }}>
         <SegmentedControl options={TABS} value={tab} onChange={setTab} />
       </View>
@@ -79,28 +92,40 @@ export default function CoachsScreen() {
 
       {clubCoaches.length > 0 ? (
         <View style={{ marginTop: spacing.xl }}>
-          <SectionHeader title="Coachs des clubs" />
+          <SectionHeader title="Coachs ajoutés par les clubs" />
           {clubCoaches.map((c) => (
-            <Card key={c.id} style={{ marginBottom: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-              <IconCircle icon="person" color={colors.gold} bg={colors.goldSoft} size={40} />
-              <View style={{ flex: 1 }}>
-                <Txt variant="h3" style={{ fontSize: 15 }}>
-                  {c.name}
-                </Txt>
-                <Txt variant="muted">
-                  {c.specialty} · {c.clubName}
-                </Txt>
+            <Card key={c.id} style={{ marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <IconCircle icon="person" color={colors.gold} bg={colors.goldSoft} size={40} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="h3" style={{ fontSize: 15 }}>
+                    {c.name}
+                  </Txt>
+                  <Txt variant="muted">
+                    {c.specialty} · {c.clubName}
+                  </Txt>
+                </View>
+                <Tag label="Club" tone="neutral" />
               </View>
-              <Tag label="Club" tone="neutral" />
+              {c.phone ? (
+                <View style={{ marginTop: spacing.md }}>
+                  <Button size="sm" label={`Appeler · ${c.phone}`} icon="call" variant="secondary" onPress={() => callNumber(c.phone!)} full />
+                </View>
+              ) : null}
             </Card>
           ))}
         </View>
       ) : null}
+
+      <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.lg, textAlign: 'center' }}>
+        Tarifs indicatifs (dès {fcfa(Math.min(...coaches.map((c) => c.pricePerHour)))}/h) — à confirmer avec le coach.
+      </Txt>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
+  note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   avatar: {
     width: 60,

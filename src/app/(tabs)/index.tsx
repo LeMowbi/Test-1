@@ -18,7 +18,7 @@ import { colors, radius, spacing } from '@/theme';
 type Action = { icon: keyof typeof Ionicons.glyphMap; label: string; route: string; tint: string; bg: string };
 
 const ACTIONS: Action[] = [
-  { icon: 'calendar', label: 'Réserver un terrain', route: '/terrains', tint: colors.blue, bg: colors.blueSoft },
+  { icon: 'calendar', label: 'Réserver un terrain', route: '/reserver', tint: colors.blue, bg: colors.blueSoft },
   { icon: 'tennisball', label: 'Trouver un match', route: '/matchs', tint: colors.gold, bg: colors.goldSoft },
   { icon: 'school', label: 'Trouver un coach', route: '/coachs', tint: colors.green, bg: colors.greenSoft },
   { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.blue, bg: colors.blueSoft },
@@ -34,9 +34,13 @@ function countdown(ts: number): string {
   return `dans ${m} min`;
 }
 
+const TAB_ROUTES = new Set(['/reserver', '/matchs', '/competitions']);
+
 export default function HomeScreen() {
   const router = useRouter();
   const { state } = useApp();
+  // Onglets : on bascule l'onglet (navigate) ; écrans empilés : push (pour garder le bouton retour).
+  const go = (route: string) => (TAB_ROUTES.has(route) ? router.navigate(route as never) : router.push(route as never));
 
   const nearbyClubs = clubsByName;
   const matches = [...state.myMatches, ...seedMatches]
@@ -73,7 +77,7 @@ export default function HomeScreen() {
       {/* Actions rapides */}
       <View style={styles.grid}>
         {ACTIONS.map((a) => (
-          <Card key={a.label} onPress={() => router.push(a.route as never)} style={styles.tile}>
+          <Card key={a.label} onPress={() => go(a.route)} style={styles.tile}>
             <IconCircle icon={a.icon} color={a.tint} bg={a.bg} />
             <Txt variant="h3" style={{ marginTop: spacing.sm }} numberOfLines={2}>
               {a.label}
@@ -96,7 +100,7 @@ export default function HomeScreen() {
               {upcoming.clubName}
             </Txt>
             <Txt variant="small" color="rgba(255,255,255,0.92)">
-              {upcoming.date} à {upcoming.time} · {upcoming.players} joueurs
+              {upcoming.date} à {upcoming.time} · {upcoming.court}
             </Txt>
           </View>
           <View style={styles.countChip}>
@@ -109,7 +113,7 @@ export default function HomeScreen() {
 
       {/* Terrains */}
       <View style={styles.section}>
-        <SectionHeader title="Terrains près de toi" actionLabel="Voir tout" onAction={() => router.push('/terrains')} />
+        <SectionHeader title="Terrains près de toi" actionLabel="Voir tout" onAction={() => router.push('/clubs')} />
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}>
           {nearbyClubs.map((c) => (
             <ClubCard key={c.id} club={c} compact />
@@ -119,7 +123,7 @@ export default function HomeScreen() {
 
       {/* Matchs ouverts */}
       <View style={styles.section}>
-        <SectionHeader title="Matchs ouverts" actionLabel="Voir tout" onAction={() => router.push('/matchs')} />
+        <SectionHeader title="Matchs ouverts" actionLabel="Voir tout" onAction={() => go('/matchs')} />
         {matches.map((m) => (
           <MatchCard key={m.id} match={m} />
         ))}
@@ -127,7 +131,7 @@ export default function HomeScreen() {
 
       {/* Compétitions */}
       <View style={styles.section}>
-        <SectionHeader title="Compétitions à venir" actionLabel="Voir tout" onAction={() => router.push('/competitions')} />
+        <SectionHeader title="Compétitions à venir" actionLabel="Voir tout" onAction={() => go('/competitions')} />
         {competitions.map((c) => (
           <CompetitionCard key={c.id} comp={c} />
         ))}

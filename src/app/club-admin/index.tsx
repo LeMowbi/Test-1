@@ -6,7 +6,7 @@ import { Chip } from '@/components/Chip';
 import { ClubPhoto } from '@/components/ClubPhoto';
 import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
-import { SAMPLE_SLOTS, clubsByName, getClub } from '@/data/clubs';
+import { SAMPLE_SLOTS, clubsByName, defaultCourts, getClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { useApp } from '@/store/AppContext';
 import { initials } from '@/lib/format';
@@ -25,6 +25,7 @@ export default function ClubAdmin() {
     setClubMode,
     setManagedClub,
     setClubSlots,
+    setClubCourts,
     addClubPhoto,
     removeClubPhoto,
     addClubOffer,
@@ -40,6 +41,8 @@ export default function ClubAdmin() {
   const [offerDetail, setOfferDetail] = useState('');
   const [coachName, setCoachName] = useState('');
   const [coachSpec, setCoachSpec] = useState('');
+  const [coachPhone, setCoachPhone] = useState('');
+  const [courtName, setCourtName] = useState('');
 
   const club = getClub(state.managedClubId) ?? clubsByName[0];
   const openSlots = state.clubSlots[club.id] ?? SAMPLE_SLOTS;
@@ -48,6 +51,17 @@ export default function ClubAdmin() {
     if (set.has(t)) set.delete(t);
     else set.add(t);
     setClubSlots(club.id, [...set]);
+  };
+  const courts = state.clubCourts[club.id] ?? defaultCourts(club);
+  const addCourt = () => {
+    const n = courtName.trim();
+    if (n.length < 1 || courts.includes(n)) return;
+    setClubCourts(club.id, [...courts, n]);
+    setCourtName('');
+  };
+  const removeCourt = (n: string) => {
+    if (courts.length <= 1) return; // garder au moins un terrain
+    setClubCourts(club.id, courts.filter((c) => c !== n));
   };
   const photos = state.clubPhotos[club.id] ?? [];
   const offers = state.clubOffers[club.id] ?? [];
@@ -79,9 +93,10 @@ export default function ClubAdmin() {
   };
   const submitCoach = () => {
     if (coachName.trim().length < 2) return;
-    addClubCoach(club.id, coachName, coachSpec);
+    addClubCoach(club.id, coachName, coachSpec, coachPhone);
     setCoachName('');
     setCoachSpec('');
+    setCoachPhone('');
   };
 
   return (
@@ -207,6 +222,7 @@ export default function ClubAdmin() {
           <Txt variant="muted">Ajoute les coachs de ton club.</Txt>
           <TextInput value={coachName} onChangeText={setCoachName} placeholder="Nom du coach" placeholderTextColor={colors.textFaint} style={styles.input} />
           <TextInput value={coachSpec} onChangeText={setCoachSpec} placeholder="Spécialité (ex. Initiation, Compétition)" placeholderTextColor={colors.textFaint} style={styles.input} />
+          <TextInput value={coachPhone} onChangeText={setCoachPhone} placeholder="Téléphone (+225…)" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
           <View style={{ marginTop: spacing.sm }}>
             <Button size="sm" label="Ajouter le coach" icon="add" onPress={submitCoach} />
           </View>
@@ -216,13 +232,38 @@ export default function ClubAdmin() {
                 <IconCircle icon="person" color={colors.gold} bg={colors.goldSoft} size={36} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
-                  <Txt variant="muted">{c.specialty}</Txt>
+                  <Txt variant="muted">{c.specialty}{c.phone ? ` · ${c.phone}` : ''}</Txt>
                 </View>
                 <Pressable onPress={() => removeClubCoach(club.id, c.id)} hitSlop={8}>
                   <Ionicons name="trash-outline" size={18} color={colors.danger} />
                 </Pressable>
               </View>
             ))}
+          </View>
+        </Card>
+      </View>
+
+      {/* Terrains (courts) */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title={`Terrains · ${courts.length}`} />
+        <Card>
+          <Txt variant="muted">Ajoute ou retire les terrains de ton club. La disponibilité se calcule terrain par terrain.</Txt>
+          <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+            {courts.map((c) => (
+              <View key={c} style={styles.listRow}>
+                <IconCircle icon="tennisball" color={colors.green} bg={colors.greenSoft} size={36} />
+                <Txt variant="body" style={{ flex: 1, fontWeight: '600' }}>{c}</Txt>
+                {courts.length > 1 ? (
+                  <Pressable onPress={() => removeCourt(c)} hitSlop={8}>
+                    <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                  </Pressable>
+                ) : null}
+              </View>
+            ))}
+          </View>
+          <View style={styles.inlineRow}>
+            <TextInput value={courtName} onChangeText={setCourtName} placeholder="Nom du terrain (ex. Terrain 4, Central…)" placeholderTextColor={colors.textFaint} style={styles.input} />
+            <Button size="sm" label="Ajouter" icon="add" onPress={addCourt} />
           </View>
         </Card>
       </View>
@@ -260,7 +301,7 @@ export default function ClubAdmin() {
                 <Txt variant="h3" style={{ fontSize: 15 }}>
                   {r.date} · {r.time}
                 </Txt>
-                <Txt variant="muted">{r.players} joueurs</Txt>
+                <Txt variant="muted">{r.court} · {r.players} joueurs</Txt>
               </View>
               <Tag label="Réservé" tone="green" />
             </Card>

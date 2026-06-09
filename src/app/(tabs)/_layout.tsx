@@ -7,7 +7,7 @@ import { colors, radius, spacing } from '@/theme';
 
 const META: Record<string, { on: IconName; off: IconName; label: string }> = {
   index: { on: 'home', off: 'home-outline', label: 'Accueil' },
-  terrains: { on: 'location', off: 'location-outline', label: 'Terrains' },
+  reserver: { on: 'calendar', off: 'calendar-outline', label: 'Réserver' },
   matchs: { on: 'tennisball', off: 'tennisball-outline', label: 'Jouer' },
   competitions: { on: 'trophy', off: 'trophy-outline', label: 'Compét.' },
   profil: { on: 'person', off: 'person-outline', label: 'Profil' },
@@ -45,7 +45,7 @@ export default function TabsLayout() {
   return (
     <Tabs screenOptions={{ headerShown: false }} tabBar={(props) => <TabBar {...props} />}>
       <Tabs.Screen name="index" />
-      <Tabs.Screen name="terrains" />
+      <Tabs.Screen name="reserver" />
       <Tabs.Screen name="matchs" />
       <Tabs.Screen name="competitions" />
       <Tabs.Screen name="profil" />

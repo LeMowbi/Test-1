@@ -1,5 +1,7 @@
 // Compétitions — données de DÉMONSTRATION. Créées par un CLUB ou par un JOUEUR.
 
+import { nextDays } from '@/lib/days';
+
 export type Competition = {
   id: string;
   title: string;
@@ -7,7 +9,8 @@ export type Competition = {
   organizer: string;
   clubId?: string;
   clubName?: string;
-  date: string;
+  date: string; // libellé d'affichage
+  dateKey: string; // identité stable du jour (AAAA-MM-JJ) — base du blocage des terrains
   format: string;
   level: string;
   reward: string; // récompense / dotation
@@ -18,6 +21,10 @@ export type Competition = {
   createdByMe?: boolean;
 };
 
+// Jours réels (relatifs au lancement) pour que l'affichage ET le blocage des terrains
+// pointent toujours sur le bon jour calendaire.
+const D = nextDays(8);
+
 export const seedCompetitions: Competition[] = [
   {
     id: 'c1',
@@ -26,7 +33,8 @@ export const seedCompetitions: Competition[] = [
     organizer: 'Padelta',
     clubId: 'padelta',
     clubName: 'Padelta',
-    date: 'Demain',
+    date: D[1].label,
+    dateKey: D[1].key,
     format: 'Poules + tableau final',
     level: 'Intermédiaire',
     reward: 'Bon d’achat 100 000 FCFA + lots partenaires',
@@ -42,7 +50,8 @@ export const seedCompetitions: Competition[] = [
     organizer: 'Padel Zone 4',
     clubId: 'padel-zone-4',
     clubName: 'Padel Zone 4',
-    date: 'Dim. 15 juin',
+    date: D[6].label,
+    dateKey: D[6].key,
     format: 'Americano (rotation)',
     level: 'Tous niveaux',
     reward: 'Trophée + équipement padel',
@@ -56,7 +65,8 @@ export const seedCompetitions: Competition[] = [
     title: 'Défi entre amis — Riviera',
     organizerType: 'joueur',
     organizer: 'Moustapha',
-    date: 'Ven. 20 juin',
+    date: D[4].label,
+    dateKey: D[4].key,
     format: 'Mini-tournoi 4 équipes',
     level: 'Débutant / Intermédiaire',
     reward: 'Cagnotte 30 000 FCFA',

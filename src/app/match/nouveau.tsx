@@ -6,24 +6,13 @@ import { Chip } from '@/components/Chip';
 import { LevelStepper } from '@/components/LevelStepper';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Txt, type IconName } from '@/components/ui';
-import { SAMPLE_SLOTS, clubsByName } from '@/data/clubs';
+import { clubsByName } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { LOOKING_OPTIONS, levelLabel, type Looking } from '@/data/matches';
+import { courtsFor, freeCourts, hasCompetition, openSlotsFor, type AvailCtx } from '@/lib/availability';
+import { nextDays, slotTimestamp, type DayOption } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
-
-const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
-
-function nextDays(n: number) {
-  const now = new Date();
-  return Array.from({ length: n }, (_, i) => {
-    const d = new Date(now);
-    d.setDate(now.getDate() + i);
-    d.setHours(0, 0, 0, 0);
-    const label = i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : `${DAYS[d.getDay()]} ${d.getDate()}`;
-    return { label, value: d.getTime() };
-  });
-}
 
 export default function NouveauMatch() {
   const router = useRouter();
@@ -31,8 +20,9 @@ export default function NouveauMatch() {
 
   const dates = useMemo(() => nextDays(5), []);
   const [clubId, setClubId] = useState<string | null>(null);
-  const [date, setDate] = useState<string | null>(null);
+  const [day, setDay] = useState<DayOption | null>(null);
   const [slot, setSlot] = useState<string | null>(null);
+  const [court, setCourt] = useState<string | null>(null);
   const [levelValue, setLevelValue] = useState(state.level);
   const [looking, setLooking] = useState<Looking>('partenaire');
   const [places, setPlaces] = useState(1);
@@ -40,28 +30,31 @@ export default function NouveauMatch() {
   const [visibility, setVisibility] = useState(state.defaultVisibility);
 
   const club = clubsByName.find((c) => c.id === clubId) ?? null;
-  const openSlots = club ? state.clubSlots[club.id] ?? SAMPLE_SLOTS : [];
-  const taken = club ? state.reservations.filter((r) => r.clubId === club.id && r.date === date).map((r) => r.time) : [];
-  const selectedDayValue = dates.find((d) => d.label === date)?.value;
-  const comps = club ? [...seedCompetitions, ...state.myCompetitions].filter((c) => c.clubId === club.id) : [];
-  const compToday = !!date && comps.some((c) => c.date === date);
+  const ctx: AvailCtx = {
+    clubSlots: state.clubSlots,
+    clubCourts: state.clubCourts,
+    reservations: state.reservations,
+    comps: [...seedCompetitions, ...state.myCompetitions],
+  };
+  const openSlots = club ? openSlotsFor(club, state.clubSlots) : [];
+  const allCourts = club ? courtsFor(club, state.clubCourts) : [];
+  const compToday = !!club && !!day && hasCompetition(club.id, day.key, ctx.comps);
+  const free = club && day && slot ? freeCourts(club, day.key, slot, ctx) : [];
 
-  const ready = !!club && !!date && !!slot && !compToday;
+  const ready = !!club && !!day && !!slot && !!court && !compToday;
 
   const toggleFriend = (id: string) => setFriendIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
 
   const create = () => {
-    if (!club || !date || !slot) return;
-    const dayValue = selectedDayValue ?? Date.now();
-    const [h, m] = slot.split(':').map(Number);
-    const startsAt = dayValue + h * 3600000 + m * 60000;
+    if (!club || !day || !slot || !court) return;
+    const startsAt = slotTimestamp(day.value, slot);
     if (startsAt <= Date.now()) return;
     const invited = state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false }));
-    addReservation({ clubId: club.id, clubName: club.name, date, time: slot, startsAt, players: 4, invited });
+    addReservation({ clubId: club.id, clubName: club.name, court, date: day.label, dateKey: day.key, time: slot, startsAt, players: 4, invited });
     addMatch({
       clubId: club.id,
       clubName: club.name,
-      date,
+      date: day.label,
       time: slot,
       startsAt,
       levelValue,
@@ -83,17 +76,17 @@ export default function NouveauMatch() {
         </Txt>
       </Card>
 
-      <Label text="Terrain" />
+      <Label text="Terrain (club)" />
       <View style={styles.wrap}>
         {clubsByName.map((c) => (
-          <Chip key={c.id} label={c.name} active={c.id === clubId} onPress={() => { setClubId(c.id); setSlot(null); }} />
+          <Chip key={c.id} label={c.name} active={c.id === clubId} onPress={() => { setClubId(c.id); setSlot(null); setCourt(null); }} />
         ))}
       </View>
 
       <Label text="Date" />
       <View style={styles.wrap}>
         {dates.map((d) => (
-          <Chip key={d.label} label={d.label} active={d.label === date} onPress={() => { setDate(d.label); setSlot(null); }} size="lg" />
+          <Chip key={d.key} label={d.label} active={d.key === day?.key} onPress={() => { setDay(d); setSlot(null); setCourt(null); }} size="lg" />
         ))}
       </View>
 
@@ -106,16 +99,15 @@ export default function NouveauMatch() {
         </View>
       ) : null}
 
-      <Label text={club ? 'Créneau' : 'Créneau (choisis d’abord un terrain)'} />
+      <Label text={club ? 'Créneau' : 'Créneau (choisis d’abord un club)'} />
       <View style={styles.wrap}>
         {openSlots.map((s) => {
-          const isTaken = !!date && taken.includes(s);
-          const [hh, mm] = s.split(':').map(Number);
-          const slotTs = (selectedDayValue ?? 0) + hh * 3600000 + mm * 60000;
-          const isPast = !!date && slotTs <= Date.now();
-          const blocked = !date || isTaken || compToday || isPast;
-          const label = isTaken ? `${s} · pris` : isPast ? `${s} · passé` : s;
-          return <Chip key={s} label={label} active={s === slot} disabled={blocked} onPress={() => setSlot(s)} size="lg" />;
+          const slotTs = slotTimestamp(day?.value ?? 0, s);
+          const isPast = !!day && slotTs <= Date.now();
+          const noCourt = !!club && !!day && freeCourts(club, day.key, s, ctx).length === 0;
+          const blocked = !day || compToday || isPast || noCourt;
+          const label = isPast ? `${s} · passé` : noCourt ? `${s} · complet` : s;
+          return <Chip key={s} label={label} active={s === slot} disabled={blocked} onPress={() => { setSlot(s); setCourt(null); }} size="lg" />;
         })}
         {club && openSlots.length === 0 ? (
           <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
@@ -123,6 +115,18 @@ export default function NouveauMatch() {
           </Txt>
         ) : null}
       </View>
+
+      {club && day && slot ? (
+        <>
+          <Label text="Terrain disponible" />
+          <View style={styles.wrap}>
+            {allCourts.map((c) => {
+              const isFree = free.includes(c);
+              return <Chip key={c} label={isFree ? c : `${c} · pris`} active={c === court} disabled={!isFree} onPress={() => setCourt(c)} size="lg" />;
+            })}
+          </View>
+        </>
+      ) : null}
 
       <Label text="Niveau du match" />
       <View style={{ alignItems: 'center', marginTop: spacing.sm }}>
