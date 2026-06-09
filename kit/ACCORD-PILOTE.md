@@ -42,8 +42,8 @@ accord. Chaque partie peut y mettre fin à tout moment par simple message écrit
 
 ## 5. Argent
 - Le test est **entièrement gratuit**. Aucune commission, aucun abonnement pendant cette période.
-- Le Club **garde ses tarifs et ses règles**. Les paiements se font **directement au club** (l'app
-  ne gère pas de paiement en ligne à ce stade).
+- Le Club **garde ses tarifs et ses règles**. Les paiements se font **directement au club** :
+  l'application **ne gère pas de paiement en ligne** (elle sert uniquement à réserver).
 - Toute monétisation future (commission, abonnement) fera l'objet d'un **accord séparé écrit**.
 
 ## 6. Images et données

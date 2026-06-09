@@ -89,7 +89,7 @@ Plusieurs sources de revenus, à activer progressivement :
 
 | Source | Comment | Quand |
 |---|---|---|
-| **Commission sur réservation** | 5–15 % par créneau réservé via l'app | quand la résa en ligne est branchée |
+| **Commission sur réservation** | 5–15 % par créneau réservé — **calculée par l'app, réglée hors app** (historique transmis au club, qui te paie par **Wave**) | dès les premières réservations |
 | **Abonnement club** | forfait mensuel pour l'Espace Club (gestion + visibilité) | dès quelques clubs convaincus |
 | **Compétitions** | frais d'organisation / billetterie / sponsors | à la 1re compétition |
 | **Premium joueur** | stats avancées, recherche de partenaire prioritaire | quand la communauté grandit |
@@ -122,9 +122,10 @@ ajouter un **back-end** (le « cerveau » central) :
 - **Base de données** : clubs, créneaux, réservations, matchs, compétitions, amis, stats
   (ex. **Supabase**/PostgreSQL ou **Firebase** — rapides à mettre en place).
 - **Réservation en temps réel** : un créneau réservé devient indisponible pour les autres.
-- **Paiement (Côte d'Ivoire)** : passer par un agrégateur local qui gère **Wave, Orange Money,
-  MTN MoMo, Moov Money et les cartes** — par exemple **CinetPay** ou **PayDunya** (acteurs ouest-
-  africains). Tu n'as pas à intégrer chaque opérateur séparément.
+- **Pas de paiement dans l'app (choix assumé)** : l'app sert uniquement à **réserver**. Ta
+  **commission s'encaisse hors app**, par **Wave**, via l'historique transmis au club (déjà géré par
+  l'« Espace opérateur »). → Pas d'agrégateur, pas de données bancaires, pas de KYC : projet plus
+  simple et plus sûr.
 - **Notifications push** : rappels de match, confirmation de résa (via Expo Notifications).
 
 ---
@@ -134,8 +135,8 @@ ajouter un **back-end** (le « cerveau » central) :
 1. **Phase 1 — Prototype (FAIT ✅)** : l'app cliquable de ce dépôt, à montrer aux clubs.
 2. **Phase 2 — Pilote** : accords avec 2-3 clubs, vraies photos/tarifs, back-end + comptes +
    réservation réelle. Test avec un groupe restreint de joueurs.
-3. **Phase 3 — Lancement public** : paiement mobile money, publication App Store + Play Store,
-   communication (réseaux, QR codes en club, ambassadeurs).
+3. **Phase 3 — Lancement public** : publication App Store + Play Store, communication (réseaux,
+   QR codes en club, ambassadeurs).
 4. **Phase 4 — Croissance** : compétitions régulières, coachs, fonctionnalités premium,
    ouverture à d'autres villes.
 
@@ -156,7 +157,8 @@ ajouter un **back-end** (le « cerveau » central) :
 - **Conditions Générales d'Utilisation** (responsabilité, annulations, litiges).
 - **Résultats auto-déclarés** : comme tu l'as demandé, victoires/défaites sont déclarées par les
   joueurs ; préciser dans les CGU que l'app ne garantit pas leur exactitude.
-- **Paiements** : conformité avec l'agrégateur de paiement choisi.
+- **Paiements** : **aucun paiement n'a lieu dans l'app** (uniquement des réservations). Ta commission
+  s'encaisse **hors app**, par Wave — donc pas de conformité « paiement » à gérer côté application.
 
 ---
 
@@ -164,7 +166,8 @@ ajouter un **back-end** (le « cerveau » central) :
 
 - ✅ **Faisable**, et le marché est déjà là.
 - ✅ Un **prototype complet** est prêt à être montré (ce dépôt).
-- 👉 Prochaine étape recommandée : **signer 2-3 clubs pilotes** et brancher le **back-end +
-  paiement** pour passer de la démo à une vraie app utilisable.
+- 👉 Prochaine étape recommandée : **signer 2-3 clubs pilotes** puis brancher le **back-end**
+  (comptes SMS, base partagée, dispo temps réel) pour passer de la démo à une vraie app utilisable.
+  *(Pas de paiement dans l'app : ta commission se règle par Wave, hors app.)*
 
 Tu n'es pas seul pour la suite : chaque étape ci-dessus peut être développée progressivement.

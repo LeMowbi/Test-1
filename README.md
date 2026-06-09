@@ -5,8 +5,9 @@ un partenaire / adversaire / coéquipier, trouver un coach, organiser des compé
 ses résultats. Conçue avec un design sobre « luxe + sport ».
 
 > **Statut : prototype cliquable** (interface complète, données simulées stockées sur l'appareil —
-> pas encore de serveur ni de paiement réel). Pour la stratégie, la mise en ligne sur les stores,
-> la vente aux clubs et la suite technique, voir **[STRATEGIE.md](./STRATEGIE.md)**.
+> pas encore de serveur central). L'app sert à **réserver**, **sans paiement en ligne** (le tarif se
+> règle au club). Pour la stratégie, la mise en ligne sur les stores, la vente aux clubs et la suite
+> technique, voir **[STRATEGIE.md](./STRATEGIE.md)** et **[GUIDE-LANCEMENT.md](./GUIDE-LANCEMENT.md)**.
 
 ## Fonctionnalités (toutes présentes ✅)
 

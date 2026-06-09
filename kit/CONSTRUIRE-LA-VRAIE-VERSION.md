@@ -11,9 +11,9 @@
 
 ```
    App joueur (iPhone/Android)  ─┐
-                                 ├─►  CERVEAU CENTRAL              ─►  Paiement (plus tard)
-   Espace Club (gérants)        ─┘   (serveur + base de données)     CinetPay / PayDunya
-                                          │                          (Wave, Orange, MTN, Moov, carte)
+                                 ├─►  CERVEAU CENTRAL
+   Espace Club (gérants)        ─┘   (serveur + base de données)
+                                          │
                                           └─►  Comptes (SMS), créneaux en temps réel, notifications
 ```
 
@@ -22,9 +22,10 @@
 - **Cerveau central** : **Supabase** (recommandé) — base de données + comptes + temps réel, simple et
   gratuit pour démarrer. *(Firebase est une alternative équivalente.)*
 - **Connexion** : par **numéro de téléphone + code SMS**.
-- **Paiement (optionnel, plus tard)** : **CinetPay** ou **PayDunya** (un seul branchement pour tous les
-  moyens de paiement ivoiriens).
 - **Notifications** : via Expo (rappels de match, confirmations).
+- **Pas de paiement dans l'app** (choix assumé) : on **réserve** seulement. Ta **commission** se règle
+  **hors app** — tu envoies au club l'**historique** (déjà fait par l'« Espace opérateur ») et il te
+  paie par **Wave**. → Aucune donnée bancaire, aucune vérification d'entreprise, aucun risque financier.
 
 ---
 
@@ -39,11 +40,13 @@ créer à ta place, mais je te guide pas à pas. **Les mots de passe et clés re
 | **Fournisseur SMS** (ex. via Supabase / Twilio) | Envoyer les codes de connexion | Quelques centimes par SMS | Facturé sur ta carte |
 | **Google Play Console** | Publier sur Android | **25 $** une fois | Vérification d'identité Google |
 | **Apple Developer** | Publier sur iPhone | **~99 $/an** | Vérification d'identité Apple |
-| **Agrégateur de paiement** (CinetPay/PayDunya) — *si paiement* | Encaisser en ligne | Commission par transaction | Nécessite **ton entreprise** + vérification (KYC) + compte de versement |
 | **Nom de domaine** (optionnel) | Adresse web pro | Quelques $/an | À ton nom |
 
-> Conseil : commence par **Supabase + SMS** (gratuit / quasi-gratuit). Les comptes stores et le
-> paiement viennent **plus tard**, quand l'app est prête à être publiée / à encaisser.
+> **Pas de compte de paiement à créer** : l'app n'encaisse rien. Ta commission se règle par **Wave**,
+> hors app, via l'historique transmis au club — donc **pas d'agrégateur, pas de KYC**.
+
+> Conseil : commence par **Supabase + SMS** (gratuit / quasi-gratuit). Les comptes stores viennent
+> **plus tard**, quand l'app est prête à être publiée.
 
 ---
 
@@ -58,10 +61,11 @@ Chaque lot est une session (ou quelques-unes). On ne passe au suivant que quand 
 | **3. Dispo en temps réel** | Un terrain réservé devient **indisponible** pour les autres | Tester à deux | Régler la logique anti-double-réservation côté serveur |
 | **4. Espace Club multi-utilisateurs** | Le club gère **ses vraies** réservations reçues | Donner les accès au club | Sécuriser l'accès club |
 | **5. Notifications** | Rappels de match / confirmations | Autoriser les notifs sur ton tél. | Brancher les notifications |
-| **6. Paiement (optionnel)** | Régler en ligne (Wave, Orange…) | Ouvrir le compte agrégateur (KYC) | Brancher le paiement + **relecture de sécurité** |
+| **6. Relecture de sécurité** | Vérifier la protection des données avant l'ouverture | Mandater un expert (une fois) | Préparer le code à la relecture, corriger |
 | **7. Publication stores** | App téléchargeable sur Play Store / App Store | Créer les comptes stores, suivre mes étapes | Préparer et soumettre les versions |
 
 > Important : c'est **itératif**. Entre chaque lot, on teste sur de vrais téléphones et on corrige.
+> **Pas de lot « paiement »** : l'app ne gère pas d'argent (commission par Wave, hors app).
 
 ---
 
@@ -71,12 +75,32 @@ Chaque lot est une session (ou quelques-unes). On ne passe au suivant que quand 
 - **Règles d'accès** : chaque personne ne voit/modifie que ce qu'elle a le droit (un club ne voit
   que ses réservations, un joueur que les siennes).
 - **Clés secrètes chez toi** : les mots de passe et clés ne sont jamais publiés dans le code.
-- **Paiement** : avant d'encaisser de l'argent réel, **relecture de sécurité dédiée** (idéalement
-  confirmée par un humain spécialisé pour les flux d'argent).
+- **Relecture par un expert (une fois)** : avant l'ouverture au public, un spécialiste vérifie la
+  protection des données personnelles (noms, numéros, réservations).
+
+> *Et si un jour tu voulais un paiement intégré ?* Ce serait un **module séparé et plus lourd**
+> (agrégateur, vérification d'entreprise/KYC, sécurité financière). **Ce n'est pas prévu aujourd'hui** —
+> et c'est très bien ainsi : ça garde le projet simple et sûr.
 
 ---
 
-## 5. Si tu préfères déléguer à un prestataire
+## 5. Après le lancement : maintenance & sécurité
+
+Une fois l'app en ligne, quelques tâches **récurrentes** (légères, mais réelles) :
+
+- **Mises à jour ~1-2 fois/an** : suivre les nouvelles versions d'iPhone/Android et des outils, sinon
+  l'app peut buguer ou être retirée des stores. → **Je m'en occupe** quand tu ouvres une session.
+- **Sauvegardes de la base** : les services gérés (Supabase/Firebase) les font ; à **activer/vérifier**.
+- **Surveillance** : avec un service géré, les pannes sont rares et largement auto-réparées. Garde un
+  **œil** dessus et **quelqu'un de joignable** en cas de pépin (je ne suis pas « de garde » 24/7).
+- **Support & modération** : répondre aux utilisateurs, gérer faux comptes / no-shows / litiges de
+  résultats (toi au début, avec des règles simples).
+- **Juridique (une fois)** : CGU + politique de confidentialité + conformité **ARTCI**, validées par un
+  juriste.
+
+---
+
+## 6. Si tu préfères déléguer à un prestataire
 
 Tu peux aussi confier la construction à un freelance/une agence. Dans ce cas, voici quoi lui donner
 et quoi lui demander.
@@ -86,7 +110,8 @@ et quoi lui demander.
 - Ce document (architecture + lots) comme cahier des charges de départ.
 
 **Périmètre demandé :** back-end Supabase/Firebase, connexion SMS, base partagée, dispo temps réel,
-Espace Club multi-utilisateurs, notifications, (option paiement CinetPay/PayDunya), publication stores.
+Espace Club multi-utilisateurs, notifications, publication stores. *(Pas de paiement : l'app ne gère
+pas d'argent.)*
 
 **Les questions à poser pour comparer les devis :**
 - Quel **prix total** et quel **échéancier** (par lot) ?
@@ -97,7 +122,7 @@ Espace Club multi-utilisateurs, notifications, (option paiement CinetPay/PayDuny
 
 ---
 
-## 6. Par où commencer, concrètement
+## 7. Par où commencer, concrètement
 
 1. Avoir **au moins 1 club pilote** d'accord (sinon, reste sur la démo — voir `GUIDE-LANCEMENT.md`).
 2. Me dire : « on lance la vraie version ».

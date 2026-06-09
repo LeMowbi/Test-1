@@ -110,9 +110,12 @@ Aujourd'hui chaque téléphone est isolé. Pour relier tout le monde, il faut :
 - **La disponibilité en temps réel** : si quelqu'un réserve un terrain, il devient **indisponible
   pour les autres** (impossible aujourd'hui car les téléphones ne se parlent pas).
 - **Les notifications** (rappel de match, confirmation de réservation).
-- **Le paiement réel** (si tu en veux un jour) via un agrégateur ivoirien — **CinetPay** ou
-  **PayDunya** — qui gère Wave, Orange Money, MTN, Moov et les cartes en une seule intégration.
-  *(Rappel : l'app actuelle ne fait que **réserver**, sans paiement en ligne ; le tarif se règle au club.)*
+
+> **Pas de paiement dans l'app — choix assumé.** L'argent ne passe **jamais** par l'application :
+> elle sert uniquement à **réserver**. Ta **commission se règle hors app** : tu envoies au club
+> l'**historique** de ses réservations (l'« Espace opérateur » le fait déjà) et le club te paie par
+> **Wave**. → Tu évites ainsi tout ce qui est lourd et risqué (données bancaires, vérification
+> d'entreprise, sécurité financière).
 
 > Bonne nouvelle : tous ces écrans **existent déjà** dans la maquette. Il s'agit de les **brancher**
 > à un vrai serveur, pas de tout refaire.
@@ -132,7 +135,7 @@ Aujourd'hui chaque téléphone est isolé. Pour relier tout le monde, il faut :
 |---|---|---|---|
 | **1. Prototype** ✅ | Montrer la démo, recueillir des avis | (Fait) | ~0 |
 | **2. Clubs pilotes** | Démarcher 2-3 clubs, faire signer l'accord, récupérer **vraies photos/créneaux/tarifs** | Mettre les vrais clubs dans la démo | ~0 |
-| **3. Vraie version** | Créer les **comptes** (voir §6), détenir les clés, tester sur ton téléphone | Coder le back-end : comptes SMS, base partagée, dispo temps réel, notifications | Stores 25 $ + ~99 $/an ; serveur **gratuit au début** puis quelques $/mois ; SMS/paiement à l'usage |
+| **3. Vraie version** | Créer les **comptes** (voir §6), détenir les clés, tester sur ton téléphone | Coder le back-end : comptes SMS, base partagée, dispo temps réel, notifications | Stores 25 $ + ~99 $/an ; serveur **gratuit au début** puis quelques $/mois ; SMS à l'usage |
 | **4. Lancement & croissance** | Communication, QR en club, animer | Publier sur les stores, ajouter compétitions/coachs/premium | Marketing selon tes moyens |
 
 ---
@@ -143,7 +146,7 @@ Aujourd'hui chaque téléphone est isolé. Pour relier tout le monde, il faut :
 
 | Ce que **Claude** peut faire (le code) | Ce que **TOI** dois faire (humain, pas du code) |
 |---|---|
-| Écrire **tout le code** de la vraie version : comptes SMS, base de données partagée, dispo temps réel, notifications, branchement paiement | **Créer les comptes** (Supabase, Apple, Google, paiement, SMS) — ils exigent **ton identité, ta carte bancaire, souvent ton entreprise + une vérification** |
+| Écrire **tout le code** de la vraie version : comptes SMS, base de données partagée, dispo temps réel, notifications | **Créer les comptes** (Supabase, Apple, Google, SMS) — ils exigent **ton identité, ta carte bancaire, souvent ton entreprise + une vérification** |
 | Configurer le projet, écrire des règles de sécurité correctes | **Détenir les clés secrètes** (mots de passe / clés d'API) — pour ta sécurité, elles restent **chez toi**, pas chez moi |
 | Te guider **clic par clic** pour chaque réglage | **Publier sur les stores** (soumettre, répondre à Apple/Google) |
 | Corriger, améliorer, tester le code à chaque session | Gérer le **juridique** (société, CGU, confidentialité) et **payer** les frais |
@@ -157,27 +160,59 @@ construis et je te guide.
   sessions**, avec des essais sur de vrais téléphones — pas en un clic.
 - **Je ne peux pas déployer en ligne depuis ici** (mon environnement est une bulle temporaire au réseau
   limité) : j'écris/teste le code, **toi tu le mets en ligne avec tes comptes**, guidé par moi.
-- Pour la partie **paiement réel** (encaisser de l'argent), prévois au minimum une **relecture de
-  sécurité** avant d'ouvrir aux vrais utilisateurs.
+- Avant d'ouvrir au public, prévois une **relecture de sécurité** (pour protéger les données perso
+  des joueurs). *(Rappel : pas de paiement dans l'app → pas de sécurité « bancaire » à gérer.)*
 
 > Si un jour tu **préfères déléguer** à un prestataire, le document `kit/CONSTRUIRE-LA-VRAIE-VERSION.md`
 > contient un mini cahier des charges et les questions à lui poser pour un devis.
 
 ---
 
-## 7. Ordre de grandeur des coûts (pour démarrer pour de vrai)
+## 7. Maintenance, sécurité & « à quoi sert un développeur »
+
+Tu as retiré le paiement → tu enlèves **la partie la plus lourde** (pas de données bancaires, pas de
+vérification d'entreprise, pas de risque financier). Mais quelques besoins réels demeurent, **même
+sans paiement**. Les voici, sans rien te cacher :
+
+- **Maintenance régulière (~1-2 fois/an).** iPhone et Android évoluent chaque année ; les outils
+  aussi. Sans mises à jour, l'app finit par buguer ou être retirée des stores. → **Je m'en occupe**
+  quand tu ouvres une session ; il faut juste y penser périodiquement.
+- **Sécurité des données (oui, même sans paiement).** Tu stockes des noms, numéros, réservations. Il
+  faut une connexion **vérifiée par SMS**, des **règles d'accès** (chacun ne voit que ses données) et
+  une protection anti-abus. → **Je code ça correctement** ; prévois **une relecture de sécurité par un
+  expert, UNE fois**, avant l'ouverture au public.
+- **Disponibilité / incidents.** Avec un service géré (Supabase/Firebase), les pannes sont rares et
+  quasi auto-réparées. Mais **je ne suis pas « de garde » 24/7** : je travaille quand TU ouvres une
+  session. Pour de vrais utilisateurs, mieux vaut **quelqu'un de joignable** en cas de pépin.
+- **Comptes, stores, juridique, support, sauvegardes** : voir le tableau ci-dessous.
+
+### Qui fait quoi (sans embaucher un codeur à plein temps)
+| Rôle | Ce qu'il couvre |
+|---|---|
+| **Claude (moi)** | Écrire le code, faire les **mises à jour** régulières, corriger les bugs, te guider |
+| **Toi** | Comptes (Supabase/Apple/Google/SMS), clés, publication, **support** au début, démarches |
+| **Prestations ponctuelles** | **Relecture de sécurité** (1×, avant lancement) · **juriste** (1×, CGU + confidentialité + ARTCI) |
+| **Filet humain (conseillé)** | Un **contact technique joignable** pour les urgences quand tu n'as pas de session ouverte |
+
+**Donc, à quoi sert un développeur ?** À écrire/maintenir le code — **c'est ce que je fais**. Tu n'as
+**pas besoin d'un développeur à plein temps.** Un humain compétent reste surtout utile pour la
+**relecture de sécurité ponctuelle**, le **dépannage d'urgence** et la **continuité** du projet.
+
+---
+
+## 8. Ordre de grandeur des coûts (pour démarrer pour de vrai)
 
 - **Comptes stores** : Google Play **25 $** (une fois) + Apple **~99 $/an**.
 - **Serveur + base de données** (Supabase ou Firebase) : **gratuit** au début, puis **quelques dizaines
   de $/mois** quand ça grandit.
 - **SMS de vérification** : quelques centimes par SMS (tu paies à l'usage).
-- **Paiement en ligne** (si activé) : commission de l'agrégateur sur chaque transaction.
+- **Pas de frais de paiement** : l'app n'encaisse rien (ta commission se règle par Wave, hors app).
 - **Nom de domaine + page web** : faible (quelques $/an).
 - Le plus gros « investissement » reste ton **temps** (démarchage clubs + sessions de construction).
 
 ---
 
-## 8. Ta checklist des 30 prochains jours
+## 9. Ta checklist des 30 prochains jours
 
 - [ ] Mettre la démo en ligne sur un lien stable (déjà fait : https://lemowbi.github.io/Test-1/) et
       générer un **QR code**.
@@ -188,6 +223,8 @@ construis et je te guide.
 - [ ] Récupérer ses **vraies photos, créneaux et tarifs** (me les transmettre pour les mettre dans la démo).
 - [ ] Décider : on lance la **construction de la vraie version** ? (alors → `kit/CONSTRUIRE-LA-VRAIE-VERSION.md`)
 - [ ] (Si oui) Créer les **comptes** nécessaires (je te guide) et démarrer par les **comptes + connexion SMS**.
+- [ ] Prévoir une **relecture de sécurité** (par un expert, une fois) **avant l'ouverture au public**.
+- [ ] Caler un **rythme de maintenance** (mises à jour 1-2 fois/an) pour rester compatible avec les stores.
 
 ---
 
