@@ -49,6 +49,7 @@ export default function ReserverScreen() {
   const openSlots = state.clubSlots[club.id] ?? SAMPLE_SLOTS;
   // Créneaux déjà réservés (anti double-réservation).
   const taken = state.reservations.filter((r) => r.clubId === club.id && r.date === date).map((r) => r.time);
+  const selectedDayValue = dates.find((d) => d.label === date)?.value;
   // Compétition au club ce jour-là → terrain indisponible.
   const comps = [...seedCompetitions, ...state.myCompetitions].filter((c) => c.clubId === club.id);
   const compToday = !!date && comps.some((c) => c.date === date);
@@ -61,6 +62,7 @@ export default function ReserverScreen() {
     const dayValue = dates.find((d) => d.label === date)?.value ?? Date.now();
     const [h, m] = slot.split(':').map(Number);
     const startsAt = dayValue + h * 3600000 + m * 60000;
+    if (startsAt <= Date.now()) return;
     const invited = state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false }));
     addReservation({ clubId: club.id, clubName: club.name, date, time: slot, startsAt, players, invited });
     setDone(true);
@@ -116,9 +118,13 @@ export default function ReserverScreen() {
       <View style={styles.wrap}>
         {openSlots.map((s) => {
           const isTaken = !!date && taken.includes(s);
-          const blocked = !date || isTaken || compToday;
+          const [hh, mm] = s.split(':').map(Number);
+          const slotTs = (selectedDayValue ?? 0) + hh * 3600000 + mm * 60000;
+          const isPast = !!date && slotTs <= Date.now();
+          const blocked = !date || isTaken || compToday || isPast;
+          const label = isTaken ? `${s} · pris` : isPast ? `${s} · passé` : s;
           return (
-            <Chip key={s} label={isTaken ? `${s} · pris` : s} active={s === slot} disabled={blocked} onPress={() => setSlot(s)} size="lg" />
+            <Chip key={s} label={label} active={s === slot} disabled={blocked} onPress={() => setSlot(s)} size="lg" />
           );
         })}
         {openSlots.length === 0 ? (

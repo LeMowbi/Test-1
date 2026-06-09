@@ -34,6 +34,7 @@ export default function ProfilScreen() {
 
   const [editing, setEditing] = useState(false);
   const [celebrate, setCelebrate] = useState(false);
+  const [confirmReset, setConfirmReset] = useState(false);
   const [fName, setFName] = useState('');
   const [fPhone, setFPhone] = useState('');
   const [fLevel, setFLevel] = useState(3.0);
@@ -322,7 +323,18 @@ export default function ProfilScreen() {
       <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
         <Button label="Mentions légales & CGU" icon="document-text-outline" variant="ghost" onPress={() => router.push('/legal')} />
         <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={signOut} />
-        <Button label="Réinitialiser la démo" icon="refresh" variant="ghost" onPress={resetAll} />
+        <Button
+          label={confirmReset ? 'Confirmer la réinitialisation ?' : 'Réinitialiser la démo'}
+          icon="refresh"
+          variant={confirmReset ? 'danger' : 'ghost'}
+          onPress={() => {
+            if (confirmReset) resetAll();
+            else {
+              setConfirmReset(true);
+              setTimeout(() => setConfirmReset(false), 4000);
+            }
+          }}
+        />
       </View>
     </Screen>
   );

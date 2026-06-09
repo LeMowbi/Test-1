@@ -166,7 +166,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             level: 3.5,
             favoriteClubIds: ['padelta'],
             reservations: [
-              { id: uid(), clubId: 'padelta', clubName: 'Padelta', date: "Aujourd'hui", time: '19:00', startsAt: now + 6 * 3600000, players: 4, invited: [], createdAt: now },
+              { id: uid(), clubId: 'district-club', clubName: 'District Club', date: 'Demain', time: '18:00', startsAt: now + 20 * 3600000, players: 4, invited: [], createdAt: now },
               { id: uid(), clubId: 'padel-zone-4', clubName: 'Padel Zone 4', date: 'Sem. dernière', time: '18:00', startsAt: now - 3 * 86400000, players: 4, invited: [], result: 'win', resultAt: now - 3 * 86400000, createdAt: now - 3 * 86400000 },
             ],
           };
@@ -190,7 +190,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         })),
       addMatch: (m) => setState((s) => ({ ...s, myMatches: [{ ...m, id: uid(), createdByMe: true }, ...s.myMatches] })),
       addCompetition: (c) => setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true }, ...s.myCompetitions] })),
-      addReservation: (r) => setState((s) => ({ ...s, reservations: [{ ...r, id: uid(), createdAt: Date.now() }, ...s.reservations] })),
+      addReservation: (r) =>
+        setState((s) => {
+          // Sécurité anti double-réservation : même club + même date + même heure.
+          if (s.reservations.some((x) => x.clubId === r.clubId && x.date === r.date && x.time === r.time)) return s;
+          return { ...s, reservations: [{ ...r, id: uid(), createdAt: Date.now() }, ...s.reservations] };
+        }),
       setReservationResult: (id, result) =>
         setState((s) => ({
           ...s,

@@ -29,7 +29,7 @@ export const colors = {
   textFaint: '#93A39B',
 
   danger: '#E5484D',
-  dangerSoft: 'rgba(229,72,77,0.12)',
+  dangerSoft: 'rgba(229,72,77,0.16)',
   white: '#FFFFFF',
   black: '#000000',
   onGold: '#FFFFFF', // texte / icône posés sur la couleur principale (vert profond)

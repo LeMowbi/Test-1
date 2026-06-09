@@ -10,7 +10,7 @@ import { colors, spacing } from '@/theme';
 export default function Operateur() {
   const { state } = useApp();
 
-  // Toutes les réservations sont payées (paiement → validation). On regroupe par club.
+  // Toutes les réservations reçues, regroupées par club (base de calcul de la commission).
   const groups = new Map<string, { clubName: string; count: number; revenue: number; items: typeof state.reservations }>();
   for (const r of state.reservations) {
     const price = getClub(r.clubId)?.priceFrom ?? 0;
