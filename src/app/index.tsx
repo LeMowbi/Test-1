@@ -152,6 +152,9 @@ export default function HomeScreen() {
                 <Txt variant="small" color="rgba(255,255,255,0.92)">
                   {upcoming.date} à {upcoming.time} · {upcoming.court}
                 </Txt>
+                <Txt variant="small" color="rgba(255,255,255,0.85)" style={{ fontWeight: '600' }}>
+                  {upcoming.clubConfirmed ? '✓ Confirmée par le club' : 'En attente de confirmation'}
+                </Txt>
               </View>
               <View style={styles.countChip}>
                 <Txt variant="small" color={colors.onGold} style={{ fontWeight: '700' }}>

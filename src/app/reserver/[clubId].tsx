@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, Txt } from '@/components/ui';
@@ -23,8 +23,10 @@ export default function ReserverScreen() {
   const [day, setDay] = useState<DayOption | null>(dates.find((d) => d.key === params.dateKey) ?? null);
   const [slot, setSlot] = useState<string | null>(params.time ?? null);
   const [court, setCourt] = useState<string | null>(null);
-  const [players, setPlayers] = useState(4);
+  // Participants : toi + jusqu'à 3 invités (amis ou nom libre).
   const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [extraNames, setExtraNames] = useState<string[]>([]);
+  const [extraName, setExtraName] = useState('');
   const [done, setDone] = useState(false);
 
   if (!club) {
@@ -47,8 +49,15 @@ export default function ReserverScreen() {
   const compToday = !!day && hasCompetition(club.id, day.key, ctx.comps);
   const free = day && slot ? freeCourts(club, day.key, slot, ctx) : [];
 
+  const participantCount = friendIds.length + extraNames.length;
   const toggleFriend = (id: string) =>
-    setFriendIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : [...cur, id]));
+    setFriendIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : participantCount < 3 ? [...cur, id] : cur));
+  const addExtra = () => {
+    const n = extraName.trim();
+    if (n.length < 2 || participantCount >= 3) return;
+    setExtraNames((cur) => [...cur, n]);
+    setExtraName('');
+  };
 
   const ready = !!day && !!slot && !!court && !compToday;
 
@@ -56,8 +65,11 @@ export default function ReserverScreen() {
     if (!day || !slot || !court) return;
     const startsAt = slotTimestamp(day.value, slot);
     if (startsAt <= Date.now()) return;
-    const invited = state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false }));
-    const ok = addReservation({ clubId: club.id, clubName: club.name, court, date: day.label, dateKey: day.key, time: slot, startsAt, players, invited });
+    const invited = [
+      ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false })),
+      ...extraNames.map((n, i) => ({ id: `x-${Date.now()}-${i}`, name: n, confirmed: false })),
+    ];
+    const ok = addReservation({ clubId: club.id, clubName: club.name, court, date: day.label, dateKey: day.key, time: slot, startsAt, players: 1 + invited.length, invited });
     if (ok) setDone(true);
     else setCourt(null); // terrain pris entre-temps
   };
@@ -68,7 +80,7 @@ export default function ReserverScreen() {
         <Card style={{ alignItems: 'center', paddingVertical: spacing.xl, marginTop: spacing.lg }}>
           <Ionicons name="checkmark-circle" size={56} color={colors.green} />
           <Txt variant="h2" style={{ marginTop: spacing.md }}>
-            Terrain réservé 🎾
+            Terrain réservé !
           </Txt>
           <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
             Le club la reçoit dans son Espace Club et la confirme. Tu recevras un rappel avant le match.
@@ -79,14 +91,13 @@ export default function ReserverScreen() {
             <Row label="Jour" value={day!.label} />
             <Row label="Heure" value={slot!} />
             <Row label="Durée" value="1h30" />
-            <Row label="Joueurs" value={`${players}`} />
-            {friendIds.length > 0 ? <Row label="Amis invités" value={`${friendIds.length}`} /> : null}
+            <Row label="Participants" value={`Toi${participantCount > 0 ? ` + ${participantCount}` : ''}`} />
             <Row label="Tarif (session 1h30)" value={`dès ${fcfa(club.priceFrom)}`} />
             <Row label="≈ par joueur (à 4)" value={perPlayer(club.priceFrom)} />
           </View>
           <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
             <Button label="Voir mes réservations" icon="calendar" onPress={() => router.push('/reservations')} full />
-            <Button label="Réserver un autre créneau" variant="ghost" onPress={() => { setDone(false); setSlot(null); setCourt(null); setFriendIds([]); }} full />
+            <Button label="Réserver un autre créneau" variant="ghost" onPress={() => { setDone(false); setSlot(null); setCourt(null); setFriendIds([]); setExtraNames([]); }} full />
           </View>
         </Card>
       </Screen>
@@ -140,22 +151,27 @@ export default function ReserverScreen() {
         </>
       ) : null}
 
-      <Label text="Nombre de joueurs" />
+      <Label text={`Avec qui ? (toi + ${participantCount}/3 — optionnel)`} />
       <View style={styles.wrap}>
-        {[2, 3, 4].map((p) => (
-          <Chip key={p} label={`${p} joueurs`} active={p === players} onPress={() => setPlayers(p)} size="lg" />
+        {state.friends.map((f) => (
+          <Chip key={f.id} label={f.name} icon={friendIds.includes(f.id) ? 'checkmark' : 'person-add'} active={friendIds.includes(f.id)} onPress={() => toggleFriend(f.id)} />
+        ))}
+        {extraNames.map((n) => (
+          <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
         ))}
       </View>
-
-      {state.friends.length > 0 ? (
-        <>
-          <Label text="Inviter des amis (optionnel)" />
-          <View style={styles.wrap}>
-            {state.friends.map((f) => (
-              <Chip key={f.id} label={f.name} icon={friendIds.includes(f.id) ? 'checkmark' : 'person-add'} active={friendIds.includes(f.id)} onPress={() => toggleFriend(f.id)} />
-            ))}
-          </View>
-        </>
+      {participantCount < 3 ? (
+        <View style={styles.extraRow}>
+          <TextInput
+            value={extraName}
+            onChangeText={setExtraName}
+            placeholder="Ou un autre nom…"
+            placeholderTextColor={colors.textFaint}
+            style={styles.extraInput}
+            onSubmitEditing={addExtra}
+          />
+          <Button size="sm" label="Ajouter" icon="add" variant="secondary" onPress={addExtra} disabled={extraName.trim().length < 2} />
+        </View>
       ) : null}
 
       <Card style={styles.priceRow}>
@@ -197,6 +213,18 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  extraRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  extraInput: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    color: colors.text,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 14,
+  },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from './Chip';
 import { Confetti } from './Confetti';
 import { Button, Txt } from './ui';
@@ -9,7 +9,7 @@ import { activeClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { freeCourts, type AvailCtx } from '@/lib/availability';
 import { slotTimestamp, type DayOption } from '@/lib/days';
-import { fcfa } from '@/lib/format';
+import { fcfa, perPlayer } from '@/lib/format';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -33,12 +33,39 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
   );
 
   const [court, setCourt] = useState<string | null>(free[0] ?? null);
-  const [players, setPlayers] = useState(4);
+  // Participants : toi + jusqu'à 3 invités (amis ou nom libre).
+  const [friendIds, setFriendIds] = useState<string[]>([]);
+  const [extraNames, setExtraNames] = useState<string[]>([]);
+  const [extraName, setExtraName] = useState('');
   const [done, setDone] = useState(false);
+
+  const participantCount = friendIds.length + extraNames.length;
+  const toggleFriend = (id: string) =>
+    setFriendIds((cur) => (cur.includes(id) ? cur.filter((x) => x !== id) : participantCount < 3 ? [...cur, id] : cur));
+  const addExtra = () => {
+    const n = extraName.trim();
+    if (n.length < 2 || participantCount >= 3) return;
+    setExtraNames((cur) => [...cur, n]);
+    setExtraName('');
+  };
 
   const confirm = () => {
     if (!court) return;
-    const ok = addReservation({ clubId: club.id, clubName: club.name, court, date: day.label, dateKey: day.key, time, startsAt: slotTimestamp(day.value, time), players, invited: [] });
+    const invited = [
+      ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false })),
+      ...extraNames.map((n, i) => ({ id: `x-${Date.now()}-${i}`, name: n, confirmed: false })),
+    ];
+    const ok = addReservation({
+      clubId: club.id,
+      clubName: club.name,
+      court,
+      date: day.label,
+      dateKey: day.key,
+      time,
+      startsAt: slotTimestamp(day.value, time),
+      players: 1 + invited.length,
+      invited,
+    });
     if (ok) setDone(true);
     else setCourt(free.find((c) => c !== court) ?? null); // terrain pris entre-temps : on repropose
   };
@@ -55,7 +82,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
             <View style={{ alignItems: 'center', paddingVertical: spacing.md }}>
               <Ionicons name="checkmark-circle" size={60} color={colors.green} />
               <Txt variant="h2" style={{ marginTop: spacing.sm }}>
-                Terrain réservé 🎾
+                Terrain réservé !
               </Txt>
               <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
                 {club.name} · {day.label} à {time}
@@ -63,7 +90,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
               <View style={styles.badge}>
                 <Ionicons name="tennisball" size={15} color={colors.gold} />
                 <Txt variant="small" color={colors.gold} style={{ fontWeight: '700' }}>
-                  {court} · {players} joueurs
+                  {court} · toi{participantCount > 0 ? ` + ${participantCount}` : ''}
                 </Txt>
               </View>
               <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
@@ -97,15 +124,43 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
               </View>
 
               <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-                JOUEURS
+                AVEC QUI ? (TOI + {participantCount}/3)
               </Txt>
               <View style={styles.row}>
-                {[2, 3, 4].map((p) => (
-                  <Chip key={p} label={`${p}`} active={p === players} onPress={() => setPlayers(p)} size="lg" />
+                {state.friends.map((f) => (
+                  <Chip
+                    key={f.id}
+                    label={f.name}
+                    icon={friendIds.includes(f.id) ? 'checkmark' : 'person-add'}
+                    active={friendIds.includes(f.id)}
+                    onPress={() => toggleFriend(f.id)}
+                  />
+                ))}
+                {extraNames.map((n) => (
+                  <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
                 ))}
               </View>
+              {participantCount < 3 ? (
+                <View style={styles.extraRow}>
+                  <TextInput
+                    value={extraName}
+                    onChangeText={setExtraName}
+                    placeholder="Ou un autre nom…"
+                    placeholderTextColor={colors.textFaint}
+                    style={styles.extraInput}
+                    onSubmitEditing={addExtra}
+                  />
+                  <Button size="sm" label="Ajouter" icon="add" variant="secondary" onPress={addExtra} disabled={extraName.trim().length < 2} />
+                </View>
+              ) : null}
 
-              <View style={{ marginTop: spacing.xl }}>
+              <View style={styles.priceLine}>
+                <Txt variant="small" color={colors.textMuted}>
+                  {fcfa(club.priceFrom)} la session · soit ~{perPlayer(club.priceFrom)}/joueur à 4
+                </Txt>
+              </View>
+
+              <View style={{ marginTop: spacing.md }}>
                 <Button label="Réserver le terrain" icon="checkmark" onPress={confirm} disabled={!court} full />
                 <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
                   Session de 1h30 · sans paiement en ligne — réglé au club. Annulation jusqu'à 5h avant.
@@ -141,6 +196,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  extraRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  extraInput: {
+    flex: 1,
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.sm,
+    color: colors.text,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    fontSize: 14,
+  },
+  priceLine: { alignItems: 'center', marginTop: spacing.lg },
   badge: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -7,7 +7,7 @@ import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, EmptyState, Txt } from '@/components/ui';
-import { activeClubs, type Club } from '@/data/clubs';
+import { SAMPLE_SLOTS, activeClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { clubsFreeAt, freeCourts, openSlotsFor, slotGrid, type AvailCtx } from '@/lib/availability';
 import { nextDays, slotTimestamp } from '@/lib/days';
@@ -24,7 +24,12 @@ export default function ReserverScreen() {
   const { state, setReserverView } = useApp();
 
   const days = useMemo(() => nextDays(7), []);
-  const [day, setDay] = useState(days[0]);
+  // Le soir, quand tous les créneaux du jour sont passés, on ouvre directement sur Demain.
+  const todayOver = useMemo(
+    () => !SAMPLE_SLOTS.some((t) => slotTimestamp(days[0].value, t) > Date.now()),
+    [days]
+  );
+  const [day, setDay] = useState(todayOver ? days[1] : days[0]);
   // La dernière vue utilisée est mémorisée (l'écran rouvre comme tu l'avais laissé).
   const view = state.reserverView;
   const setView = setReserverView;
@@ -65,6 +70,15 @@ export default function ReserverScreen() {
           <Chip key={d.label} label={d.label} active={d.label === day.label} onPress={() => setDay(d)} size="lg" />
         ))}
       </ScrollView>
+
+      {todayOver && day.key === days[1].key ? (
+        <View style={styles.autoHint}>
+          <Ionicons name="moon-outline" size={13} color={colors.textFaint} />
+          <Txt variant="small" color={colors.textFaint}>
+            La journée est finie — on t'affiche demain.
+          </Txt>
+        </View>
+      ) : null}
 
       <SegmentedControl options={VIEWS} value={view} onChange={setView} />
 
@@ -172,6 +186,7 @@ export default function ReserverScreen() {
 
 const styles = StyleSheet.create({
   legend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md, paddingHorizontal: spacing.xs },
+  autoHint: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingHorizontal: spacing.xs },
   hourBlock: { marginBottom: spacing.lg },
   hourHead: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: spacing.sm, paddingLeft: spacing.xs },
   primePill: {
