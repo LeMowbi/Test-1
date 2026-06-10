@@ -2,6 +2,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import type { Club, CustomClub } from '@/data/clubs';
 import type { Competition } from '@/data/competitions';
 import type { Match, Visibility } from '@/data/matches';
 import type { Review } from '@/data/reviews';
@@ -23,6 +24,7 @@ export type Reservation = {
   players: number;
   invited: Invited[];
   bookedBy?: { name: string; phone: string }; // qui a réservé — visible côté club
+  clubConfirmed?: boolean; // le gérant a confirmé la réservation (visible par le joueur)
   result?: 'win' | 'loss';
   resultAt?: number;
   createdAt: number;
@@ -47,6 +49,7 @@ type AppState = {
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
   boostedClubIds: string[];
+  customClubs: CustomClub[]; // clubs inscrits via l'app (activation par l'opérateur)
   clubMode: boolean;
   managedClubId: string;
   clubSlots: Record<string, string[]>; // horaires ouverts par club
@@ -76,6 +79,7 @@ const initialState: AppState = {
   clubOffers: {},
   clubCoaches: {},
   boostedClubIds: [],
+  customClubs: [],
   clubMode: false,
   managedClubId: 'padelta',
   clubSlots: {},
@@ -102,6 +106,7 @@ type AppContextType = {
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy'>) => boolean;
   setReservationResult: (id: string, result: 'win' | 'loss') => void;
   cancelReservation: (id: string) => void;
+  confirmReservationByClub: (id: string) => void;
   confirmInvite: (reservationId: string, friendId: string) => void;
   addFriend: (name: string, phone: string) => void;
   removeFriend: (id: string) => void;
@@ -113,6 +118,9 @@ type AppContextType = {
   addClubCoach: (clubId: string, name: string, specialty: string, phone: string) => void;
   removeClubCoach: (clubId: string, id: string) => void;
   toggleBoostClub: (clubId: string) => void;
+  requestClub: (input: { name: string; area: string; type: Club['type']; courts: number; priceFrom: number; contactPhone?: string }) => void;
+  approveClub: (id: string) => void;
+  rejectClub: (id: string) => void;
   setClubMode: (on: boolean) => void;
   setManagedClub: (id: string) => void;
   setClubSlots: (clubId: string, slots: string[]) => void;
@@ -244,6 +252,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           reservations: s.reservations.map((r) => (r.id === id && !r.result ? { ...r, result, resultAt: Date.now() } : r)),
         })),
       cancelReservation: (id) => setState((s) => ({ ...s, reservations: s.reservations.filter((r) => r.id !== id) })),
+      confirmReservationByClub: (id) =>
+        setState((s) => ({
+          ...s,
+          reservations: s.reservations.map((r) => (r.id === id ? { ...r, clubConfirmed: !r.clubConfirmed } : r)),
+        })),
       confirmInvite: (reservationId, friendId) =>
         setState((s) => ({
           ...s,
@@ -295,6 +308,43 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({
           ...s,
           boostedClubIds: s.boostedClubIds.includes(clubId) ? s.boostedClubIds.filter((x) => x !== clubId) : [...s.boostedClubIds, clubId],
+        })),
+      requestClub: ({ name, area, type, courts, priceFrom, contactPhone }) =>
+        setState((s) => {
+          const n = name.trim();
+          if (n.length < 2) return s;
+          const accents = ['#1FB57A', '#C9A24B', '#3FA7D6', '#E0653A', '#7C5CD6'];
+          const club: CustomClub = {
+            id: uid(),
+            name: n,
+            area: area.trim() || 'Abidjan',
+            city: 'Abidjan',
+            type,
+            courts: Math.max(1, courts),
+            blurb: `Club de padel à ${area.trim() || 'Abidjan'} — inscrit via PadelConnect.`,
+            amenities: ['Vestiaires'],
+            priceFrom: Math.max(0, priceFrom),
+            rating: 0,
+            reviewsCount: 0,
+            mapsQuery: `${n} padel ${area.trim() || ''} Abidjan`.replace(/\s+/g, ' '),
+            accent: accents[s.customClubs.length % accents.length],
+            status: 'pending',
+            contactPhone: contactPhone?.trim() || undefined,
+            createdAt: Date.now(),
+          };
+          // Le gérant bascule directement sur SON club pour préparer sa page.
+          return { ...s, customClubs: [...s.customClubs, club], managedClubId: club.id };
+        }),
+      approveClub: (id) =>
+        setState((s) => ({
+          ...s,
+          customClubs: s.customClubs.map((c) => (c.id === id ? { ...c, status: 'active' } : c)),
+        })),
+      rejectClub: (id) =>
+        setState((s) => ({
+          ...s,
+          customClubs: s.customClubs.filter((c) => c.id !== id),
+          managedClubId: s.managedClubId === id ? 'padelta' : s.managedClubId,
         })),
       setClubMode: (on) => setState((s) => ({ ...s, clubMode: on })),
       setManagedClub: (id) => setState((s) => ({ ...s, managedClubId: id })),

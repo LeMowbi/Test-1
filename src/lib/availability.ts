@@ -2,11 +2,12 @@
 // la fiche de réservation et la création de match. Tout est calculé terrain par terrain
 // et indexé sur la KEY stable du jour (AAAA-MM-JJ), jamais sur le libellé d'affichage.
 
-import { SAMPLE_SLOTS, clubs, defaultCourts, type Club } from '@/data/clubs';
+import { SAMPLE_SLOTS, defaultCourts, type Club } from '@/data/clubs';
 import type { Competition } from '@/data/competitions';
 import type { Reservation } from '@/store/AppContext';
 
 export type AvailCtx = {
+  clubs: Club[]; // clubs visibles (de base + inscrits activés)
   clubSlots: Record<string, string[]>;
   clubCourts: Record<string, string[]>;
   reservations: Reservation[];
@@ -38,9 +39,9 @@ export function freeCourts(club: Club, dateKey: string, time: string, ctx: Avail
 }
 
 // Grille des horaires = union des créneaux ouverts par les clubs (triée).
-export function slotGrid(clubSlots: Record<string, string[]>): string[] {
+export function slotGrid(ctx: Pick<AvailCtx, 'clubs' | 'clubSlots'>): string[] {
   const set = new Set<string>();
-  for (const club of clubs) for (const s of openSlotsFor(club, clubSlots)) set.add(s);
+  for (const club of ctx.clubs) for (const s of openSlotsFor(club, ctx.clubSlots)) set.add(s);
   return [...set].sort();
 }
 
@@ -49,7 +50,7 @@ export type ClubAvail = { club: Club; free: number };
 // Clubs ayant ≥1 terrain libre à (jour, heure) — créneau ouvert, hors compétition, non passé.
 export function clubsFreeAt(dateKey: string, time: string, slotTs: number, ctx: AvailCtx): ClubAvail[] {
   if (slotTs <= Date.now()) return [];
-  return clubs
+  return ctx.clubs
     .filter((club) => openSlotsFor(club, ctx.clubSlots).includes(time))
     .map((club) => ({ club, free: freeCourts(club, dateKey, time, ctx).length }))
     .filter((x) => x.free > 0)

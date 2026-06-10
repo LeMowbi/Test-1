@@ -8,7 +8,7 @@ import { ContactButtons } from '@/components/ContactButtons';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, IconCircle, Tag, Txt } from '@/components/ui';
-import { clubGallery, defaultCourts, getClub, offersForClub } from '@/data/clubs';
+import { clubGallery, defaultCourts, findClub, offersForClub } from '@/data/clubs';
 import { coaches } from '@/data/coaches';
 import { ratingFor, seedReviews } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
@@ -19,8 +19,8 @@ import { colors, radius, spacing } from '@/theme';
 export default function ClubDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const club = getClub(id);
   const { state, addReview, toggleFavorite } = useApp();
+  const club = findClub(id, state.customClubs);
 
   const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
@@ -93,7 +93,11 @@ export default function ClubDetail() {
         {boosted ? <Tag label="Sponsorisé" tone="gold" icon="megaphone" /> : null}
         <Tag label={club.type} tone="neutral" />
         <Tag label={`${courtCount} terrain${courtCount > 1 ? 's' : ''}`} tone="neutral" />
-        <Tag label={`${avgRating.toFixed(1)} ★ (${ratingCount})`} tone="gold" />
+        {ratingCount === 0 ? (
+          <Tag label="Nouveau" tone="coral" icon="sparkles" />
+        ) : (
+          <Tag label={`${avgRating.toFixed(1)} ★ (${ratingCount})`} tone="gold" />
+        )}
       </View>
 
       <View style={styles.actions}>
@@ -178,6 +182,7 @@ export default function ClubDetail() {
         <Txt variant="h2">Avis des joueurs</Txt>
 
         {/* Résumé : grande note + répartition des étoiles des avis affichés */}
+        {ratingCount > 0 ? (
         <Card style={{ marginTop: spacing.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
             <View style={{ alignItems: 'center' }}>
@@ -211,6 +216,7 @@ export default function ClubDetail() {
             </View>
           </View>
         </Card>
+        ) : null}
 
         <Card style={{ marginTop: spacing.md }}>
           {sent ? (

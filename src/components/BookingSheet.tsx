@@ -5,7 +5,7 @@ import { Modal, Pressable, StyleSheet, View } from 'react-native';
 import { Chip } from './Chip';
 import { Confetti } from './Confetti';
 import { Button, Txt } from './ui';
-import type { Club } from '@/data/clubs';
+import { activeClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { freeCourts, type AvailCtx } from '@/lib/availability';
 import { slotTimestamp, type DayOption } from '@/lib/days';
@@ -20,6 +20,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
   const { state, addReservation } = useApp();
 
   const ctx: AvailCtx = {
+    clubs: activeClubs(state.customClubs),
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,

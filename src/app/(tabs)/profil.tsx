@@ -121,10 +121,10 @@ export default function ProfilScreen() {
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Mes statistiques" />
         <View style={styles.stats}>
-          <Stat value={stats.wins} label="Victoires" color={colors.green} />
-          <Stat value={stats.losses} label="Défaites" color={colors.danger} />
-          <Stat value={stats.played} label="Parties" color={colors.text} />
-          <Stat value={`${stats.winRate}%`} label="Réussite" color={colors.gold} />
+          <Stat value={stats.wins} label="Victoires" color={colors.green} bg={colors.greenSoft} />
+          <Stat value={stats.losses} label="Défaites" color={colors.danger} bg={colors.dangerSoft} />
+          <Stat value={stats.played} label="Parties" color={colors.blue} bg={colors.blueSoft} />
+          <Stat value={`${stats.winRate}%`} label="Réussite" color={colors.gold} bg={colors.goldSoft} />
         </View>
         <Card style={{ marginTop: spacing.md, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
           <IconCircle icon="flame" color={colors.gold} bg={colors.goldSoft} size={40} />
@@ -165,9 +165,12 @@ export default function ProfilScreen() {
             const canCancel = r.startsAt - Date.now() > FIVE_H;
             return (
               <Card key={r.id} style={{ marginBottom: spacing.sm }}>
-                <Txt variant="h3" style={{ fontSize: 15 }}>
-                  {r.clubName}
-                </Txt>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <Txt variant="h3" style={{ fontSize: 15, flex: 1 }}>
+                    {r.clubName}
+                  </Txt>
+                  {r.clubConfirmed ? <Tag label="Confirmée par le club ✓" tone="green" /> : null}
+                </View>
                 <Txt variant="muted" style={{ marginTop: 2 }}>
                   {r.date} · {r.time} · {r.court}
                 </Txt>
@@ -375,9 +378,9 @@ function EditAccount({ onDone }: { onDone: () => void }) {
   );
 }
 
-function Stat({ value, label, color }: { value: number | string; label: string; color: string }) {
+function Stat({ value, label, color, bg }: { value: number | string; label: string; color: string; bg: string }) {
   return (
-    <View style={styles.stat}>
+    <View style={[styles.stat, { backgroundColor: bg }]}>
       <Txt variant="h2" color={color}>
         {value}
       </Txt>
@@ -414,9 +417,6 @@ const styles = StyleSheet.create({
   stats: { flexDirection: 'row', gap: spacing.sm },
   stat: {
     flex: 1,
-    backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
     borderRadius: radius.md,
     paddingVertical: spacing.md,
     alignItems: 'center',

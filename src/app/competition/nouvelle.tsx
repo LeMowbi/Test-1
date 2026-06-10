@@ -4,7 +4,7 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Txt } from '@/components/ui';
-import { clubs } from '@/data/clubs';
+import { findClub } from '@/data/clubs';
 import { COMP_FORMATS } from '@/data/competitions';
 import { nextDays, type DayOption } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
@@ -44,8 +44,8 @@ export default function NouvelleCompetition() {
   const router = useRouter();
   const params = useLocalSearchParams<{ as?: string; clubId?: string }>();
   const asClub = params.as === 'club';
-  const club = asClub ? clubs.find((c) => c.id === params.clubId) : undefined;
   const { state, addCompetition } = useApp();
+  const club = asClub ? findClub(params.clubId, state.customClubs) : undefined;
 
   const dates = useMemo(() => nextDays(7), []);
   const [title, setTitle] = useState('');

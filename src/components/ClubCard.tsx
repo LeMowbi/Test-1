@@ -48,12 +48,16 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           ) : null}
         </View>
         <View style={styles.compactFooter}>
-          <View style={styles.ratingRow}>
-            <RatingStars value={rating} size={13} />
-            <Txt variant="small" color={colors.textMuted}>
-              {rating.toFixed(1)}
-            </Txt>
-          </View>
+          {count === 0 ? (
+            <Tag label="Nouveau" tone="coral" icon="sparkles" />
+          ) : (
+            <View style={styles.ratingRow}>
+              <RatingStars value={rating} size={13} />
+              <Txt variant="small" color={colors.textMuted}>
+                {rating.toFixed(1)}
+              </Txt>
+            </View>
+          )}
           <Txt variant="small" color={colors.gold} style={{ fontWeight: '700' }}>
             dès {fcfa(club.priceFrom)}/h
           </Txt>
@@ -82,12 +86,16 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           </Txt>
         </View>
         <View style={styles.footer}>
-          <View style={styles.ratingRow}>
-            <RatingStars value={rating} size={14} />
-            <Txt variant="small" color={colors.textMuted}>
-              {rating.toFixed(1)} ({count})
-            </Txt>
-          </View>
+          {count === 0 ? (
+            <Tag label="Nouveau" tone="coral" icon="sparkles" />
+          ) : (
+            <View style={styles.ratingRow}>
+              <RatingStars value={rating} size={14} />
+              <Txt variant="small" color={colors.textMuted}>
+                {rating.toFixed(1)} ({count})
+              </Txt>
+            </View>
+          )}
           <Txt variant="small" color={colors.textMuted}>
             dès {fcfa(club.priceFrom)}/h
           </Txt>

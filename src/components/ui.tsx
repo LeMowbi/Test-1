@@ -208,7 +208,7 @@ const btn = StyleSheet.create({
 
 /* ---------------------------------- Tag ----------------------------------- */
 
-type TagTone = 'gold' | 'green' | 'neutral' | 'danger';
+type TagTone = 'gold' | 'green' | 'neutral' | 'danger' | 'blue' | 'coral' | 'purple';
 
 export function Tag({
   label,
@@ -233,6 +233,9 @@ const tagTones: Record<TagTone, { bg: string; fg: string }> = {
   green: { bg: colors.greenSoft, fg: colors.green },
   neutral: { bg: colors.surfaceAlt, fg: colors.text },
   danger: { bg: colors.dangerSoft, fg: colors.danger },
+  blue: { bg: colors.blueSoft, fg: colors.blue },
+  coral: { bg: colors.coralSoft, fg: colors.coral },
+  purple: { bg: colors.purpleSoft, fg: colors.purple },
 };
 
 const tag = StyleSheet.create({

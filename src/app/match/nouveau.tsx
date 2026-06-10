@@ -6,7 +6,7 @@ import { Chip } from '@/components/Chip';
 import { LevelStepper } from '@/components/LevelStepper';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Txt, type IconName } from '@/components/ui';
-import { clubsByName } from '@/data/clubs';
+import { activeClubs } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { LOOKING_OPTIONS, levelLabel, type Looking } from '@/data/matches';
 import { courtsFor, freeCourts, hasCompetition, openSlotsFor, type AvailCtx } from '@/lib/availability';
@@ -31,8 +31,10 @@ export default function NouveauMatch() {
   // Niveau, amis et visibilité ont de bons défauts : repliés pour garder l'écran simple.
   const [showAdvanced, setShowAdvanced] = useState(false);
 
-  const club = clubsByName.find((c) => c.id === clubId) ?? null;
+  const visibleClubs = activeClubs(state.customClubs);
+  const club = visibleClubs.find((c) => c.id === clubId) ?? null;
   const ctx: AvailCtx = {
+    clubs: visibleClubs,
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,
@@ -83,7 +85,7 @@ export default function NouveauMatch() {
 
       <Label text="Terrain (club)" />
       <View style={styles.wrap}>
-        {clubsByName.map((c) => (
+        {visibleClubs.map((c) => (
           <Chip key={c.id} label={c.name} active={c.id === clubId} onPress={() => { setClubId(c.id); setSlot(null); setCourt(null); }} />
         ))}
       </View>

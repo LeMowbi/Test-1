@@ -7,7 +7,7 @@ import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
-import { getClub } from '@/data/clubs';
+import { findClub } from '@/data/clubs';
 import { coachClubName, coaches, type Coach } from '@/data/coaches';
 import { useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
@@ -68,7 +68,7 @@ export default function CoachsScreen() {
 
   const list = [...coaches].sort((a, b) => b.levelValue - a.levelValue).filter((c) => inRange(c.levelValue, tab));
   const clubCoaches = Object.entries(state.clubCoaches).flatMap(([clubId, l]) =>
-    l.map((c) => ({ ...c, clubName: getClub(clubId)?.name ?? 'Club' }))
+    l.map((c) => ({ ...c, clubName: findClub(clubId, state.customClubs)?.name ?? 'Club' }))
   );
 
   return (
@@ -103,7 +103,7 @@ export default function CoachsScreen() {
                     {c.specialty} · {c.clubName}
                   </Txt>
                 </View>
-                <Tag label="Club" tone="neutral" />
+                <Tag label="Club" tone="blue" />
               </View>
               {c.phone ? <ContactButtons phone={c.phone} style={{ marginTop: spacing.md }} /> : null}
             </Card>

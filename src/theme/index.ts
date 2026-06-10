@@ -21,6 +21,12 @@ export const colors = {
   // Bleu du court — accent secondaire / info.
   blue: '#3C85D4',
   blueSoft: 'rgba(60,133,212,0.14)',
+  // Corail — chaleur / énergie (coachs, mises en avant).
+  coral: '#E0653A',
+  coralSoft: 'rgba(224,101,58,0.14)',
+  // Violet — tournois & récompenses.
+  purple: '#7C5CD6',
+  purpleSoft: 'rgba(124,92,214,0.14)',
   // Balle de padel (vert lime/fluo) — touche d'énergie / logo.
   lime: '#C6F24A',
 

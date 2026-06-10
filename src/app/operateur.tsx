@@ -3,18 +3,18 @@ import { Share, StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
-import { clubsByName, getClub } from '@/data/clubs';
+import { activeClubs, findClub } from '@/data/clubs';
 import { COMMISSION_RATE, useApp } from '@/store/AppContext';
 import { fcfa } from '@/lib/format';
-import { colors, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
 export default function Operateur() {
-  const { state, toggleBoostClub } = useApp();
+  const { state, toggleBoostClub, approveClub, rejectClub } = useApp();
 
   // Toutes les réservations reçues, regroupées par club (base de calcul de la commission).
   const groups = new Map<string, { clubName: string; count: number; revenue: number; items: typeof state.reservations }>();
   for (const r of state.reservations) {
-    const price = getClub(r.clubId)?.priceFrom ?? 0;
+    const price = findClub(r.clubId, state.customClubs)?.priceFrom ?? 0;
     const g = groups.get(r.clubId) ?? { clubName: r.clubName, count: 0, revenue: 0, items: [] };
     g.count += 1;
     g.revenue += price;
@@ -54,9 +54,9 @@ export default function Operateur() {
           Total (démo)
         </Txt>
         <View style={styles.totals}>
-          <Total value={`${totalCount}`} label="Réservations" color={colors.text} />
-          <Total value={fcfa(totalRevenue)} label="Volume" color={colors.green} />
-          <Total value={fcfa(totalCommission)} label={`Tes commissions ${Math.round(COMMISSION_RATE * 100)}%`} color={colors.gold} />
+          <Total value={`${totalCount}`} label="Réservations" color={colors.blue} bg={colors.blueSoft} />
+          <Total value={fcfa(totalRevenue)} label="Volume" color={colors.green} bg={colors.greenSoft} />
+          <Total value={fcfa(totalCommission)} label={`Tes commissions ${Math.round(COMMISSION_RATE * 100)}%`} color={colors.gold} bg={colors.goldSoft} />
         </View>
       </Card>
 
@@ -93,6 +93,48 @@ export default function Operateur() {
         En fin de mois : envoie l'historique à chaque club, il te règle ta commission de {Math.round(COMMISSION_RATE * 100)}% par Wave.
       </Txt>
 
+      {/* Demandes d'inscription de clubs — TU valides chaque nouveau club. */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title={`Nouveaux clubs · ${state.customClubs.length}`} />
+        {state.customClubs.length === 0 ? (
+          <Card>
+            <Txt variant="muted">
+              Quand un gérant inscrit son club depuis l'Espace Club, sa demande arrive ici : c'est toi qui actives sa visibilité.
+            </Txt>
+          </Card>
+        ) : (
+          state.customClubs.map((c) => (
+            <Card key={c.id} style={{ marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <IconCircle icon="business" color={colors.blue} bg={colors.blueSoft} size={40} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="h3" style={{ fontSize: 15 }}>
+                    {c.name}
+                  </Txt>
+                  <Txt variant="muted">
+                    {c.area} · {c.courts} terrain{c.courts > 1 ? 's' : ''} · dès {fcfa(c.priceFrom)}/h
+                  </Txt>
+                  {c.contactPhone ? (
+                    <Txt variant="small" color={colors.textFaint}>
+                      Contact : {c.contactPhone}
+                    </Txt>
+                  ) : null}
+                </View>
+                <Tag label={c.status === 'active' ? 'Actif' : 'En attente'} tone={c.status === 'active' ? 'green' : 'coral'} />
+              </View>
+              {c.status === 'pending' ? (
+                <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
+                  <View style={{ flex: 1 }}>
+                    <Button size="sm" label="Activer le club" icon="checkmark" onPress={() => approveClub(c.id)} full />
+                  </View>
+                  <Button size="sm" label="Refuser" icon="close" variant="danger" onPress={() => rejectClub(c.id)} />
+                </View>
+              ) : null}
+            </Card>
+          ))
+        )}
+      </View>
+
       {/* Boosts — activés par TOI une fois le paiement Wave du club reçu. */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Boosts « Sponsorisé »" />
@@ -101,7 +143,7 @@ export default function Operateur() {
             Un club t'a réglé son boost par Wave ? Active son badge ici : il passe en tête de liste avec « Sponsorisé ». Touche pour activer/désactiver.
           </Txt>
           <View style={styles.wrap}>
-            {clubsByName.map((c) => (
+            {activeClubs(state.customClubs).map((c) => (
               <Chip
                 key={c.id}
                 label={c.name}
@@ -117,9 +159,9 @@ export default function Operateur() {
   );
 }
 
-function Total({ value, label, color }: { value: string; label: string; color: string }) {
+function Total({ value, label, color, bg }: { value: string; label: string; color: string; bg: string }) {
   return (
-    <View style={styles.total}>
+    <View style={[styles.total, { backgroundColor: bg }]}>
       <Txt variant="h3" color={color} style={{ fontSize: 16 }}>
         {value}
       </Txt>
@@ -133,6 +175,6 @@ function Total({ value, label, color }: { value: string; label: string; color: s
 const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   totals: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
-  total: { flex: 1, alignItems: 'center' },
+  total: { flex: 1, alignItems: 'center', borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.xs },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
 });

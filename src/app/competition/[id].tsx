@@ -54,10 +54,10 @@ export default function CompetitionDetail() {
       <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
         <Tag
           label={byClub ? `Organisé par ${comp.organizer}` : `Créé par ${comp.organizer} (joueur)`}
-          tone={byClub ? 'neutral' : 'green'}
+          tone={byClub ? 'blue' : 'green'}
           icon={byClub ? 'business' : 'person'}
         />
-        {comp.official ? <Tag label="Officielle" tone="gold" icon="shield-checkmark" /> : null}
+        {comp.official ? <Tag label="Officiel" tone="gold" icon="shield-checkmark" /> : null}
       </View>
       <Txt variant="display" style={{ fontSize: 26, marginTop: spacing.md }}>
         {comp.title}
@@ -65,12 +65,12 @@ export default function CompetitionDetail() {
 
       <Card style={{ marginTop: spacing.lg }}>
         <View style={styles.reward}>
-          <Ionicons name="gift" size={22} color={colors.gold} />
+          <Ionicons name="gift" size={22} color={colors.purple} />
           <View style={{ flex: 1 }}>
             <Txt variant="label" color={colors.textFaint}>
               Récompense
             </Txt>
-            <Txt variant="h3" color={colors.gold}>
+            <Txt variant="h3" color={colors.purple}>
               {comp.reward}
             </Txt>
           </View>

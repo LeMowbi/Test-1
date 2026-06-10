@@ -10,7 +10,7 @@ import { MatchCard } from '@/components/MatchCard';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Button, Card, IconCircle, SectionHeader, Txt } from '@/components/ui';
-import { clubsByName } from '@/data/clubs';
+import { activeClubs } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { seedMatches, upcomingMatches } from '@/data/matches';
 import { dayKey } from '@/lib/days';
@@ -21,10 +21,10 @@ import { colors, radius, spacing } from '@/theme';
 type Action = { icon: keyof typeof Ionicons.glyphMap; label: string; route: string; tint: string; bg: string };
 
 const ACTIONS: Action[] = [
-  { icon: 'tennisball', label: 'Jouer un match', route: '/matchs', tint: colors.gold, bg: colors.goldSoft },
-  { icon: 'trophy', label: 'Tournois', route: '/competitions', tint: colors.green, bg: colors.greenSoft },
+  { icon: 'tennisball', label: 'Jouer un match', route: '/matchs', tint: colors.green, bg: colors.greenSoft },
+  { icon: 'trophy', label: 'Tournois', route: '/competitions', tint: colors.purple, bg: colors.purpleSoft },
   { icon: 'school', label: 'Trouver un coach', route: '/coachs', tint: colors.blue, bg: colors.blueSoft },
-  { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.gold, bg: colors.goldSoft },
+  { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.coral, bg: colors.coralSoft },
 ];
 
 const TAB_ROUTES = new Set(['/reserver', '/matchs', '/competitions']);
@@ -46,7 +46,7 @@ export default function HomeScreen() {
   const go = (route: string) => (TAB_ROUTES.has(route) ? router.navigate(route as never) : router.push(route as never));
 
   // Clubs sponsorisés en tête (badge visible), le reste en ordre alphabétique.
-  const nearbyClubs = [...clubsByName].sort(
+  const nearbyClubs = activeClubs(state.customClubs).sort(
     (a, b) => Number(state.boostedClubIds.includes(b.id)) - Number(state.boostedClubIds.includes(a.id))
   );
   const now = Date.now();
@@ -62,7 +62,7 @@ export default function HomeScreen() {
     <Screen>
       <Reveal>
         {/* Hero */}
-        <LinearGradient colors={['#E6F1ED', colors.bg]} start={{ x: 0, y: 0 }} end={{ x: 0, y: 1 }} style={styles.hero}>
+        <LinearGradient colors={['#D8EEE4', '#F2EEDE', colors.bg]} start={{ x: 0, y: 0 }} end={{ x: 0.6, y: 1 }} style={styles.hero}>
           <View style={styles.brandRow}>
             <Logo size={30} />
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>

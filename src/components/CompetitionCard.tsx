@@ -27,8 +27,8 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
     <Card onPress={() => router.push(`/competition/${comp.id}`)} style={{ marginBottom: spacing.md }}>
       <View style={styles.top}>
         <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', flex: 1 }}>
-          <Tag label={byClub ? `Club · ${comp.organizer}` : `Joueur · ${comp.organizer}`} tone={byClub ? 'neutral' : 'green'} icon={byClub ? 'business' : 'person'} />
-          {comp.official ? <Tag label="Officielle" tone="gold" icon="shield-checkmark" /> : null}
+          <Tag label={byClub ? `Club · ${comp.organizer}` : `Joueur · ${comp.organizer}`} tone={byClub ? 'blue' : 'green'} icon={byClub ? 'business' : 'person'} />
+          {comp.official ? <Tag label="Officiel" tone="gold" icon="shield-checkmark" /> : null}
         </View>
         <Txt variant="muted">{comp.date}</Txt>
       </View>
@@ -38,8 +38,8 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
       </Txt>
 
       <View style={styles.reward}>
-        <Ionicons name="gift-outline" size={16} color={colors.gold} />
-        <Txt variant="small" color={colors.gold} style={{ flex: 1, fontWeight: '600' }}>
+        <Ionicons name="gift-outline" size={16} color={colors.purple} />
+        <Txt variant="small" color={colors.purple} style={{ flex: 1, fontWeight: '600' }}>
           {comp.reward}
         </Txt>
       </View>
@@ -73,7 +73,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginTop: spacing.md,
-    backgroundColor: colors.goldSoft,
+    backgroundColor: colors.purpleSoft,
     padding: spacing.sm,
     borderRadius: radius.md,
   },

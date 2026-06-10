@@ -16,22 +16,26 @@ export default function DecouvrirScreen() {
         <Txt variant="body">{padelIntro}</Txt>
       </Card>
 
-      {padelSections.map((s) => (
-        <Card key={s.title} style={{ marginTop: spacing.md }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-            <Ionicons name={s.icon as keyof typeof Ionicons.glyphMap} size={20} color={colors.gold} />
-            <Txt variant="h3">{s.title}</Txt>
-          </View>
-          {s.points.map((p, i) => (
-            <View key={i} style={styles.bullet}>
-              <View style={styles.dot} />
-              <Txt variant="body" style={{ flex: 1 }}>
-                {p}
-              </Txt>
+      {padelSections.map((s, idx) => {
+        // Une couleur par thème pour rythmer la lecture.
+        const tint = [colors.gold, colors.blue, colors.purple, colors.coral, colors.green][idx % 5];
+        return (
+          <Card key={s.title} style={{ marginTop: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+              <Ionicons name={s.icon as keyof typeof Ionicons.glyphMap} size={20} color={tint} />
+              <Txt variant="h3">{s.title}</Txt>
             </View>
-          ))}
-        </Card>
-      ))}
+            {s.points.map((p, i) => (
+              <View key={i} style={styles.bullet}>
+                <View style={[styles.dot, { backgroundColor: tint }]} />
+                <Txt variant="body" style={{ flex: 1 }}>
+                  {p}
+                </Txt>
+              </View>
+            ))}
+          </Card>
+        );
+      })}
 
       <Card style={{ marginTop: spacing.md, backgroundColor: colors.greenSoft, borderColor: 'transparent' }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>

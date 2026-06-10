@@ -5,7 +5,7 @@ import { StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, Txt } from '@/components/ui';
-import { getClub } from '@/data/clubs';
+import { activeClubs, findClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { courtsFor, freeCourts, hasCompetition, openSlotsFor, type AvailCtx } from '@/lib/availability';
 import { nextDays, slotTimestamp, type DayOption } from '@/lib/days';
@@ -16,8 +16,8 @@ import { colors, radius, spacing } from '@/theme';
 export default function ReserverScreen() {
   const params = useLocalSearchParams<{ clubId: string; dateKey?: string; time?: string }>();
   const router = useRouter();
-  const club = getClub(params.clubId);
   const { state, addReservation } = useApp();
+  const club = findClub(params.clubId, state.customClubs);
 
   const dates = useMemo(() => nextDays(7), []);
   const [day, setDay] = useState<DayOption | null>(dates.find((d) => d.key === params.dateKey) ?? null);
@@ -36,6 +36,7 @@ export default function ReserverScreen() {
   }
 
   const ctx: AvailCtx = {
+    clubs: activeClubs(state.customClubs),
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,
@@ -70,7 +71,7 @@ export default function ReserverScreen() {
             Terrain réservé 🎾
           </Txt>
           <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
-            Tu recevras un rappel avant le match.
+            Le club la reçoit dans son Espace Club et la confirme. Tu recevras un rappel avant le match.
           </Txt>
           <View style={styles.summary}>
             <Row label="Club" value={club.name} />

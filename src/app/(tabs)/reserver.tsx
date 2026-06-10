@@ -7,7 +7,7 @@ import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, EmptyState, Txt } from '@/components/ui';
-import { clubsByName, type Club } from '@/data/clubs';
+import { activeClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { clubsFreeAt, freeCourts, openSlotsFor, slotGrid, type AvailCtx } from '@/lib/availability';
 import { nextDays, slotTimestamp } from '@/lib/days';
@@ -25,14 +25,16 @@ export default function ReserverScreen() {
   const [view, setView] = useState<(typeof VIEWS)[number]>('Par heure');
   const [sheet, setSheet] = useState<{ club: Club; time: string } | null>(null);
 
+  const visibleClubs = useMemo(() => activeClubs(state.customClubs), [state.customClubs]);
   const ctx: AvailCtx = {
+    clubs: visibleClubs,
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,
     comps: [...seedCompetitions, ...state.myCompetitions],
   };
 
-  const grid = useMemo(() => slotGrid(state.clubSlots), [state.clubSlots]);
+  const grid = useMemo(() => slotGrid({ clubs: visibleClubs, clubSlots: state.clubSlots }), [visibleClubs, state.clubSlots]);
   const rows = grid
     .map((time) => {
       const ts = slotTimestamp(day.value, time);
@@ -41,7 +43,7 @@ export default function ReserverScreen() {
     .filter((r) => r.ts > Date.now()); // on masque les heures déjà passées
 
   // Vue « Par club » : pour chaque club, ses créneaux encore libres ce jour.
-  const byClub = clubsByName.map((club) => ({
+  const byClub = visibleClubs.map((club) => ({
     club,
     slots: openSlotsFor(club, state.clubSlots)
       .map((time) => ({ time, ts: slotTimestamp(day.value, time) }))

@@ -17,7 +17,7 @@ export function MatchCard({ match }: { match: Match }) {
     <Card style={{ marginBottom: spacing.md }}>
       <View style={styles.top}>
         <Tag label={lookingLabel(match.looking)} tone="gold" icon={lookingIcon(match.looking) as IconName} />
-        <Tag label={isPublic ? 'Public' : 'Amis'} tone={isPublic ? 'green' : 'neutral'} icon={isPublic ? 'earth' : 'people'} />
+        <Tag label={isPublic ? 'Public' : 'Amis'} tone={isPublic ? 'green' : 'blue'} icon={isPublic ? 'earth' : 'people'} />
       </View>
 
       <View style={styles.headRow}>

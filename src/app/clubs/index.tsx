@@ -5,7 +5,7 @@ import { Chip } from '@/components/Chip';
 import { ClubCard } from '@/components/ClubCard';
 import { Screen } from '@/components/Screen';
 import { EmptyState, Txt } from '@/components/ui';
-import { clubsByName } from '@/data/clubs';
+import { activeClubs } from '@/data/clubs';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -15,17 +15,18 @@ export default function ClubsScreen() {
   const { state } = useApp();
   const [filter, setFilter] = useState('Tous');
 
+  const all = useMemo(() => activeClubs(state.customClubs), [state.customClubs]);
   const list = useMemo(() => {
-    let base = clubsByName;
-    if (filter === 'Favoris') base = clubsByName.filter((c) => state.favoriteClubIds.includes(c.id));
-    else if (filter === 'Couvert' || filter === 'Extérieur' || filter === 'Mixte') base = clubsByName.filter((c) => c.type === filter);
+    let base = all;
+    if (filter === 'Favoris') base = all.filter((c) => state.favoriteClubIds.includes(c.id));
+    else if (filter === 'Couvert' || filter === 'Extérieur' || filter === 'Mixte') base = all.filter((c) => c.type === filter);
     const boosted = state.boostedClubIds;
     // Clubs sponsorisés d'abord (signalés par un badge), le reste en ordre alphabétique.
     return [...base].sort((a, b) => Number(boosted.includes(b.id)) - Number(boosted.includes(a.id)));
-  }, [filter, state.favoriteClubIds, state.boostedClubIds]);
+  }, [all, filter, state.favoriteClubIds, state.boostedClubIds]);
 
   return (
-    <Screen back title="Clubs" subtitle={`${clubsByName.length} clubs de padel à Abidjan`}>
+    <Screen back title="Clubs" subtitle={`${all.length} clubs de padel à Abidjan`}>
       <Pressable
         style={styles.mapBtn}
         onPress={() => Linking.openURL('https://www.google.com/maps/search/?api=1&query=padel+Abidjan')}

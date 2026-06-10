@@ -184,6 +184,31 @@ export function getClub(id?: string | string[]): Club | undefined {
   return clubs.find((c) => c.id === key);
 }
 
+// ——— Clubs inscrits via l'app (validés par l'opérateur PadelConnect) ———
+
+export type CustomClub = Club & {
+  status: 'pending' | 'active'; // « pending » = en attente d'activation par l'opérateur
+  contactPhone?: string;
+  createdAt: number;
+};
+
+// Clubs visibles par les JOUEURS : clubs de base + clubs inscrits ACTIVÉS.
+export function activeClubs(custom: CustomClub[]): Club[] {
+  return [...clubs, ...custom.filter((c) => c.status === 'active')].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Clubs gérables dans l'Espace Club : tous, y compris en attente (le gérant prépare sa page).
+export function manageableClubs(custom: CustomClub[]): Club[] {
+  return [...clubs, ...custom].sort((a, b) => a.name.localeCompare(b.name));
+}
+
+// Recherche d'un club par id, clubs inscrits inclus.
+export function findClub(id: string | string[] | undefined, custom: CustomClub[]): Club | undefined {
+  const key = Array.isArray(id) ? id[0] : id;
+  if (!key) return undefined;
+  return clubs.find((c) => c.id === key) ?? custom.find((c) => c.id === key);
+}
+
 // Créneaux types proposés (démo). Une vraie version lirait les disponibilités du club.
 export const SAMPLE_SLOTS = [
   '07:00', '08:00', '09:00', '10:00', '11:00',
