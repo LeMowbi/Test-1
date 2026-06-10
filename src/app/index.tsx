@@ -6,13 +6,11 @@ import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { ClubCard } from '@/components/ClubCard';
 import { CompetitionCard } from '@/components/CompetitionCard';
 import { Logo } from '@/components/Logo';
-import { MatchCard } from '@/components/MatchCard';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Button, Card, IconCircle, SectionHeader, Txt } from '@/components/ui';
 import { activeClubs } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
-import { seedMatches, upcomingMatches } from '@/data/matches';
 import { dayKey } from '@/lib/days';
 import { initials } from '@/lib/format';
 import { isBirthdayToday, parseBirthDate, zodiacFor } from '@/lib/zodiac';
@@ -22,7 +20,7 @@ import { colors, gradients, radius, spacing } from '@/theme';
 type Action = { icon: keyof typeof Ionicons.glyphMap; label: string; route: string; tint: string; bg: string };
 
 const ACTIONS: Action[] = [
-  { icon: 'tennisball', label: 'Jouer un match', route: '/matchs', tint: colors.green, bg: colors.greenSoft },
+  { icon: 'calendar', label: 'Mes réservations', route: '/reservations', tint: colors.green, bg: colors.greenSoft },
   { icon: 'trophy', label: 'Tournois', route: '/competitions', tint: colors.purple, bg: colors.purpleSoft },
   { icon: 'school', label: 'Trouver un coach', route: '/coachs', tint: colors.blue, bg: colors.blueSoft },
   { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.coral, bg: colors.coralSoft },
@@ -50,19 +48,17 @@ export default function HomeScreen() {
   );
   const now = Date.now();
   const today = dayKey(new Date());
-  const matches = upcomingMatches([...state.myMatches, ...seedMatches], now).slice(0, 3);
   // « À venir » : les tournois déjà passés ne s'affichent plus sur l'accueil.
   const competitions = [...state.myCompetitions, ...seedCompetitions].filter((c) => c.dateKey >= today).slice(0, 2);
   const upcoming = [...state.reservations]
-    .filter((r) => !r.result && r.startsAt > now)
+    .filter((r) => r.startsAt > now)
     .sort((a, b) => a.startsAt - b.startsAt)[0];
 
   // Clin d'œil anniversaire (ADN de l'app : astro + fun).
   const bd = state.account?.birthDate ? parseBirthDate(state.account.birthDate) : null;
   const birthday = isBirthdayToday(state.account?.birthDate);
 
-  // Quelque chose attend le joueur ? (remplace les pastilles de l'ancienne barre d'onglets)
-  const pendingGames = state.reservations.filter((r) => !r.result && r.startsAt <= now).length;
+  // Résultats de tournoi disponibles ? (bandeau d'accueil)
   const pendingComps = Object.keys(state.compRegistrations).filter((id) => {
     const c = [...state.myCompetitions, ...seedCompetitions].find((x) => x.id === id);
     return !!c?.official && c.dateKey <= today && !state.officialResults.some((o) => o.compId === id);
@@ -93,7 +89,6 @@ export default function HomeScreen() {
                     </Txt>
                   )}
                 </View>
-                {pendingGames > 0 ? <View style={styles.avatarDot} /> : null}
               </Pressable>
             </View>
           </View>
@@ -127,7 +122,6 @@ export default function HomeScreen() {
               Niveau {state.level.toFixed(2)} · mon profil, mes réservations, mes stats
             </Txt>
           </View>
-          {pendingGames > 0 ? <View style={styles.profileDot} /> : null}
           <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
         </Card>
 
@@ -143,7 +137,7 @@ export default function HomeScreen() {
 
         {/* Rappel de match — touche la carte pour voir tes réservations */}
         {upcoming && state.remindersOn ? (
-          <Pressable onPress={() => go('/profil')} style={({ pressed }) => pressed && { opacity: 0.9 }}>
+          <Pressable onPress={() => go('/reservations')} style={({ pressed }) => pressed && { opacity: 0.9 }}>
             <LinearGradient colors={[colors.gold, colors.goldDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.reminder}>
               <View style={styles.bell}>
                 <Ionicons name="notifications" size={20} color={colors.onGold} />
@@ -169,21 +163,12 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
 
-        {/* Résultats en attente (remplace les pastilles de l'ancienne barre d'onglets) */}
-        {pendingGames > 0 ? (
-          <Pressable onPress={() => go('/profil')} style={[styles.alert, { backgroundColor: colors.coralSoft }]}>
-            <Ionicons name="trophy-outline" size={16} color={colors.coral} />
-            <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
-              {pendingGames} partie{pendingGames > 1 ? 's' : ''} jouée{pendingGames > 1 ? 's' : ''} — enregistre ton résultat
-            </Txt>
-            <Ionicons name="chevron-forward" size={15} color={colors.coral} />
-          </Pressable>
-        ) : null}
+        {/* Résultats de tournoi disponibles */}
         {pendingComps > 0 ? (
           <Pressable onPress={() => go('/competitions')} style={[styles.alert, { backgroundColor: colors.purpleSoft }]}>
             <Ionicons name="medal-outline" size={16} color={colors.purple} />
             <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
-              Tournoi terminé — déclare ton résultat
+              Résultats du tournoi disponibles
             </Txt>
             <Ionicons name="chevron-forward" size={15} color={colors.purple} />
           </Pressable>
@@ -209,14 +194,6 @@ export default function HomeScreen() {
               <ClubCard key={c.id} club={c} compact />
             ))}
           </ScrollView>
-        </View>
-
-        {/* Matchs ouverts */}
-        <View style={styles.section}>
-          <SectionHeader title="Matchs ouverts" actionLabel="Voir tout" onAction={() => go('/matchs')} />
-          {matches.map((m) => (
-            <MatchCard key={m.id} match={m} />
-          ))}
         </View>
 
         {/* Tournois */}
@@ -253,17 +230,6 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarImg: { width: '100%', height: '100%' },
-  avatarDot: {
-    position: 'absolute',
-    top: -2,
-    right: -2,
-    width: 11,
-    height: 11,
-    borderRadius: radius.pill,
-    backgroundColor: colors.danger,
-    borderWidth: 2,
-    borderColor: colors.white,
-  },
   alert: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -281,12 +247,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  profileDot: {
-    width: 10,
-    height: 10,
-    borderRadius: radius.pill,
-    backgroundColor: colors.danger,
   },
   cityChip: {
     flexDirection: 'row',

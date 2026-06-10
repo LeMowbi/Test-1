@@ -3,14 +3,13 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { ContactButtons } from '@/components/ContactButtons';
-import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { findClub } from '@/data/clubs';
 import { coachClubName, coaches, type Coach } from '@/data/coaches';
 import { useApp } from '@/store/AppContext';
-import { fcfa, initials } from '@/lib/format';
+import { initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
 const TABS = ['Tous', 'Débutant', 'Intermédiaire', 'Avancé'] as const;
@@ -42,15 +41,7 @@ function CoachRow({ coach }: { coach: Coach }) {
             </Txt>
           </View>
         </View>
-        <View style={{ alignItems: 'flex-end', gap: 4 }}>
-          <Tag label={`Niv. ${coach.levelValue.toFixed(1)}`} tone="blue" />
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-            <RatingStars value={coach.rating} size={12} />
-            <Txt variant="small" color={colors.textMuted}>
-              {coach.rating.toFixed(1)}
-            </Txt>
-          </View>
-        </View>
+        <Tag label={`Niv. ${coach.levelValue.toFixed(1)}`} tone="blue" />
       </View>
       <View style={styles.specs}>
         {coach.specialties.map((s) => (
@@ -111,9 +102,6 @@ export default function CoachsScreen() {
         </View>
       ) : null}
 
-      <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.lg, textAlign: 'center' }}>
-        Tarifs indicatifs (dès {fcfa(Math.min(...coaches.map((c) => c.pricePerHour)))}/h) — à confirmer avec le coach.
-      </Txt>
     </Screen>
   );
 }

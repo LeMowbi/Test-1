@@ -67,7 +67,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                 </Txt>
               </View>
               <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
-                <Button label="Voir mes réservations" icon="calendar" onPress={() => { onClose(); router.push('/profil'); }} full />
+                <Button label="Voir mes réservations" icon="calendar" onPress={() => { onClose(); router.push('/reservations'); }} full />
                 <Button label="Terminé" variant="ghost" onPress={onClose} full />
               </View>
             </View>

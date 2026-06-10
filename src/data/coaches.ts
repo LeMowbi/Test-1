@@ -13,8 +13,6 @@ export type Coach = {
   area: string;
   clubId: string; // club où le coach exerce
   phone: string; // numéro direct (appel / WhatsApp)
-  pricePerHour: number; // FCFA — indicatif
-  rating: number;
   specialties: string[];
   bio: string;
   accent: string;
@@ -29,8 +27,6 @@ export const coaches: Coach[] = [
     area: 'Cocody',
     clubId: 'padel-magic',
     phone: '+225 07 07 12 34 56',
-    pricePerHour: 15000,
-    rating: 4.8,
     specialties: ['Service', 'Placement', 'Débutants'],
     bio: "Profil de démonstration. Pédagogue, idéale pour démarrer le padel sereinement et corriger les bases.",
     accent: ACCENTS[1],
@@ -43,8 +39,6 @@ export const coaches: Coach[] = [
     area: 'Marcory',
     clubId: 'elite-club',
     phone: '+225 05 04 23 45 67',
-    pricePerHour: 18000,
-    rating: 4.7,
     specialties: ['Jeu au filet', 'Tactique', 'Compétition'],
     bio: "Profil de démonstration. Travaille la tactique de double et le jeu offensif au filet.",
     accent: ACCENTS[0],
@@ -57,8 +51,6 @@ export const coaches: Coach[] = [
     area: 'Riviera',
     clubId: 'abidjan-padel',
     phone: '+225 01 02 34 56 78',
-    pricePerHour: 16000,
-    rating: 4.6,
     specialties: ['Sorties de mur', 'Régularité', 'Préparation physique'],
     bio: "Profil de démonstration. Spécialiste des sorties de paroi et de la régularité d'échange.",
     accent: ACCENTS[2],
@@ -71,8 +63,6 @@ export const coaches: Coach[] = [
     area: 'Zone 4',
     clubId: 'padel-zone-4',
     phone: '+225 07 08 45 67 89',
-    pricePerHour: 14000,
-    rating: 4.9,
     specialties: ['Enfants', 'Initiation', 'Ludique'],
     bio: "Profil de démonstration. Séances ludiques pour enfants et grands débutants.",
     accent: ACCENTS[1],

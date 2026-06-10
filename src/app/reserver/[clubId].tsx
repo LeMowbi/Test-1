@@ -85,7 +85,7 @@ export default function ReserverScreen() {
             <Row label="≈ par joueur (à 4)" value={perPlayer(club.priceFrom)} />
           </View>
           <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
-            <Button label="Retour à l'accueil" onPress={() => router.push('/')} full />
+            <Button label="Voir mes réservations" icon="calendar" onPress={() => router.push('/reservations')} full />
             <Button label="Réserver un autre créneau" variant="ghost" onPress={() => { setDone(false); setSlot(null); setCourt(null); setFriendIds([]); }} full />
           </View>
         </Card>

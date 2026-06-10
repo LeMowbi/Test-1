@@ -8,7 +8,7 @@ import { Chip } from '@/components/Chip';
 import { LevelStepper } from '@/components/LevelStepper';
 import { Logo } from '@/components/Logo';
 import { Button, Txt } from '@/components/ui';
-import { levelLabel } from '@/data/matches';
+import { levelLabel } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
 import { GENDERS, ageFrom, parseBirthDate, zodiacFor, type Gender } from '@/lib/zodiac';
 import { useApp } from '@/store/AppContext';
