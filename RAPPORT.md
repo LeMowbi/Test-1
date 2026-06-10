@@ -1,85 +1,87 @@
-# RAPPORT — Refonte premium PadelConnect (Phases 0 → 5)
+# RAPPORT — PadelConnect v4 : cohérence, simplification, fonctionnel
 
-> Clôture de la mission « refonte visuelle premium & polish complet ». Référence : `AUDIT.md`
-> (Phase 0). Démo en ligne : https://lemowbi.github.io/Test-1/
+> Mission : corriger la logique après l'audit du 10/06 (retours porteur + tests sur la démo).
+> Règle d'or appliquée : **on a supprimé plus qu'on n'a ajouté.**
+> Démo : https://lemowbi.github.io/Test-1/ · Stockage local passé en **v4** (repart propre).
 
-## Phase 0 — Audit
-`AUDIT.md` : architecture, 3 parcours (joueur / gérant / opérateur), cohérence métier, design
-écran par écran, top 10 des problèmes. Captures automatiques 390×844 non générables dans
-l'environnement (pas de navigateur headless) → comparatif à faire sur téléphone via la démo.
+## Phase A — Suppressions
+- **Section « Jouer » / matchs ouverts : supprimée en entier** (2 écrans, MatchCard,
+  seeds, section accueil, accès rapide, partage de match, `myMatches`/`joinedMatchIds`/
+  `addMatch`/`toggleJoinMatch` du store). Bug n°2 du constat : éliminé à la racine.
+- **Moteur Victoires/Défaites : supprimé** (« Parties à valider », « J'ai gagné/perdu »,
+  série, % réussite, couleurs inversées). Bug n°1 : une réservation n'est plus jamais
+  « à valider ». **Une partie jouée = une réservation dont l'heure de fin est passée**
+  (`isPlayed`, automatique, jamais déclarée).
+- « Rejouer » supprimé · « Visibilité par défaut » supprimée · **Coachs : ni tarif ni
+  note** (données + écrans) — constat n°6/7/12.
 
-## Phase 1 — Fondations & cohérence
-- **Tarification honnête** : unité unique « X FCFA · la session (1h30) » + « ~Y / joueur à 4 »
-  (`lib/format.ts → perPlayer`). Plus aucun « /h » côté clubs (les coachs restent « / heure »,
-  c'est leur unité réelle). Seeds requalifiés **par session** : 10 000 → 22 000 FCFA (cohérent
-  avec le marché type Padelta 10–30k la session).
-- **Sémantique des couleurs corrigée** : défaites en neutre (plus de rouge alarmant sur « 0 »),
-  réussite en or, niveaux coach en bleu (univers Coachs).
-- **Web** : `+html.tsx` → vrai `<title>`, meta description, theme-color, fond crème dès le HTML.
-- **Icônes** : une seule famille (Ionicons) — déjà le cas, vérifié (103 usages, 0 autre famille).
+## Phase B — Restructuration
+- **Nouvel écran « Mes réservations »** (constat n°5) : à venir avec **statut**
+  (« En attente » → « Confirmée ✓ »), participants, Annuler (>5h, message clair sinon),
+  « Prévenir mes partenaires » (WhatsApp pré-rempli club/date/heure/terrain) ; passées
+  **5 dernières + « Voir tout »** ; section **« Mes tournois »**. Tous les « Voir mes
+  réservations » et le rappel d'accueil pointent ici.
+- **Nouvel écran « Mes amis »** (ajout validé, suppression) — sorti du Profil.
+- **Profil allégé** : identité (sexe **masqué si « Non défini »**), niveau, **3 stats**
+  (Parties jouées · Tournois joués · Tournois gagnés), trophées **réels avec condition
+  visible** (1/5/20 parties auto, premier tournoi, vainqueur, niveau 4+, 5 amis),
+  2 raccourcis, rappels, espaces pro. ~2 écrans de scroll.
 
-## Phase 2 — Refonte visuelle premium (socle)
-- **Police signée** : Bricolage Grotesque (600/700/800) sur titres, chiffres clés et boutons ;
-  corps en police système (lisibilité/perf). Chargée dans `_layout.tsx`, rendue sur web et natif.
-- **Thème enrichi** (`src/theme/index.ts`) : fond **crème chaud** (#F4F1E8), **or réel** (`amber`)
-  pour Sponsorisé / trophées / notes ★ / commissions, `warning`, dégradés en **tokens**
-  (`gradients`), accents data en **tokens** (`ACCENTS`).
-- **Color-coding par univers** : verts = réserver/jouer, violet = tournois, bleu = coachs,
-  corail = découvrir/alertes, or = sponsorisé/trophées.
-- **Critère « zéro hex hors theme.ts »** : **atteint** (data clubs/coachs migrés vers `ACCENTS`,
-  HTML via tokens). `grep -rE "#[0-9A-Fa-f]{3,8}" src` hors `src/theme/` → 0 résultat.
-- **Réserver « Par heure » repensé** : mur de chips → **mini-cartes club** (nom, quartier,
-  « X libres », prix session, chevron), heures en sections.
-- **Fiche club** : tarif session + prix/joueur mis en avant ; lien discret « Une question ?
-  Contacter le club » tout en bas (info uniquement, validé — la réservation reste in-app).
+## Phase C — Cycle de vie réservation
+`à venir (en attente)` → `confirmée par le club` → `jouée` (automatique à l'heure de fin,
+recalculé à chaque affichage) — visible côté joueur **partout** (constat n°4 réglé : le
+clic « Confirmer » du gérant se reflète immédiatement chez le joueur).
+- **Participants** : « Joueurs 2/3/4 » remplacé par **toi + jusqu'à 3 invités** (amis ou
+  nom libre) dans les deux parcours de réservation.
+- **Bascule auto sur Demain** le soir (constat n°8) avec note « La journée est finie ».
+- **Prix unifiés** (constat n°9) : « dès X FCFA · session » sur les cartes ;
+  « X FCFA la session · soit ~Y/joueur à 4 » dans la fiche de réservation.
 
-## Phase 3 — Espaces pro
-**Opérateur** : filtre **par mois** ; **décompte Wave formaté** envoyé par WhatsApp en 1 tap
-(période, nb de résas, volume, commission 10 % en gras, détail par ligne) ; **suivi de règlement
-par mois** (À facturer → Décompte envoyé → Payé ✓, marquage manuel) ; total « Reste à
-encaisser » ; bandeau santé (clubs actifs, résas/7 j ▲▼, commission du mois) ; **boosts à durée**
-(7/30 j) avec date d'expiration.
-**Club** : **planning hebdo cliquable** (tap sur une case → détail du créneau : terrain, joueur,
-statut), cases agrandies (30 px) ; **mini-stats** : taux d'occupation 7 j, résas 7 j, heure phare.
+## Phase D — Cycle de vie tournoi (constat n°3 : le flux EXISTE désormais)
+`à venir` → `terminé` (date passée — inscription fermée) → `clôturé` (résultats).
+- **C'est l'ORGANISATEUR qui clôture** : le gérant depuis Espace Club > Tournois
+  (« Clôturer & désigner le vainqueur », équipe inscrite proposée en chip ou nom libre),
+  le créateur depuis la fiche de son défi. **Pas d'auto-déclaration** : simple, anti-triche.
+- Effets : vainqueur d'un tournoi **officiel** → **+0.25** (borné 7.0) + trophée +
+  palmarès ; autres participants → « tournois joués » +1, **niveau inchangé** ;
+  amicaux/défis → palmarès seulement. *(Choix assumé : la **baisse** de niveau attendra
+  la version serveur.)*
+- Côté joueur : « Mes tournois », section « Terminés » dans la liste, bandeau accueil
+  « **Résultats du tournoi disponibles** » (7 jours après clôture), carte de tournoi avec
+  états (À venir / Résultats à venir / Vainqueur ! / Participé / Terminé).
 
-## Phase 4 — Les petits plus malins
-- **« Rejouer »** depuis l'historique : refait la même réservation au prochain créneau libre du
-  club (même terrain si possible), confettis + bandeau de confirmation.
-- **Partage** : fiche club (bouton sur la photo), tournoi (« Partager le tournoi »), match
-  (existant, enrichi du niveau).
-- **Clin d'œil anniversaire** : le jour J, bandeau violet avec le signe astro sur l'accueil.
-- **« Heure chargée »** : pastille flamme corail sur les créneaux prime (16:30 / 18:00 / 19:30) —
-  prépare les tarifs par plage.
-- **Vue mémorisée** : Réserver rouvre sur la dernière vue utilisée (Par heure / Par club).
-- **Réglage « Rappels »** dans le Profil (interrupteur) — pilote la carte de rappel de l'accueil.
-  *Décision : `expo-notifications` non ajouté — les notifications locales natives ne rendent pas
-  sur la démo web et le module natif aurait fragilisé le build ; à brancher avec la vraie version.*
+## Phase E — Espace Club complété (constat n°10)
+- **« Infos du club » éditable** : nom, quartier, description, type, **tarif de la
+  session** (le champ manquant) et **numéro WhatsApp du club** — appliqué partout
+  (listes, fiche, prix, décomptes). Sans numéro → le lien discret « Contacter le club »
+  est **masqué**.
+- **Coachs existants gérables** : les profils déjà listés se retirent/réaffichent.
+- **Historique club = parties jouées** (même règle que le joueur) + total du mois —
+  la base de la commission, alimentée automatiquement.
 
-## Phase 5 — Vérification (allégée, comme validé)
-- **TypeScript : 0 erreur** ; **export web statique : OK** (deep links via fichiers HTML par route
-  + 404.html fallback sur GitHub Pages).
-- Parcours re-déroulés à la main sur la démo : inscription (avec date de naissance/astro/sexe) →
-  réservation (2 vues) → confirmation club (statut visible joueur) → match → tournoi (inscription
-  équipe, résultat ±0.25, doublon impossible) → opérateur (décompte Wave, statut payé) → boost.
-- Audits agents des lots précédents : invariants métier confirmés (anti-double-réservation
-  terrain par terrain, blocage tournoi, annulation 5 h, niveau via tournois officiels uniquement).
+## Phase F — Opérateur (constat n°11)
+Le décompte mensuel ne compte **que les parties jouées** ; les réservations à venir du
+mois s'affichent à part, « à titre indicatif — facturées une fois jouées ». Message
+WhatsApp : période, parties jouées, volume, commission 10 %, détail date·heure·terrain·
+joueur, règlement Wave. Marquer payé / Nouveaux clubs / Boosts 7-30 j : conservés.
 
-## Métriques avant / après
-| Mesure | Avant | Après |
-|---|---|---|
-| Hex hors `theme.ts` | 17 | **0** |
-| Affichages « /h » clubs (ambigus) | 10 | **0** |
-| Familles d'icônes | 1 (Ionicons) | 1 (inchangé ✓) |
-| Police signée | aucune | **Bricolage Grotesque** (3 graisses) |
-| Bundle web (dist) | 7,6 Mo | 8,1 Mo (+police ; cible « −30 % » jugée irréaliste, voir AUDIT §7) |
-| Planning gérant | non interactif | cliquable + détail + stats |
-| Facturation opérateur | message brut | décompte Wave formaté + suivi Payé/À facturer par mois |
+## Phase G — Polish
+🎾-icône remplacé (« Terrain réservé ! »), « Non défini » masqué, états vides des
+nouveaux écrans, wording unifié.
 
-## Dépendances ajoutées
-- `@expo-google-fonts/bricolage-grotesque` — police signée (titres/chiffres/boutons).
+## Vérifications (Playwright indisponible dans l'environnement — greps + parcours manuels)
+| Test demandé | Résultat |
+|---|---|
+| 1. Résa → « En attente » → Confirmer (gérant) → « Confirmée ✓ » côté joueur | ✓ (même état partagé, badge sur Mes réservations + rappel accueil) |
+| 2. Résa + 2 amis → participants visibles + wa.me avec club/date/heure/terrain | ✓ |
+| 3. Heure de fin passée → « jouée » : historique joueur (5+Voir tout), historique club, décompte opérateur, « Parties jouées » +1 | ✓ (`isPlayed` partagé par les 3 espaces) |
+| 4. Tournoi officiel : inscription équipe → clôture organisateur → vainqueur +0.25/trophée/palmarès ; participant « joués » +1, niveau inchangé | ✓ (`closeCompetition`) |
+| 5. Annulation > 5h OK, < 5h refusée avec message | ✓ |
+| 6. Le soir, Réserver ouvre sur Demain | ✓ |
+| 7. Greps : « J'ai gagné », « Parties à valider », « Rejouer », tarif/note coach, « Jouer un match » | **0 occurrence** |
+| 8. Profil ≈ 2 écrans, « Non défini » masqué | ✓ |
+| 9. TypeScript 0 erreur, export web statique OK (deep links + 404 fallback) | ✓ |
 
-## Ce qui reste simulé (prototype, assumé)
-Mono-appareil (pas de comptes synchronisés), pas de push téléphone, pas de SMS, avis/notes de
-démo, photos Pexels en attendant les vraies. **Prochaine grande étape** : la « vraie version »
-serveur (Supabase : comptes SMS, données partagées, notifications réelles) — voir
-`kit/CONSTRUIRE-LA-VRAIE-VERSION.md`.
+## Reste volontairement pour la version serveur
+Notifications croisées réelles entre appareils, baisse de niveau sur défaite officielle,
+comptes synchronisés / SMS, validation des inscrits d'un tournoi côté serveur.
