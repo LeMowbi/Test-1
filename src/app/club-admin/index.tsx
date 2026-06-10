@@ -17,9 +17,10 @@ import { fcfa, initials } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
 import { colors, radius, spacing } from '@/theme';
 
+// Sessions de 1h30 — la grille complète que le club peut ouvrir/fermer.
 const ALL_TIMES = [
-  '06:00', '07:00', '08:00', '09:00', '10:00', '11:00', '12:00',
-  '16:00', '17:00', '18:00', '19:00', '20:00', '21:00', '22:00',
+  '06:00', '07:30', '09:00', '10:30', '12:00', '13:30',
+  '15:00', '16:30', '18:00', '19:30', '21:00', '22:30',
 ];
 
 const SECTIONS = ['Réservations', 'Mon club', 'Tournois'] as const;
@@ -45,7 +46,7 @@ export default function ClubAdmin() {
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
   const [url, setUrl] = useState('');
-  const [offerKind, setOfferKind] = useState<'offre' | 'actu'>('offre');
+  const [offerKind, setOfferKind] = useState<'offre' | 'actu' | 'evenement'>('offre');
   const [offerTitle, setOfferTitle] = useState('');
   const [offerDetail, setOfferDetail] = useState('');
   const [coachName, setCoachName] = useState('');
@@ -465,16 +466,26 @@ export default function ClubAdmin() {
             </Card>
           </View>
 
-          {/* Offres & actus */}
+          {/* Offres, actus & événements */}
           <View style={{ marginTop: spacing.xl }}>
-            <SectionHeader title="Offres & actus" />
+            <SectionHeader title="Offres, actus & événements" />
             <Card>
-              <Txt variant="muted">Publie ce que tu veux : promotions, événements, infos du club.</Txt>
+              <Txt variant="muted">
+                Publie ce que tu veux : promotions, infos du club, soirées, animations… Les événements
+                s'affichent dans la section « Événements & tournois » de ta page.
+              </Txt>
               <View style={[styles.wrap, { marginTop: spacing.md }]}>
                 <Chip label="Offre" active={offerKind === 'offre'} onPress={() => setOfferKind('offre')} />
                 <Chip label="Actu" active={offerKind === 'actu'} onPress={() => setOfferKind('actu')} />
+                <Chip label="Événement" active={offerKind === 'evenement'} onPress={() => setOfferKind('evenement')} />
               </View>
-              <TextInput value={offerTitle} onChangeText={setOfferTitle} placeholder="Titre (ex. -20% le mardi)" placeholderTextColor={colors.textFaint} style={styles.input} />
+              <TextInput
+                value={offerTitle}
+                onChangeText={setOfferTitle}
+                placeholder={offerKind === 'evenement' ? 'Titre (ex. Soirée Americano vendredi 20h)' : 'Titre (ex. -20% le mardi)'}
+                placeholderTextColor={colors.textFaint}
+                style={styles.input}
+              />
               <TextInput value={offerDetail} onChangeText={setOfferDetail} placeholder="Détail (optionnel)" placeholderTextColor={colors.textFaint} style={styles.input} />
               <View style={{ marginTop: spacing.sm }}>
                 <Button size="sm" label="Publier" icon="add" onPress={submitOffer} />
@@ -485,7 +496,10 @@ export default function ClubAdmin() {
                 ) : (
                   offers.map((o) => (
                     <View key={o.id} style={styles.listRow}>
-                      <Tag label={o.kind === 'actu' ? 'Actu' : 'Offre'} tone={o.kind === 'actu' ? 'green' : 'gold'} />
+                      <Tag
+                        label={o.kind === 'actu' ? 'Actu' : o.kind === 'evenement' ? 'Événement' : 'Offre'}
+                        tone={o.kind === 'actu' ? 'green' : o.kind === 'evenement' ? 'purple' : 'gold'}
+                      />
                       <View style={{ flex: 1 }}>
                         <Txt variant="body" style={{ fontWeight: '600' }}>{o.title}</Txt>
                         {o.detail ? <Txt variant="muted">{o.detail}</Txt> : null}

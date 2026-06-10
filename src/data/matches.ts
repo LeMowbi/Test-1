@@ -52,8 +52,8 @@ export function levelLabel(n: number): string {
 const H = 3600000;
 
 export const seedMatches: Match[] = [
-  { id: 'm1', clubId: 'padelta', clubName: 'Padelta', date: "Aujourd'hui", time: '19:00', startsAt: Date.now() + 5 * H, levelValue: 3.5, looking: 'partenaire', total: 4, spotsLeft: 1, visibility: 'public', host: 'Karim' },
+  { id: 'm1', clubId: 'padelta', clubName: 'Padelta', date: "Aujourd'hui", time: '19:30', startsAt: Date.now() + 5 * H, levelValue: 3.5, looking: 'partenaire', total: 4, spotsLeft: 1, visibility: 'public', host: 'Karim' },
   { id: 'm2', clubId: 'padel-zone-4', clubName: 'Padel Zone 4', date: 'Demain', time: '18:00', startsAt: Date.now() + 24 * H, levelValue: 2.0, looking: 'adversaire', total: 4, spotsLeft: 2, visibility: 'public', host: 'Fatou' },
-  { id: 'm3', clubId: 'district-club', clubName: 'District Club', date: 'Samedi', time: '10:00', startsAt: Date.now() + 48 * H, levelValue: 5.0, looking: 'les deux', total: 4, spotsLeft: 1, visibility: 'amis', host: 'David' },
-  { id: 'm4', clubId: 'abidjan-padel', clubName: 'Abidjan Padel', date: 'Samedi', time: '17:00', startsAt: Date.now() + 50 * H, levelValue: 3.0, looking: 'partenaire', total: 4, spotsLeft: 1, visibility: 'public', host: 'Ines' },
+  { id: 'm3', clubId: 'district-club', clubName: 'District Club', date: 'Samedi', time: '10:30', startsAt: Date.now() + 48 * H, levelValue: 5.0, looking: 'les deux', total: 4, spotsLeft: 1, visibility: 'amis', host: 'David' },
+  { id: 'm4', clubId: 'abidjan-padel', clubName: 'Abidjan Padel', date: 'Samedi', time: '16:30', startsAt: Date.now() + 50 * H, levelValue: 3.0, looking: 'partenaire', total: 4, spotsLeft: 1, visibility: 'public', host: 'Ines' },
 ];

@@ -53,7 +53,7 @@ export default function ReserverScreen() {
   const open = (club: Club, time: string) => setSheet({ club, time });
 
   return (
-    <Screen back title="Réserver" subtitle="Choisis un créneau — on te montre les terrains libres">
+    <Screen back title="Réserver" subtitle="Sessions de 1h30 — on te montre les terrains libres">
       {/* Jour */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.sm }}>
         {days.map((d) => (

@@ -96,12 +96,35 @@ export default function HomeScreen() {
             Bonjour, {state.account?.firstName ?? ''}
           </Txt>
           <Txt variant="muted" style={{ marginTop: 4 }}>
-            Un terrain libre près de toi en quelques secondes.
+            Un terrain libre près de toi — sessions de 1h30.
           </Txt>
           <View style={{ marginTop: spacing.lg }}>
             <Button label="Réserver un terrain" icon="calendar" onPress={() => go('/reserver')} full />
           </View>
         </LinearGradient>
+
+        {/* Mon profil — accès direct, bien visible */}
+        <Card onPress={() => go('/profil')} style={styles.profileCard}>
+          <View style={styles.profileAvatar}>
+            {state.account?.photoUri ? (
+              <Image source={{ uri: state.account.photoUri }} style={styles.avatarImg} contentFit="cover" />
+            ) : (
+              <Txt variant="h3" color={colors.gold}>
+                {initials(`${state.account?.firstName ?? ''} ${state.account?.lastName ?? ''}`)}
+              </Txt>
+            )}
+          </View>
+          <View style={{ flex: 1 }}>
+            <Txt variant="h3">
+              {state.account?.firstName} {state.account?.lastName}
+            </Txt>
+            <Txt variant="small" color={colors.textMuted}>
+              Niveau {state.level.toFixed(2)} · mon profil, mes réservations, mes stats
+            </Txt>
+          </View>
+          {pendingGames > 0 ? <View style={styles.profileDot} /> : null}
+          <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+        </Card>
 
         {/* Rappel de match — touche la carte pour voir tes réservations */}
         {upcoming ? (
@@ -154,8 +177,8 @@ export default function HomeScreen() {
         {/* Accès rapide */}
         <View style={[styles.grid, { marginTop: spacing.lg }]}>
           {ACTIONS.map((a) => (
-            <Card key={a.label} onPress={() => go(a.route)} style={styles.tile}>
-              <IconCircle icon={a.icon} color={a.tint} bg={a.bg} />
+            <Card key={a.label} onPress={() => go(a.route)} style={[styles.tile, { backgroundColor: a.bg, borderColor: 'transparent' }]}>
+              <IconCircle icon={a.icon} color={a.tint} bg={colors.white} />
               <Txt variant="h3" style={{ marginTop: spacing.sm, fontSize: 15 }} numberOfLines={2}>
                 {a.label}
               </Txt>
@@ -233,6 +256,22 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     marginTop: spacing.md,
+  },
+  profileCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
+  profileAvatar: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.pill,
+    backgroundColor: colors.goldSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+  },
+  profileDot: {
+    width: 10,
+    height: 10,
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
   },
   cityChip: {
     flexDirection: 'row',

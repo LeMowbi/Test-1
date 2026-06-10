@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Chip } from '@/components/Chip';
 import { Confetti } from '@/components/Confetti';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
@@ -10,6 +11,7 @@ import { levelLabel } from '@/data/matches';
 import { useApp } from '@/store/AppContext';
 import { initials } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
+import { GENDERS, ageFrom, genderLabel, parseBirthDate, zodiacFor, type Gender } from '@/lib/zodiac';
 import { colors, radius, spacing } from '@/theme';
 
 const FIVE_H = 5 * 3600000;
@@ -71,6 +73,19 @@ export default function ProfilScreen() {
                 {account.firstName} {account.lastName}
               </Txt>
               <Txt variant="muted">{account.phone}</Txt>
+              {(() => {
+                const bd = account.birthDate ? parseBirthDate(account.birthDate) : null;
+                const zod = bd ? zodiacFor(bd) : null;
+                const g = genderLabel(account.gender);
+                if (!bd && !g) return null;
+                return (
+                  <Txt variant="small" color={colors.purple} style={{ marginTop: 2, fontWeight: '600' }}>
+                    {bd && zod ? `${zod.emoji} ${zod.name} · ${ageFrom(bd)} ans` : ''}
+                    {bd && g ? ' · ' : ''}
+                    {g ?? ''}
+                  </Txt>
+                );
+              })()}
               <View style={{ marginTop: spacing.sm }}>
                 <Tag label={`Niveau ${level.toFixed(2)} · ${levelLabel(level)}`} tone="gold" icon="ribbon" />
               </View>
@@ -343,6 +358,8 @@ function EditAccount({ onDone }: { onDone: () => void }) {
   const [firstName, setFirstName] = useState(a.firstName);
   const [lastName, setLastName] = useState(a.lastName);
   const [phone, setPhone] = useState(a.phone);
+  const [birth, setBirth] = useState(a.birthDate ?? '');
+  const [gender, setGender] = useState<Gender | undefined>(a.gender);
   const [photoUri, setPhotoUri] = useState<string | undefined>(a.photoUri);
 
   const choose = async () => {
@@ -350,7 +367,14 @@ function EditAccount({ onDone }: { onDone: () => void }) {
     if (uri) setPhotoUri(uri);
   };
   const save = () => {
-    updateAccount({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), photoUri });
+    updateAccount({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone: phone.trim(),
+      photoUri,
+      birthDate: parseBirthDate(birth) ? birth.trim() : a.birthDate,
+      gender,
+    });
     onDone();
   };
 
@@ -368,6 +392,12 @@ function EditAccount({ onDone }: { onDone: () => void }) {
       <TextInput value={firstName} onChangeText={setFirstName} placeholder="Prénom" placeholderTextColor={colors.textFaint} style={styles.input} />
       <TextInput value={lastName} onChangeText={setLastName} placeholder="Nom" placeholderTextColor={colors.textFaint} style={styles.input} />
       <TextInput value={phone} onChangeText={setPhone} placeholder="Téléphone" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
+      <TextInput value={birth} onChangeText={setBirth} placeholder="Date de naissance (JJ/MM/AAAA)" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md }}>
+        {GENDERS.map((g) => (
+          <Chip key={g.id} label={g.label} active={gender === g.id} onPress={() => setGender(g.id)} />
+        ))}
+      </View>
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
         <View style={{ flex: 1 }}>
           <Button label="Enregistrer" icon="checkmark" onPress={save} full />

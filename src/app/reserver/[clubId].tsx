@@ -78,6 +78,7 @@ export default function ReserverScreen() {
             <Row label="Terrain" value={court!} />
             <Row label="Jour" value={day!.label} />
             <Row label="Heure" value={slot!} />
+            <Row label="Durée" value="1h30" />
             <Row label="Joueurs" value={`${players}`} />
             {friendIds.length > 0 ? <Row label="Amis invités" value={`${friendIds.length}`} /> : null}
             <Row label="Tarif indicatif" value={`dès ${fcfa(club.priceFrom)}/h`} />
@@ -164,7 +165,7 @@ export default function ReserverScreen() {
       <View style={{ marginTop: spacing.lg }}>
         <Button label="Réserver le terrain" icon="checkmark" onPress={confirm} disabled={!ready} full />
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-          Réservation sans paiement en ligne. Le tarif se règle directement au club. Annulation jusqu'à 5h avant.
+          Session de 1h30, sans paiement en ligne. Le tarif se règle directement au club. Annulation jusqu'à 5h avant.
         </Txt>
       </View>
     </Screen>

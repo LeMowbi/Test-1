@@ -10,6 +10,7 @@ import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, IconCircle, Tag, Txt } from '@/components/ui';
 import { clubGallery, defaultCourts, findClub, offersForClub } from '@/data/clubs';
 import { coaches } from '@/data/coaches';
+import { seedCompetitions } from '@/data/competitions';
 import { ratingFor, seedReviews } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
@@ -39,7 +40,11 @@ export default function ClubDetail() {
   const fav = state.favoriteClubIds.includes(club.id);
   const boosted = state.boostedClubIds.includes(club.id);
   const gallery = clubGallery(club, state.clubPhotos[club.id] ?? []);
-  const offers = offersForClub(club, state.clubOffers[club.id] ?? []);
+  const posts = state.clubOffers[club.id] ?? [];
+  const offers = offersForClub(club, posts.filter((o) => o.kind !== 'evenement'));
+  // Événements du club : publications « événement » + tournois créés par le club (officiels ou non).
+  const events = posts.filter((o) => o.kind === 'evenement');
+  const clubComps = [...state.myCompetitions, ...seedCompetitions].filter((c) => c.clubId === club.id);
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
   const clubCoaches = [
     ...coaches.filter((c) => c.clubId === club.id).map((c) => ({ id: c.id, name: c.name, sub: c.level, phone: c.phone })),
@@ -130,7 +135,7 @@ export default function ClubDetail() {
           <Txt variant="price">dès {fcfa(club.priceFrom)} / heure</Txt>
         </View>
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
-          À confirmer auprès du club.
+          Sessions de 1h30 · tarif à confirmer auprès du club.
         </Txt>
       </Card>
 
@@ -150,6 +155,40 @@ export default function ClubDetail() {
           </View>
         ))}
       </Card>
+
+      {/* Événements & tournois du club */}
+      {events.length > 0 || clubComps.length > 0 ? (
+        <Card style={{ marginTop: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+            <Ionicons name="calendar-outline" size={18} color={colors.purple} />
+            <Txt variant="h3">Événements & tournois</Txt>
+          </View>
+          {events.map((e) => (
+            <View key={e.id} style={{ marginBottom: spacing.md }}>
+              <Tag label="Événement" tone="purple" icon="sparkles" />
+              <Txt variant="body" style={{ fontWeight: '700', marginTop: 4 }}>
+                {e.title}
+              </Txt>
+              {e.detail ? <Txt variant="muted">{e.detail}</Txt> : null}
+            </View>
+          ))}
+          {clubComps.map((c, i) => (
+            <Pressable key={c.id} onPress={() => router.push(`/competition/${c.id}`)} style={[styles.eventRow, { marginTop: i === 0 && events.length === 0 ? 0 : spacing.sm }]}>
+              <IconCircle icon="trophy" color={colors.purple} bg={colors.purpleSoft} size={38} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
+                  {c.title}
+                </Txt>
+                <Txt variant="small" color={colors.textMuted}>
+                  {c.date} · {c.registered}/{c.slots} équipes{c.official ? '' : ' · amical'}
+                </Txt>
+              </View>
+              {c.official ? <Tag label="Officiel" tone="gold" icon="shield-checkmark" /> : null}
+              <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+            </Pressable>
+          ))}
+        </Card>
+      ) : null}
 
       {/* Coachs du club */}
       {clubCoaches.length > 0 ? (
@@ -329,6 +368,7 @@ const styles = StyleSheet.create({
   },
   reviewHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   coachRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  eventRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, paddingVertical: spacing.xs },
   barRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   summaryTrack: { flex: 1, height: 6, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   summaryFill: { height: 6, borderRadius: radius.pill, backgroundColor: colors.gold },

@@ -209,10 +209,12 @@ export function findClub(id: string | string[] | undefined, custom: CustomClub[]
   return clubs.find((c) => c.id === key) ?? custom.find((c) => c.id === key);
 }
 
-// Créneaux types proposés (démo). Une vraie version lirait les disponibilités du club.
+// Créneaux types proposés (démo) — sessions de 1h30, non chevauchantes.
+// Une vraie version lirait les disponibilités du club.
+export const SLOT_DURATION_LABEL = '1h30';
 export const SAMPLE_SLOTS = [
-  '07:00', '08:00', '09:00', '10:00', '11:00',
-  '17:00', '18:00', '19:00', '20:00', '21:00',
+  '07:30', '09:00', '10:30', '12:00',
+  '16:30', '18:00', '19:30', '21:00',
 ];
 
 // Terrains (courts) par défaut d'un club : « Terrain 1 … N » selon son nombre de courts.
@@ -253,7 +255,7 @@ export function clubOffers(club: Club) {
 }
 
 // Publication d'un club (offre ou actualité) — texte libre géré par le club.
-export type ClubPost = { id?: string; kind: 'offre' | 'actu'; title: string; detail: string };
+export type ClubPost = { id?: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string };
 
 // Offres/actus à afficher : celles gérées par le club si présentes, sinon les offres par défaut.
 export function offersForClub(club: Club, managed: ClubPost[] = []): ClubPost[] {

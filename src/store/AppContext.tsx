@@ -9,7 +9,14 @@ import type { Review } from '@/data/reviews';
 import { seedFriends, type Friend } from '@/data/user';
 import { dayKey, nextDays } from '@/lib/days';
 
-export type Account = { firstName: string; lastName: string; phone: string; photoUri?: string };
+export type Account = {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  photoUri?: string;
+  birthDate?: string; // JJ/MM/AAAA — sert à l'âge et au signe astro
+  gender?: 'homme' | 'femme' | 'nd';
+};
 export type Invited = { id: string; name: string; confirmed: boolean };
 
 export type Reservation = {
@@ -46,7 +53,7 @@ type AppState = {
   officialResults: OfficialResult[];
   compRegistrations: Record<string, { partner: string; at: number }>;
   clubPhotos: Record<string, string[]>;
-  clubOffers: Record<string, { id: string; kind: 'offre' | 'actu'; title: string; detail: string }[]>;
+  clubOffers: Record<string, { id: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
   boostedClubIds: string[];
   customClubs: CustomClub[]; // clubs inscrits via l'app (activation par l'opérateur)
@@ -113,7 +120,7 @@ type AppContextType = {
   toggleFavorite: (clubId: string) => void;
   addClubPhoto: (clubId: string, uri: string) => void;
   removeClubPhoto: (clubId: string, uri: string) => void;
-  addClubOffer: (clubId: string, kind: 'offre' | 'actu', title: string, detail: string) => void;
+  addClubOffer: (clubId: string, kind: 'offre' | 'actu' | 'evenement', title: string, detail: string) => void;
   removeClubOffer: (clubId: string, id: string) => void;
   addClubCoach: (clubId: string, name: string, specialty: string, phone: string) => void;
   removeClubCoach: (clubId: string, id: string) => void;
@@ -184,7 +191,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const lastWeek = new Date(now - 3 * 86400000);
           return {
             ...initialState,
-            account: { firstName: 'Invité', lastName: 'Démo', phone: '+225 07 00 00 00 00' },
+            account: { firstName: 'Invité', lastName: 'Démo', phone: '+225 07 00 00 00 00', birthDate: '12/08/1998', gender: 'nd' },
             level: 3.5,
             favoriteClubIds: ['padelta'],
             reservations: [

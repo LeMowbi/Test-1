@@ -4,11 +4,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Chip } from '@/components/Chip';
 import { LevelStepper } from '@/components/LevelStepper';
 import { Logo } from '@/components/Logo';
 import { Button, Txt } from '@/components/ui';
 import { levelLabel } from '@/data/matches';
 import { pickImage } from '@/lib/pickImage';
+import { GENDERS, ageFrom, parseBirthDate, zodiacFor, type Gender } from '@/lib/zodiac';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -18,10 +20,19 @@ export default function Onboarding() {
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [phone, setPhone] = useState('');
+  const [birth, setBirth] = useState('');
+  const [gender, setGender] = useState<Gender | null>(null);
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [lvl, setLvl] = useState(3.0);
 
-  const ready = firstName.trim().length >= 2 && lastName.trim().length >= 1 && phone.replace(/\D/g, '').length >= 8;
+  const birthDate = parseBirthDate(birth);
+  const zodiac = birthDate ? zodiacFor(birthDate) : null;
+  const ready =
+    firstName.trim().length >= 2 &&
+    lastName.trim().length >= 1 &&
+    phone.replace(/\D/g, '').length >= 8 &&
+    !!birthDate &&
+    !!gender;
 
   const choosePhoto = async () => {
     const uri = await pickImage();
@@ -30,7 +41,7 @@ export default function Onboarding() {
 
   const create = () => {
     if (!ready) return;
-    setAccount({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), photoUri });
+    setAccount({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), photoUri, birthDate: birth.trim(), gender: gender! });
     setLevel(lvl);
     router.replace('/');
   };
@@ -70,6 +81,35 @@ export default function Onboarding() {
           <Field label="Prénom" value={firstName} onChangeText={setFirstName} placeholder="Ex. Moustapha" />
           <Field label="Nom" value={lastName} onChangeText={setLastName} placeholder="Ex. Bitar" />
           <Field label="Numéro de téléphone" value={phone} onChangeText={setPhone} placeholder="+225 07 00 00 00 00" keyboardType="phone-pad" />
+          <Field label="Date de naissance" value={birth} onChangeText={setBirth} placeholder="JJ/MM/AAAA" keyboardType="phone-pad" />
+
+          {/* Petit clin d'œil astro dès que la date est valide ✨ */}
+          {zodiac && birthDate ? (
+            <View style={styles.zodiac}>
+              <Txt variant="h2">{zodiac.emoji}</Txt>
+              <View style={{ flex: 1 }}>
+                <Txt variant="body" style={{ fontWeight: '700' }} color={colors.purple}>
+                  {zodiac.name} · {ageFrom(birthDate)} ans
+                </Txt>
+                <Txt variant="small" color={colors.textMuted}>
+                  {zodiac.message}
+                </Txt>
+              </View>
+            </View>
+          ) : birth.trim().length > 0 ? (
+            <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+              Format attendu : JJ/MM/AAAA (ex. 14/02/1998)
+            </Txt>
+          ) : null}
+
+          <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
+            Sexe
+          </Txt>
+          <View style={styles.genderRow}>
+            {GENDERS.map((g) => (
+              <Chip key={g.id} label={g.label} active={gender === g.id} onPress={() => setGender(g.id)} size="lg" />
+            ))}
+          </View>
 
           <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
             Ton niveau de jeu
@@ -143,6 +183,16 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarImg: { width: '100%', height: '100%' },
+  zodiac: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.purpleSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  genderRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   levelBox: {
     alignItems: 'center',
     backgroundColor: colors.surface,

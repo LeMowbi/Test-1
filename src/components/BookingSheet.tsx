@@ -79,7 +79,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                     {club.name}
                   </Txt>
                   <Txt variant="muted">
-                    {day.label} · {time} · dès {fcfa(club.priceFrom)}/h
+                    {day.label} · {time} · 1h30 · dès {fcfa(club.priceFrom)}/h
                   </Txt>
                 </View>
                 <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
@@ -108,7 +108,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
               <View style={{ marginTop: spacing.xl }}>
                 <Button label="Réserver le terrain" icon="checkmark" onPress={confirm} disabled={!court} full />
                 <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                  Sans paiement en ligne — réglé au club. Annulation jusqu'à 5h avant.
+                  Session de 1h30 · sans paiement en ligne — réglé au club. Annulation jusqu'à 5h avant.
                 </Txt>
               </View>
             </>
