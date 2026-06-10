@@ -51,7 +51,7 @@ export default function ProfilScreen() {
   ];
 
   return (
-    <Screen title="Profil" overlay={celebrate ? <Confetti onDone={() => setCelebrate(false)} /> : null}>
+    <Screen back title="Profil" overlay={celebrate ? <Confetti onDone={() => setCelebrate(false)} /> : null}>
       {editing ? (
         <EditAccount onDone={() => setEditing(false)} />
       ) : (

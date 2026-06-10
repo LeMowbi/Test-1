@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { ClubCard } from '@/components/ClubCard';
 import { Screen } from '@/components/Screen';
@@ -11,27 +11,53 @@ import { colors, radius, spacing } from '@/theme';
 
 const FILTERS = ['Tous', 'Favoris', 'Couvert', 'Extérieur', 'Mixte'];
 
+// Recherche tolérante : sans accents ni majuscules.
+function norm(s: string): string {
+  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
+}
+
 export default function ClubsScreen() {
   const { state } = useApp();
   const [filter, setFilter] = useState('Tous');
+  const [query, setQuery] = useState('');
 
   const all = useMemo(() => activeClubs(state.customClubs), [state.customClubs]);
   const list = useMemo(() => {
     let base = all;
-    if (filter === 'Favoris') base = all.filter((c) => state.favoriteClubIds.includes(c.id));
-    else if (filter === 'Couvert' || filter === 'Extérieur' || filter === 'Mixte') base = all.filter((c) => c.type === filter);
+    const q = norm(query.trim());
+    if (q) base = base.filter((c) => norm(`${c.name} ${c.area}`).includes(q));
+    if (filter === 'Favoris') base = base.filter((c) => state.favoriteClubIds.includes(c.id));
+    else if (filter === 'Couvert' || filter === 'Extérieur' || filter === 'Mixte') base = base.filter((c) => c.type === filter);
     const boosted = state.boostedClubIds;
     // Clubs sponsorisés d'abord (signalés par un badge), le reste en ordre alphabétique.
     return [...base].sort((a, b) => Number(boosted.includes(b.id)) - Number(boosted.includes(a.id)));
-  }, [all, filter, state.favoriteClubIds, state.boostedClubIds]);
+  }, [all, query, filter, state.favoriteClubIds, state.boostedClubIds]);
 
   return (
     <Screen back title="Clubs" subtitle={`${all.length} clubs de padel à Abidjan`}>
+      {/* Recherche par nom ou quartier */}
+      <View style={styles.search}>
+        <Ionicons name="search" size={17} color={colors.textMuted} />
+        <TextInput
+          value={query}
+          onChangeText={setQuery}
+          placeholder="Rechercher un club ou un quartier…"
+          placeholderTextColor={colors.textFaint}
+          autoCapitalize="none"
+          style={styles.searchInput}
+        />
+        {query.length > 0 ? (
+          <Pressable onPress={() => setQuery('')} hitSlop={8}>
+            <Ionicons name="close-circle" size={17} color={colors.textFaint} />
+          </Pressable>
+        ) : null}
+      </View>
+
       <Pressable
         style={styles.mapBtn}
         onPress={() => Linking.openURL('https://www.google.com/maps/search/?api=1&query=padel+Abidjan')}
       >
-        <Ionicons name="map" size={20} color={colors.gold} />
+        <Ionicons name="map" size={20} color={colors.blue} />
         <View style={{ flex: 1 }}>
           <Txt variant="h3">Voir les terrains sur la carte</Txt>
           <Txt variant="muted">Ouvre Google Maps autour d’Abidjan</Txt>
@@ -50,7 +76,11 @@ export default function ClubsScreen() {
       </ScrollView>
 
       {list.length === 0 ? (
-        <EmptyState icon="heart-outline" title="Aucun favori" text="Touche le cœur sur un club pour l’ajouter ici." />
+        query.trim() ? (
+          <EmptyState icon="search-outline" title="Aucun résultat" text={`Aucun club ne correspond à « ${query.trim()} ».`} />
+        ) : (
+          <EmptyState icon="heart-outline" title="Aucun favori" text="Touche le cœur sur un club pour l’ajouter ici." />
+        )
       ) : (
         list.map((c) => <ClubCard key={c.id} club={c} />)
       )}
@@ -59,6 +89,18 @@ export default function ClubsScreen() {
 }
 
 const styles = StyleSheet.create({
+  search: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    marginTop: spacing.sm,
+  },
+  searchInput: { flex: 1, color: colors.text, fontSize: 15, paddingVertical: spacing.md },
   mapBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -68,6 +110,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
     borderRadius: radius.lg,
     padding: spacing.lg,
-    marginTop: spacing.sm,
+    marginTop: spacing.md,
   },
 });

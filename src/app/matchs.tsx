@@ -30,7 +30,7 @@ export default function MatchsScreen() {
   });
 
   return (
-    <Screen title="Jouer" subtitle="Trouve des joueurs pour ton match">
+    <Screen back title="Jouer" subtitle="Trouve des joueurs pour ton match">
       {/* Carte d'accroche + création */}
       <Card style={{ marginTop: spacing.sm }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>

@@ -9,7 +9,10 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, Divider, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { SAMPLE_SLOTS, clubsByName, defaultCourts, findClub, manageableClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
+import { hasCompetition } from '@/lib/availability';
+import { nextDays } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
+import { openWhatsApp } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
 import { colors, radius, spacing } from '@/theme';
@@ -98,6 +101,16 @@ export default function ClubAdmin() {
     ...state.myCompetitions.filter((c) => c.clubId === club.id),
     ...seedCompetitions.filter((c) => c.clubId === club.id),
   ];
+
+  // Planning de la semaine : jours × créneaux ouverts, colorés selon l'occupation.
+  const week = nextDays(7);
+  const planTimes = [...openSlots].sort();
+  const cellState = (dKey: string, time: string): 'tournoi' | 'complet' | 'partiel' | 'libre' => {
+    if (hasCompetition(club.id, dKey, comps)) return 'tournoi';
+    const booked = clubRes.filter((r) => r.dateKey === dKey && r.time === time).length;
+    if (booked === 0) return 'libre';
+    return booked >= courts.length ? 'complet' : 'partiel';
+  };
 
   const addPhotoFromDevice = async () => {
     const uri = await pickImage();
@@ -256,6 +269,62 @@ export default function ClubAdmin() {
             <StatTile value={clubRes.length} label="Total" color={colors.green} bg={colors.greenSoft} />
           </View>
 
+          {/* Planning de la semaine */}
+          <View style={{ marginTop: spacing.xl }}>
+            <SectionHeader title="Planning de la semaine" />
+            <Card>
+              {/* En-tête : jours */}
+              <View style={styles.planRow}>
+                <View style={styles.planTime} />
+                {week.map((d) => {
+                  const dd = new Date(d.value);
+                  return (
+                    <View key={d.key} style={styles.planHead}>
+                      <Txt variant="label" color={colors.textFaint} style={{ fontSize: 9 }}>
+                        {['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'][dd.getDay()]}
+                      </Txt>
+                      <Txt variant="small" color={colors.text} style={{ fontWeight: '700' }}>
+                        {dd.getDate()}
+                      </Txt>
+                    </View>
+                  );
+                })}
+              </View>
+              {planTimes.map((t) => (
+                <View key={t} style={styles.planRow}>
+                  <View style={styles.planTime}>
+                    <Txt variant="small" color={colors.textMuted} style={{ fontSize: 11 }}>
+                      {t}
+                    </Txt>
+                  </View>
+                  {week.map((d) => {
+                    const s = cellState(d.key, t);
+                    const booked = clubRes.filter((r) => r.dateKey === d.key && r.time === t).length;
+                    const bg =
+                      s === 'tournoi' ? colors.purple : s === 'complet' ? colors.gold : s === 'partiel' ? colors.goldSoft : colors.surfaceAlt;
+                    return (
+                      <View key={d.key} style={[styles.planCell, { backgroundColor: bg }]}>
+                        {s === 'partiel' ? (
+                          <Txt variant="small" color={colors.gold} style={{ fontSize: 10, fontWeight: '800' }}>
+                            {booked}/{courts.length}
+                          </Txt>
+                        ) : null}
+                        {s === 'complet' ? <Ionicons name="checkmark" size={11} color={colors.onGold} /> : null}
+                        {s === 'tournoi' ? <Ionicons name="trophy" size={10} color={colors.white} /> : null}
+                      </View>
+                    );
+                  })}
+                </View>
+              ))}
+              <View style={styles.planLegend}>
+                <LegendDot color={colors.surfaceAlt} label="Libre" />
+                <LegendDot color={colors.goldSoft} label="Partiel" />
+                <LegendDot color={colors.gold} label="Complet" />
+                <LegendDot color={colors.purple} label="Tournoi" />
+              </View>
+            </Card>
+          </View>
+
           {/* À venir — à confirmer */}
           <View style={{ marginTop: spacing.xl }}>
             <SectionHeader title={`Réservations à venir · ${upcomingRes.length}`} />
@@ -283,15 +352,31 @@ export default function ClubAdmin() {
                     </View>
                     {r.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="Nouvelle" tone="coral" />}
                   </View>
-                  <View style={{ marginTop: spacing.sm }}>
-                    <Button
-                      size="sm"
-                      label={r.clubConfirmed ? 'Annuler la confirmation' : 'Confirmer la réservation'}
-                      icon={r.clubConfirmed ? 'close' : 'checkmark'}
-                      variant={r.clubConfirmed ? 'ghost' : 'primary'}
-                      onPress={() => confirmReservationByClub(r.id)}
-                      full
-                    />
+                  <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        size="sm"
+                        label={r.clubConfirmed ? 'Annuler la confirmation' : 'Confirmer la réservation'}
+                        icon={r.clubConfirmed ? 'close' : 'checkmark'}
+                        variant={r.clubConfirmed ? 'ghost' : 'primary'}
+                        onPress={() => confirmReservationByClub(r.id)}
+                        full
+                      />
+                    </View>
+                    {r.bookedBy?.phone ? (
+                      <Button
+                        size="sm"
+                        label="WhatsApp"
+                        icon="logo-whatsapp"
+                        variant="secondary"
+                        onPress={() =>
+                          openWhatsApp(
+                            r.bookedBy!.phone,
+                            `Bonjour ${r.bookedBy!.name}, votre réservation du ${r.date} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`
+                          )
+                        }
+                      />
+                    ) : null}
                   </View>
                 </Card>
               ))
@@ -527,6 +612,17 @@ export default function ClubAdmin() {
   );
 }
 
+function LegendDot({ color, label }: { color: string; label: string }) {
+  return (
+    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+      <View style={{ width: 10, height: 10, borderRadius: 3, backgroundColor: color, borderWidth: 1, borderColor: colors.border }} />
+      <Txt variant="small" color={colors.textMuted} style={{ fontSize: 11 }}>
+        {label}
+      </Txt>
+    </View>
+  );
+}
+
 function StatTile({ value, label, color, bg }: { value: number; label: string; color: string; bg: string }) {
   return (
     <View style={[styles.stat, { backgroundColor: bg }]}>
@@ -556,6 +652,18 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   stats: { flexDirection: 'row', gap: spacing.sm },
+  planRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 3 },
+  planTime: { width: 44, alignItems: 'flex-start' },
+  planHead: { flex: 1, alignItems: 'center', paddingBottom: 2 },
+  planCell: {
+    flex: 1,
+    height: 24,
+    borderRadius: 6,
+    marginHorizontal: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  planLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md },
   stat: {
     flex: 1,
     borderRadius: radius.md,

@@ -28,7 +28,7 @@ export default function CompetitionsScreen() {
   const past = list.filter((c) => c.dateKey < today);
 
   return (
-    <Screen title="Tournois" subtitle="Défis avec récompenses — par les clubs ou les joueurs">
+    <Screen back title="Tournois" subtitle="Défis avec récompenses — par les clubs ou les joueurs">
       <View style={{ marginTop: spacing.sm }}>
         <Button label="Créer un tournoi" icon="add" onPress={() => router.push('/competition/nouvelle')} full />
       </View>

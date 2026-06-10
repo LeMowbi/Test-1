@@ -27,8 +27,6 @@ const ACTIONS: Action[] = [
   { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.coral, bg: colors.coralSoft },
 ];
 
-const TAB_ROUTES = new Set(['/reserver', '/matchs', '/competitions']);
-
 function countdown(ts: number): string {
   const diff = ts - Date.now();
   if (diff <= 0) return 'maintenant';
@@ -42,8 +40,8 @@ function countdown(ts: number): string {
 export default function HomeScreen() {
   const router = useRouter();
   const { state } = useApp();
-  // Onglets : on bascule l'onglet (navigate) ; écrans empilés : push (pour garder le retour).
-  const go = (route: string) => (TAB_ROUTES.has(route) ? router.navigate(route as never) : router.push(route as never));
+  // L'accueil est le hub : tout s'ouvre par-dessus, le retour ramène toujours ici.
+  const go = (route: string) => router.push(route as never);
 
   // Clubs sponsorisés en tête (badge visible), le reste en ordre alphabétique.
   const nearbyClubs = activeClubs(state.customClubs).sort(
@@ -57,6 +55,13 @@ export default function HomeScreen() {
   const upcoming = [...state.reservations]
     .filter((r) => !r.result && r.startsAt > now)
     .sort((a, b) => a.startsAt - b.startsAt)[0];
+
+  // Quelque chose attend le joueur ? (remplace les pastilles de l'ancienne barre d'onglets)
+  const pendingGames = state.reservations.filter((r) => !r.result && r.startsAt <= now).length;
+  const pendingComps = Object.keys(state.compRegistrations).filter((id) => {
+    const c = [...state.myCompetitions, ...seedCompetitions].find((x) => x.id === id);
+    return !!c?.official && c.dateKey <= today && !state.officialResults.some((o) => o.compId === id);
+  }).length;
 
   return (
     <Screen>
@@ -72,15 +77,18 @@ export default function HomeScreen() {
                   Abidjan
                 </Txt>
               </View>
-              {/* Avatar → raccourci vers le Profil */}
-              <Pressable onPress={() => router.navigate('/profil' as never)} style={styles.avatarBtn} hitSlop={6}>
-                {state.account?.photoUri ? (
-                  <Image source={{ uri: state.account.photoUri }} style={styles.avatarImg} contentFit="cover" />
-                ) : (
-                  <Txt variant="small" color={colors.gold} style={{ fontWeight: '800' }}>
-                    {initials(`${state.account?.firstName ?? ''} ${state.account?.lastName ?? ''}`)}
-                  </Txt>
-                )}
+              {/* Avatar → raccourci vers le Profil (point rouge si un résultat t'attend) */}
+              <Pressable onPress={() => go('/profil')} hitSlop={6}>
+                <View style={styles.avatarBtn}>
+                  {state.account?.photoUri ? (
+                    <Image source={{ uri: state.account.photoUri }} style={styles.avatarImg} contentFit="cover" />
+                  ) : (
+                    <Txt variant="small" color={colors.gold} style={{ fontWeight: '800' }}>
+                      {initials(`${state.account?.firstName ?? ''} ${state.account?.lastName ?? ''}`)}
+                    </Txt>
+                  )}
+                </View>
+                {pendingGames > 0 ? <View style={styles.avatarDot} /> : null}
               </Pressable>
             </View>
           </View>
@@ -97,7 +105,7 @@ export default function HomeScreen() {
 
         {/* Rappel de match — touche la carte pour voir tes réservations */}
         {upcoming ? (
-          <Pressable onPress={() => router.navigate('/profil' as never)} style={({ pressed }) => pressed && { opacity: 0.9 }}>
+          <Pressable onPress={() => go('/profil')} style={({ pressed }) => pressed && { opacity: 0.9 }}>
             <LinearGradient colors={[colors.gold, colors.goldDark]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.reminder}>
               <View style={styles.bell}>
                 <Ionicons name="notifications" size={20} color={colors.onGold} />
@@ -120,6 +128,26 @@ export default function HomeScreen() {
               </View>
               <Ionicons name="chevron-forward" size={18} color="rgba(255,255,255,0.8)" />
             </LinearGradient>
+          </Pressable>
+        ) : null}
+
+        {/* Résultats en attente (remplace les pastilles de l'ancienne barre d'onglets) */}
+        {pendingGames > 0 ? (
+          <Pressable onPress={() => go('/profil')} style={[styles.alert, { backgroundColor: colors.coralSoft }]}>
+            <Ionicons name="trophy-outline" size={16} color={colors.coral} />
+            <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
+              {pendingGames} partie{pendingGames > 1 ? 's' : ''} jouée{pendingGames > 1 ? 's' : ''} — enregistre ton résultat
+            </Txt>
+            <Ionicons name="chevron-forward" size={15} color={colors.coral} />
+          </Pressable>
+        ) : null}
+        {pendingComps > 0 ? (
+          <Pressable onPress={() => go('/competitions')} style={[styles.alert, { backgroundColor: colors.purpleSoft }]}>
+            <Ionicons name="medal-outline" size={16} color={colors.purple} />
+            <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
+              Tournoi terminé — déclare ton résultat
+            </Txt>
+            <Ionicons name="chevron-forward" size={15} color={colors.purple} />
           </Pressable>
         ) : null}
 
@@ -187,6 +215,25 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   avatarImg: { width: '100%', height: '100%' },
+  avatarDot: {
+    position: 'absolute',
+    top: -2,
+    right: -2,
+    width: 11,
+    height: 11,
+    borderRadius: radius.pill,
+    backgroundColor: colors.danger,
+    borderWidth: 2,
+    borderColor: colors.white,
+  },
+  alert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
   cityChip: {
     flexDirection: 'row',
     alignItems: 'center',
