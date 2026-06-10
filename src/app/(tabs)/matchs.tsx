@@ -6,7 +6,7 @@ import { MatchCard } from '@/components/MatchCard';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, EmptyState, IconCircle, Txt } from '@/components/ui';
-import { seedMatches } from '@/data/matches';
+import { seedMatches, upcomingMatches } from '@/data/matches';
 import { useApp } from '@/store/AppContext';
 import { spacing } from '@/theme';
 
@@ -20,8 +20,7 @@ export default function MatchsScreen() {
   const [look, setLook] = useState<(typeof LOOKS)[number]>('Tous');
   const [myLevel, setMyLevel] = useState(false);
 
-  const list = [...state.myMatches, ...seedMatches].filter((m) => {
-    if (m.startsAt <= Date.now()) return false; // matchs passés masqués
+  const list = upcomingMatches([...state.myMatches, ...seedMatches]).filter((m) => {
     if (tab === 'Publics' && m.visibility !== 'public') return false;
     if (tab === 'Amis' && m.visibility !== 'amis') return false;
     if (look === 'Partenaire' && !(m.looking === 'partenaire' || m.looking === 'les deux')) return false;

@@ -99,8 +99,8 @@ export default function ClubAdmin() {
     setCoachPhone('');
   };
 
-  return (
-    <Screen back title="Espace Club" subtitle="Gérez votre club">
+  const header = (
+    <>
       <View style={styles.note}>
         <Ionicons name="information-circle-outline" size={15} color={colors.textFaint} />
         <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
@@ -116,8 +116,14 @@ export default function ClubAdmin() {
         </View>
         <Switch value={state.clubMode} onValueChange={setClubMode} trackColor={{ true: colors.gold, false: colors.border }} thumbColor={colors.white} />
       </Card>
+    </>
+  );
 
-      {!state.clubMode ? (
+  // Espace verrouillé tant que le mode gérant n'est pas activé.
+  if (!state.clubMode) {
+    return (
+      <Screen back title="Espace Club" subtitle="Gérez votre club">
+        {header}
         <Card style={{ marginTop: spacing.md, alignItems: 'center', paddingVertical: spacing.xl }}>
           <Ionicons name="lock-closed-outline" size={28} color={colors.textFaint} />
           <Txt variant="h3" style={{ marginTop: spacing.sm }}>
@@ -127,8 +133,14 @@ export default function ClubAdmin() {
             Active le mode gérant ci-dessus pour gérer photos, offres, coachs, terrains, créneaux et tournois de ton club.
           </Txt>
         </Card>
-      ) : (
-      <>
+      </Screen>
+    );
+  }
+
+  return (
+    <Screen back title="Espace Club" subtitle="Gérez votre club">
+      {header}
+
       {/* Club géré */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Club géré" />
@@ -347,8 +359,6 @@ export default function ClubAdmin() {
           )}
         </View>
       </View>
-      </>
-      )}
     </Screen>
   );
 }

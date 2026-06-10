@@ -11,7 +11,8 @@ import { Screen } from '@/components/Screen';
 import { Button, Card, IconCircle, SectionHeader, Txt } from '@/components/ui';
 import { clubsByName } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
-import { seedMatches } from '@/data/matches';
+import { seedMatches, upcomingMatches } from '@/data/matches';
+import { dayKey } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -44,8 +45,10 @@ export default function HomeScreen() {
 
   const nearbyClubs = clubsByName;
   const now = Date.now();
-  const matches = [...state.myMatches, ...seedMatches].filter((m) => m.startsAt > now).slice(0, 3);
-  const competitions = [...state.myCompetitions, ...seedCompetitions].slice(0, 2);
+  const today = dayKey(new Date());
+  const matches = upcomingMatches([...state.myMatches, ...seedMatches], now).slice(0, 3);
+  // « À venir » : les tournois déjà passés ne s'affichent plus sur l'accueil.
+  const competitions = [...state.myCompetitions, ...seedCompetitions].filter((c) => c.dateKey >= today).slice(0, 2);
   const upcoming = [...state.reservations]
     .filter((r) => !r.result && r.startsAt > now)
     .sort((a, b) => a.startsAt - b.startsAt)[0];

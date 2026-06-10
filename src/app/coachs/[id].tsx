@@ -1,12 +1,12 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
+import { ContactButtons } from '@/components/ContactButtons';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
 import { getClub } from '@/data/clubs';
 import { coachClubName, getCoach } from '@/data/coaches';
-import { callNumber, openWhatsApp } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
@@ -60,14 +60,7 @@ export default function CoachDetail() {
       </Card>
 
       <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
-        <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-          <View style={{ flex: 1 }}>
-            <Button label="Appeler" icon="call" onPress={() => callNumber(coach.phone)} full />
-          </View>
-          <View style={{ flex: 1 }}>
-            <Button label="WhatsApp" icon="logo-whatsapp" variant="secondary" onPress={() => openWhatsApp(coach.phone)} full />
-          </View>
-        </View>
+        <ContactButtons phone={coach.phone} size="md" primaryCall />
         {club ? (
           <Button label={`Voir ${club.name}`} icon="location-outline" variant="secondary" onPress={() => router.push(`/club/${club.id}`)} full />
         ) : null}

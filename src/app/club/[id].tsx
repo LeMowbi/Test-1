@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { ClubPhoto } from '@/components/ClubPhoto';
+import { ContactButtons } from '@/components/ContactButtons';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, IconCircle, Tag, Txt } from '@/components/ui';
@@ -10,7 +11,6 @@ import { clubGallery, defaultCourts, getClub, offersForClub } from '@/data/clubs
 import { coaches } from '@/data/coaches';
 import { ratingFor, seedReviews } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
-import { callNumber, openWhatsApp } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { openMaps } from '@/lib/maps';
 import { colors, radius, spacing } from '@/theme';
@@ -160,16 +160,7 @@ export default function ClubDetail() {
                   <Txt variant="muted">{c.sub}</Txt>
                 </View>
               </View>
-              {c.phone ? (
-                <View style={styles.contactRow}>
-                  <View style={{ flex: 1 }}>
-                    <Button size="sm" label="Appeler" icon="call" variant="secondary" onPress={() => callNumber(c.phone!)} full />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Button size="sm" label="WhatsApp" icon="logo-whatsapp" variant="secondary" onPress={() => openWhatsApp(c.phone!)} full />
-                  </View>
-                </View>
-              ) : null}
+              {c.phone ? <ContactButtons phone={c.phone} style={{ marginTop: spacing.sm }} /> : null}
             </View>
           ))}
         </Card>
@@ -262,5 +253,4 @@ const styles = StyleSheet.create({
   },
   reviewHead: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   coachRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  contactRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm },
 });

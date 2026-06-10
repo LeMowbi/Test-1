@@ -2,14 +2,14 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { ContactButtons } from '@/components/ContactButtons';
 import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { Button, Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
+import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { getClub } from '@/data/clubs';
 import { coachClubName, coaches, type Coach } from '@/data/coaches';
 import { useApp } from '@/store/AppContext';
-import { callNumber, openWhatsApp } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
@@ -57,14 +57,7 @@ function CoachRow({ coach }: { coach: Coach }) {
           <Tag key={s} label={s} tone="neutral" />
         ))}
       </View>
-      <View style={styles.contactRow}>
-        <View style={{ flex: 1 }}>
-          <Button size="sm" label="Appeler" icon="call" onPress={() => callNumber(coach.phone)} full />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Button size="sm" label="WhatsApp" icon="logo-whatsapp" variant="secondary" onPress={() => openWhatsApp(coach.phone)} full />
-        </View>
-      </View>
+      <ContactButtons phone={coach.phone} primaryCall style={{ marginTop: spacing.md }} />
     </Card>
   );
 }
@@ -112,16 +105,7 @@ export default function CoachsScreen() {
                 </View>
                 <Tag label="Club" tone="neutral" />
               </View>
-              {c.phone ? (
-                <View style={styles.contactRow}>
-                  <View style={{ flex: 1 }}>
-                    <Button size="sm" label="Appeler" icon="call" variant="secondary" onPress={() => callNumber(c.phone!)} full />
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Button size="sm" label="WhatsApp" icon="logo-whatsapp" variant="secondary" onPress={() => openWhatsApp(c.phone!)} full />
-                  </View>
-                </View>
-              ) : null}
+              {c.phone ? <ContactButtons phone={c.phone} style={{ marginTop: spacing.md }} /> : null}
             </Card>
           ))}
         </View>
@@ -146,5 +130,4 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   specs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
-  contactRow: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
 });

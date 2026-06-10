@@ -37,6 +37,11 @@ export function lookingIcon(l: Looking): string {
   return 'person-add';
 }
 
+// Matchs encore à venir — les matchs dont l'heure est passée ne s'affichent plus.
+export function upcomingMatches(list: Match[], now = Date.now()): Match[] {
+  return list.filter((m) => m.startsAt > now);
+}
+
 export function levelLabel(n: number): string {
   if (n < 2.5) return 'Débutant';
   if (n < 4) return 'Intermédiaire';
