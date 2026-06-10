@@ -1,19 +1,34 @@
 import { Ionicons } from '@expo/vector-icons';
+import { useMemo, useState } from 'react';
 import { Share, StyleSheet, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
-import { Button, Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
+import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { COMMISSION_RATE, useApp } from '@/store/AppContext';
+import { monthKeyOf, monthLabel } from '@/lib/days';
 import { fcfa } from '@/lib/format';
+import { openWhatsApp } from '@/lib/contact';
 import { colors, radius, spacing } from '@/theme';
 
-export default function Operateur() {
-  const { state, toggleBoostClub, approveClub, rejectClub } = useApp();
+const PAY_PCT = Math.round(COMMISSION_RATE * 100);
 
-  // Toutes les réservations reçues, regroupées par club (base de calcul de la commission).
+export default function Operateur() {
+  const { state, setBoost, approveClub, rejectClub, setPaymentStatus } = useApp();
+
+  // Mois disponibles (d'après les réservations) + mois courant en tête.
+  const months = useMemo(() => {
+    const set = new Set<string>([monthKeyOf(Date.now())]);
+    for (const r of state.reservations) set.add(monthKeyOf(r.startsAt));
+    return [...set].sort().reverse();
+  }, [state.reservations]);
+  const [month, setMonth] = useState(months[0]);
+  const activeMonth = months.includes(month) ? month : months[0];
+
+  // Réservations du mois sélectionné, regroupées par club.
+  const monthRes = state.reservations.filter((r) => monthKeyOf(r.startsAt) === activeMonth);
   const groups = new Map<string, { clubName: string; count: number; revenue: number; items: typeof state.reservations }>();
-  for (const r of state.reservations) {
+  for (const r of monthRes) {
     const price = findClub(r.clubId, state.customClubs)?.priceFrom ?? 0;
     const g = groups.get(r.clubId) ?? { clubName: r.clubName, count: 0, revenue: 0, items: [] };
     g.count += 1;
@@ -28,16 +43,37 @@ export default function Operateur() {
   const totalCount = rows.reduce((s, r) => s + r.count, 0);
   const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
   const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
+  const totalDue = rows
+    .filter((r) => state.operatorPayments[`${r.clubId}:${activeMonth}`] !== 'paid')
+    .reduce((s, r) => s + r.commission, 0);
 
+  // Santé plateforme (3 chiffres).
+  const now = Date.now();
+  const weekAgo = now - 7 * 86400000;
+  const twoWeeksAgo = now - 14 * 86400000;
+  const resThisWeek = state.reservations.filter((r) => r.createdAt >= weekAgo).length;
+  const resPrevWeek = state.reservations.filter((r) => r.createdAt >= twoWeeksAgo && r.createdAt < weekAgo).length;
+  const activeClubsCount = activeClubs(state.customClubs).length;
+
+  const statusOf = (clubId: string): 'tofacture' | 'sent' | 'paid' =>
+    state.operatorPayments[`${clubId}:${activeMonth}`] ?? 'tofacture';
+
+  // Message Wave formaté, prêt à envoyer au club.
   const sendHistory = (row: (typeof rows)[number]) => {
     const lines = row.items
-      .map((r) => `• ${r.date} ${r.time} · ${r.court} · ${r.players} j${r.bookedBy ? ` · ${r.bookedBy.name}` : ''}`)
+      .sort((a, b) => a.startsAt - b.startsAt)
+      .map((r) => `• ${r.date} ${r.time} · ${r.court}${r.bookedBy ? ` · ${r.bookedBy.name}` : ''}`)
       .join('\n');
     const message =
-      `PadelConnect — Historique des réservations\n${row.clubName}\n\n` +
-      `${row.count} réservation${row.count > 1 ? 's' : ''} · volume ≈ ${fcfa(row.revenue)}\n` +
-      `Commission PadelConnect (${Math.round(COMMISSION_RATE * 100)}%) à régler par Wave : ≈ ${fcfa(row.commission)}\n\n${lines}`;
-    Share.share({ message }).catch(() => {});
+      `*PadelConnect — Décompte ${monthLabel(activeMonth)}*\n${row.clubName}\n\n` +
+      `Réservations : ${row.count}\n` +
+      `Volume estimé : ${fcfa(row.revenue)}\n` +
+      `Commission PadelConnect (${PAY_PCT}%) : *${fcfa(row.commission)}*\n` +
+      `À régler par Wave 🙏\n\n` +
+      `Détail :\n${lines}`;
+    const phone = (findClub(row.clubId, state.customClubs) as { contactPhone?: string } | undefined)?.contactPhone ?? '';
+    openWhatsApp(phone, message);
+    setPaymentStatus(row.clubId, activeMonth, 'sent');
   };
 
   return (
@@ -45,18 +81,32 @@ export default function Operateur() {
       <View style={styles.note}>
         <Ionicons name="information-circle-outline" size={15} color={colors.textFaint} />
         <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
-          Tu transmets l'historique à chaque club ; le club te règle ta commission par Wave. (Pas de prélèvement automatique.)
+          Chaque mois : envoie le décompte à chaque club par WhatsApp, il te règle par Wave, tu marques « Payé ».
         </Txt>
+      </View>
+
+      {/* Santé plateforme */}
+      <View style={styles.health}>
+        <Mini value={`${activeClubsCount}`} label="Clubs actifs" color={colors.blue} />
+        <Mini value={`${resThisWeek}`} label="Résas / 7 j" color={colors.green} sub={resThisWeek >= resPrevWeek ? '▲' : '▼'} />
+        <Mini value={fcfa(totalCommission)} label={`Commission ${monthLabel(activeMonth).split(' ')[0]}`} color={colors.amber} />
+      </View>
+
+      {/* Sélecteur de mois */}
+      <View style={styles.monthRow}>
+        {months.map((m) => (
+          <Chip key={m} label={monthLabel(m)} active={m === activeMonth} onPress={() => setMonth(m)} />
+        ))}
       </View>
 
       <Card>
         <Txt variant="label" color={colors.textFaint}>
-          Total (démo)
+          {monthLabel(activeMonth)}
         </Txt>
         <View style={styles.totals}>
           <Total value={`${totalCount}`} label="Réservations" color={colors.blue} bg={colors.blueSoft} />
           <Total value={fcfa(totalRevenue)} label="Volume" color={colors.green} bg={colors.greenSoft} />
-          <Total value={fcfa(totalCommission)} label={`Tes commissions ${Math.round(COMMISSION_RATE * 100)}%`} color={colors.gold} bg={colors.goldSoft} />
+          <Total value={fcfa(totalDue)} label="Reste à encaisser" color={colors.amber} bg={colors.amberSoft} />
         </View>
       </Card>
 
@@ -64,34 +114,47 @@ export default function Operateur() {
         <SectionHeader title="Par club" />
         {rows.length === 0 ? (
           <Card>
-            <Txt variant="muted">Aucune réservation pour l'instant.</Txt>
+            <Txt variant="muted">Aucune réservation sur {monthLabel(activeMonth)}.</Txt>
           </Card>
         ) : (
-          rows.map((r) => (
-            <Card key={r.clubId} style={{ marginBottom: spacing.md }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-                <IconCircle icon="wallet" color={colors.gold} bg={colors.goldSoft} />
-                <View style={{ flex: 1 }}>
-                  <Txt variant="h3" style={{ fontSize: 15 }}>
-                    {r.clubName}
-                  </Txt>
-                  <Txt variant="muted">
-                    {r.count} réservation{r.count > 1 ? 's' : ''} · volume ≈ {fcfa(r.revenue)}
-                  </Txt>
+          rows.map((r) => {
+            const st = statusOf(r.clubId);
+            return (
+              <Card key={r.clubId} style={{ marginBottom: spacing.md }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                  <IconCircle icon="wallet" color={colors.amber} bg={colors.amberSoft} />
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="h3" style={{ fontSize: 15 }}>
+                      {r.clubName}
+                    </Txt>
+                    <Txt variant="muted">
+                      {r.count} résa{r.count > 1 ? 's' : ''} · volume ≈ {fcfa(r.revenue)}
+                    </Txt>
+                  </View>
+                  <View style={{ alignItems: 'flex-end', gap: 4 }}>
+                    <Txt variant="price" style={{ fontSize: 15 }}>{fcfa(r.commission)}</Txt>
+                    <Tag
+                      label={st === 'paid' ? 'Payé ✓' : st === 'sent' ? 'Décompte envoyé' : 'À facturer'}
+                      tone={st === 'paid' ? 'green' : st === 'sent' ? 'blue' : 'coral'}
+                    />
+                  </View>
                 </View>
-                <Tag label={`Te doit ≈ ${fcfa(r.commission)}`} tone="amber" />
-              </View>
-              <View style={{ marginTop: spacing.md }}>
-                <Button size="sm" label="Envoyer l'historique au club" icon="paper-plane" variant="secondary" onPress={() => sendHistory(r)} full />
-              </View>
-            </Card>
-          ))
+                <Divider style={{ marginVertical: spacing.md }} />
+                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Button size="sm" label="Envoyer le décompte" icon="logo-whatsapp" variant="secondary" onPress={() => sendHistory(r)} full />
+                  </View>
+                  {st === 'paid' ? (
+                    <Button size="sm" label="Annuler" icon="arrow-undo" variant="ghost" onPress={() => setPaymentStatus(r.clubId, activeMonth, 'sent')} />
+                  ) : (
+                    <Button size="sm" label="Marquer payé" icon="checkmark-circle" onPress={() => setPaymentStatus(r.clubId, activeMonth, 'paid')} />
+                  )}
+                </View>
+              </Card>
+            );
+          })
         )}
       </View>
-
-      <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.lg, textAlign: 'center' }}>
-        En fin de mois : envoie l'historique à chaque club, il te règle ta commission de {Math.round(COMMISSION_RATE * 100)}% par Wave.
-      </Txt>
 
       {/* Demandes d'inscription de clubs — TU valides chaque nouveau club. */}
       <View style={{ marginTop: spacing.xl }}>
@@ -135,24 +198,42 @@ export default function Operateur() {
         )}
       </View>
 
-      {/* Boosts — activés par TOI une fois le paiement Wave du club reçu. */}
+      {/* Boosts « Sponsorisé » — durée 7 ou 30 jours, activés une fois le paiement Wave reçu. */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Boosts « Sponsorisé »" />
         <Card>
-          <Txt variant="muted">
-            Un club t'a réglé son boost par Wave ? Active son badge ici : il passe en tête de liste avec « Sponsorisé ». Touche pour activer/désactiver.
+          <Txt variant="muted" style={{ marginBottom: spacing.sm }}>
+            Un club t'a réglé son boost par Wave ? Active-le ici : il passe en tête de liste avec un badge doré.
           </Txt>
-          <View style={styles.wrap}>
-            {activeClubs(state.customClubs).map((c) => (
-              <Chip
-                key={c.id}
-                label={c.name}
-                icon={state.boostedClubIds.includes(c.id) ? 'megaphone' : undefined}
-                active={state.boostedClubIds.includes(c.id)}
-                onPress={() => toggleBoostClub(c.id)}
-              />
-            ))}
-          </View>
+          {activeClubs(state.customClubs).map((c, i) => {
+            const on = state.boostedClubIds.includes(c.id);
+            const exp = state.boostExpiry[c.id];
+            return (
+              <View key={c.id}>
+                {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
+                    {on && exp ? (
+                      <Txt variant="small" color={colors.amber}>
+                        Actif jusqu'au {new Date(exp).toLocaleDateString('fr-FR')}
+                      </Txt>
+                    ) : (
+                      <Txt variant="small" color={colors.textFaint}>Non sponsorisé</Txt>
+                    )}
+                  </View>
+                  {on ? (
+                    <Button size="sm" label="Arrêter" icon="close" variant="ghost" onPress={() => setBoost(c.id, 0)} />
+                  ) : (
+                    <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                      <Button size="sm" label="7 j" variant="secondary" onPress={() => setBoost(c.id, 7)} />
+                      <Button size="sm" label="30 j" onPress={() => setBoost(c.id, 30)} />
+                    </View>
+                  )}
+                </View>
+              </View>
+            );
+          })}
         </Card>
       </View>
     </Screen>
@@ -172,9 +253,24 @@ function Total({ value, label, color, bg }: { value: string; label: string; colo
   );
 }
 
+function Mini({ value, label, color, sub }: { value: string; label: string; color: string; sub?: string }) {
+  return (
+    <View style={styles.mini}>
+      <Txt variant="h3" color={color} style={{ fontSize: 15 }}>
+        {value} {sub ? <Txt variant="small" color={color}>{sub}</Txt> : null}
+      </Txt>
+      <Txt variant="small" color={colors.textMuted} numberOfLines={1}>
+        {label}
+      </Txt>
+    </View>
+  );
+}
+
 const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  health: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
+  mini: { flex: 1, backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border, borderRadius: radius.md, padding: spacing.md },
+  monthRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   totals: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md },
   total: { flex: 1, alignItems: 'center', borderRadius: radius.md, paddingVertical: spacing.md, paddingHorizontal: spacing.xs },
-  wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
 });

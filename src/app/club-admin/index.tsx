@@ -45,6 +45,7 @@ export default function ClubAdmin() {
   } = useApp();
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
+  const [selectedCell, setSelectedCell] = useState<{ dateKey: string; time: string; label: string } | null>(null);
   const [url, setUrl] = useState('');
   const [offerKind, setOfferKind] = useState<'offre' | 'actu' | 'evenement'>('offre');
   const [offerTitle, setOfferTitle] = useState('');
@@ -112,6 +113,20 @@ export default function ClubAdmin() {
     if (booked === 0) return 'libre';
     return booked >= courts.length ? 'complet' : 'partiel';
   };
+
+  // Mini-stats de la semaine : taux d'occupation + créneau le plus demandé.
+  const weekKeys = new Set(week.map((d) => d.key));
+  const weekRes = clubRes.filter((r) => weekKeys.has(r.dateKey));
+  const capacity = Math.max(1, planTimes.length * courts.length * 7);
+  const occupancy = Math.round((weekRes.length / capacity) * 100);
+  const byHour = new Map<string, number>();
+  for (const r of weekRes) byHour.set(r.time, (byHour.get(r.time) ?? 0) + 1);
+  const topHour = [...byHour.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
+
+  // Détail d'une case du planning (réservations du créneau sélectionné).
+  const cellRes = selectedCell
+    ? clubRes.filter((r) => r.dateKey === selectedCell.dateKey && r.time === selectedCell.time).sort((a, b) => a.court.localeCompare(b.court))
+    : [];
 
   const addPhotoFromDevice = async () => {
     const uri = await pickImage();
@@ -303,8 +318,14 @@ export default function ClubAdmin() {
                     const booked = clubRes.filter((r) => r.dateKey === d.key && r.time === t).length;
                     const bg =
                       s === 'tournoi' ? colors.purple : s === 'complet' ? colors.gold : s === 'partiel' ? colors.goldSoft : colors.surfaceAlt;
+                    const sel = selectedCell?.dateKey === d.key && selectedCell?.time === t;
+                    const dd = new Date(d.value);
                     return (
-                      <View key={d.key} style={[styles.planCell, { backgroundColor: bg }]}>
+                      <Pressable
+                        key={d.key}
+                        onPress={() => setSelectedCell({ dateKey: d.key, time: t, label: `${d.label} · ${t}` })}
+                        style={[styles.planCell, { backgroundColor: bg }, sel && styles.planCellSel]}
+                      >
                         {s === 'partiel' ? (
                           <Txt variant="small" color={colors.gold} style={{ fontSize: 10, fontWeight: '800' }}>
                             {booked}/{courts.length}
@@ -312,7 +333,7 @@ export default function ClubAdmin() {
                         ) : null}
                         {s === 'complet' ? <Ionicons name="checkmark" size={11} color={colors.onGold} /> : null}
                         {s === 'tournoi' ? <Ionicons name="trophy" size={10} color={colors.white} /> : null}
-                      </View>
+                      </Pressable>
                     );
                   })}
                 </View>
@@ -324,6 +345,41 @@ export default function ClubAdmin() {
                 <LegendDot color={colors.purple} label="Tournoi" />
               </View>
             </Card>
+
+            {/* Détail du créneau sélectionné */}
+            {selectedCell ? (
+              <Card style={{ marginTop: spacing.sm, borderColor: colors.gold }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <Txt variant="h3" style={{ fontSize: 15 }}>{selectedCell.label}</Txt>
+                  <Pressable onPress={() => setSelectedCell(null)} hitSlop={8}>
+                    <Ionicons name="close" size={18} color={colors.textMuted} />
+                  </Pressable>
+                </View>
+                {cellRes.length === 0 ? (
+                  <Txt variant="muted" style={{ marginTop: spacing.sm }}>Aucune réservation sur ce créneau — {courts.length} terrain{courts.length > 1 ? 's' : ''} libre{courts.length > 1 ? 's' : ''}.</Txt>
+                ) : (
+                  cellRes.map((r, i) => (
+                    <View key={r.id} style={{ marginTop: spacing.sm }}>
+                      {i > 0 ? <Divider style={{ marginBottom: spacing.sm }} /> : null}
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                        <Tag label={r.court} tone="neutral" />
+                        <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
+                          {r.bookedBy?.name ?? 'Joueur'}
+                        </Txt>
+                        {r.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="coral" />}
+                      </View>
+                    </View>
+                  ))
+                )}
+              </Card>
+            ) : null}
+
+            {/* Mini-stats de la semaine */}
+            <View style={[styles.stats, { marginTop: spacing.md }]}>
+              <StatTile value={`${occupancy}%`} label="Occupation (7 j)" color={colors.green} bg={colors.greenSoft} />
+              <StatTile value={weekRes.length} label="Résas (7 j)" color={colors.blue} bg={colors.blueSoft} />
+              <StatTile value={topHour} label="Heure phare" color={colors.purple} bg={colors.purpleSoft} />
+            </View>
           </View>
 
           {/* À venir — à confirmer */}
@@ -351,7 +407,7 @@ export default function ClubAdmin() {
                         </Txt>
                       ) : null}
                     </View>
-                    {r.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="Nouvelle" tone="coral" />}
+                    {r.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="coral" />}
                   </View>
                   <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
                     <View style={{ flex: 1 }}>
@@ -637,7 +693,7 @@ function LegendDot({ color, label }: { color: string; label: string }) {
   );
 }
 
-function StatTile({ value, label, color, bg }: { value: number; label: string; color: string; bg: string }) {
+function StatTile({ value, label, color, bg }: { value: number | string; label: string; color: string; bg: string }) {
   return (
     <View style={[styles.stat, { backgroundColor: bg }]}>
       <Txt variant="h2" color={color}>
@@ -671,12 +727,13 @@ const styles = StyleSheet.create({
   planHead: { flex: 1, alignItems: 'center', paddingBottom: 2 },
   planCell: {
     flex: 1,
-    height: 24,
+    height: 30,
     borderRadius: 6,
     marginHorizontal: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
+  planCellSel: { borderWidth: 2, borderColor: colors.text },
   planLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md },
   stat: {
     flex: 1,

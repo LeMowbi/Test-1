@@ -53,13 +53,15 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
           {teams}/{comp.slots} équipes · {comp.fee}
         </Txt>
         {needResult ? (
-          <Tag label="Résultat à déclarer" tone="gold" icon="alert-circle" />
+          <Tag label="Résultat à déclarer" tone="amber" icon="alert-circle" />
         ) : registered ? (
           <Tag label="Inscrit ✓" tone="green" />
         ) : full ? (
           <Tag label="Complet" tone="danger" />
+        ) : left <= 3 ? (
+          <Tag label={`Plus que ${left} place${left > 1 ? 's' : ''} !`} tone="coral" icon="flame" />
         ) : (
-          <Tag label={`${left} place${left > 1 ? 's' : ''}`} tone="gold" />
+          <Tag label={`${left} places`} tone="purple" />
         )}
       </View>
     </Card>

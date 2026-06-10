@@ -57,6 +57,8 @@ type AppState = {
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
   boostedClubIds: string[];
+  boostExpiry: Record<string, number>; // clubId → date d'expiration du boost (affichage)
+  operatorPayments: Record<string, 'sent' | 'paid'>; // « clubId:AAAA-MM » → statut de règlement
   customClubs: CustomClub[]; // clubs inscrits via l'app (activation par l'opérateur)
   clubMode: boolean;
   managedClubId: string;
@@ -87,6 +89,8 @@ const initialState: AppState = {
   clubOffers: {},
   clubCoaches: {},
   boostedClubIds: [],
+  boostExpiry: {},
+  operatorPayments: {},
   customClubs: [],
   clubMode: false,
   managedClubId: 'padelta',
@@ -126,6 +130,8 @@ type AppContextType = {
   addClubCoach: (clubId: string, name: string, specialty: string, phone: string) => void;
   removeClubCoach: (clubId: string, id: string) => void;
   toggleBoostClub: (clubId: string) => void;
+  setBoost: (clubId: string, days: number) => void; // days > 0 active (avec expiration), 0 désactive
+  setPaymentStatus: (clubId: string, monthKey: string, status: 'tofacture' | 'sent' | 'paid') => void;
   requestClub: (input: { name: string; area: string; type: Club['type']; courts: number; priceFrom: number; contactPhone?: string }) => void;
   approveClub: (id: string) => void;
   rejectClub: (id: string) => void;
@@ -317,6 +323,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ...s,
           boostedClubIds: s.boostedClubIds.includes(clubId) ? s.boostedClubIds.filter((x) => x !== clubId) : [...s.boostedClubIds, clubId],
         })),
+      setBoost: (clubId, days) =>
+        setState((s) => {
+          if (days <= 0) {
+            const exp = { ...s.boostExpiry };
+            delete exp[clubId];
+            return { ...s, boostedClubIds: s.boostedClubIds.filter((x) => x !== clubId), boostExpiry: exp };
+          }
+          return {
+            ...s,
+            boostedClubIds: s.boostedClubIds.includes(clubId) ? s.boostedClubIds : [...s.boostedClubIds, clubId],
+            boostExpiry: { ...s.boostExpiry, [clubId]: Date.now() + days * 86400000 },
+          };
+        }),
+      setPaymentStatus: (clubId, monthKey, status) =>
+        setState((s) => {
+          const next = { ...s.operatorPayments };
+          const k = `${clubId}:${monthKey}`;
+          if (status === 'tofacture') delete next[k];
+          else next[k] = status;
+          return { ...s, operatorPayments: next };
+        }),
       requestClub: ({ name, area, type, courts, priceFrom, contactPhone }) =>
         setState((s) => {
           const n = name.trim();
