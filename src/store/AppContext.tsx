@@ -49,6 +49,16 @@ export type OfficialResult = { id: string; compId?: string; title: string; resul
 // Résultat d'un tournoi clôturé par son ORGANISATEUR (club ou créateur du défi).
 export type CompResult = { winner: string; closedAt: number };
 
+// Infos d'un club modifiables par son gérant (s'appliquent par-dessus les données de base).
+export type ClubInfo = {
+  name?: string;
+  area?: string;
+  blurb?: string;
+  type?: Club['type'];
+  priceFrom?: number;
+  contactPhone?: string; // numéro WhatsApp du club — alimente le lien discret de la fiche
+};
+
 type AppState = {
   account: Account | null;
   level: number; // 1.0 → 7.0
@@ -65,6 +75,8 @@ type AppState = {
   clubPhotos: Record<string, string[]>;
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
+  clubInfo: Record<string, ClubInfo>; // surcharges gérant (nom, tarif, WhatsApp…)
+  hiddenCoachIds: string[]; // coachs (de démo) retirés par leur club
   boostedClubIds: string[];
   boostExpiry: Record<string, number>; // clubId → date d'expiration du boost (affichage)
   operatorPayments: Record<string, 'sent' | 'paid'>; // « clubId:AAAA-MM » → statut de règlement
@@ -98,6 +110,8 @@ const initialState: AppState = {
   clubPhotos: {},
   clubOffers: {},
   clubCoaches: {},
+  clubInfo: {},
+  hiddenCoachIds: [],
   boostedClubIds: [],
   boostExpiry: {},
   operatorPayments: {},
@@ -136,6 +150,8 @@ type AppContextType = {
   removeClubOffer: (clubId: string, id: string) => void;
   addClubCoach: (clubId: string, name: string, specialty: string, phone: string) => void;
   removeClubCoach: (clubId: string, id: string) => void;
+  setClubInfo: (clubId: string, patch: ClubInfo) => void;
+  toggleHideCoach: (coachId: string) => void;
   toggleBoostClub: (clubId: string) => void;
   setBoost: (clubId: string, days: number) => void; // days > 0 active (avec expiration), 0 désactive
   setPaymentStatus: (clubId: string, monthKey: string, status: 'tofacture' | 'sent' | 'paid') => void;
@@ -313,6 +329,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       removeClubCoach: (clubId, id) =>
         setState((s) => ({ ...s, clubCoaches: { ...s.clubCoaches, [clubId]: (s.clubCoaches[clubId] ?? []).filter((c) => c.id !== id) } })),
+      setClubInfo: (clubId, patch) =>
+        setState((s) => ({ ...s, clubInfo: { ...s.clubInfo, [clubId]: { ...s.clubInfo[clubId], ...patch } } })),
+      toggleHideCoach: (coachId) =>
+        setState((s) => ({
+          ...s,
+          hiddenCoachIds: s.hiddenCoachIds.includes(coachId)
+            ? s.hiddenCoachIds.filter((x) => x !== coachId)
+            : [...s.hiddenCoachIds, coachId],
+        })),
       toggleBoostClub: (clubId) =>
         setState((s) => ({
           ...s,

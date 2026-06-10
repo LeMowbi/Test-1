@@ -194,21 +194,36 @@ export type CustomClub = Club & {
   createdAt: number;
 };
 
+// Surcharges du gérant (nom, quartier, description, type, tarif, WhatsApp).
+export type ClubOverrides = Record<string, Partial<Pick<Club, 'name' | 'area' | 'blurb' | 'type' | 'priceFrom'>> & { contactPhone?: string }>;
+
+function applyInfo(club: Club, overrides?: ClubOverrides): Club & { contactPhone?: string } {
+  const patch = overrides?.[club.id];
+  return patch ? { ...club, ...patch } : club;
+}
+
 // Clubs visibles par les JOUEURS : clubs de base + clubs inscrits ACTIVÉS.
-export function activeClubs(custom: CustomClub[]): Club[] {
-  return [...clubs, ...custom.filter((c) => c.status === 'active')].sort((a, b) => a.name.localeCompare(b.name));
+export function activeClubs(custom: CustomClub[], overrides?: ClubOverrides): Club[] {
+  return [...clubs, ...custom.filter((c) => c.status === 'active')]
+    .map((c) => applyInfo(c, overrides))
+    .sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // Clubs gérables dans l'Espace Club : tous, y compris en attente (le gérant prépare sa page).
-export function manageableClubs(custom: CustomClub[]): Club[] {
-  return [...clubs, ...custom].sort((a, b) => a.name.localeCompare(b.name));
+export function manageableClubs(custom: CustomClub[], overrides?: ClubOverrides): Club[] {
+  return [...clubs, ...custom].map((c) => applyInfo(c, overrides)).sort((a, b) => a.name.localeCompare(b.name));
 }
 
 // Recherche d'un club par id, clubs inscrits inclus.
-export function findClub(id: string | string[] | undefined, custom: CustomClub[]): Club | undefined {
+export function findClub(
+  id: string | string[] | undefined,
+  custom: CustomClub[],
+  overrides?: ClubOverrides
+): (Club & { contactPhone?: string }) | undefined {
   const key = Array.isArray(id) ? id[0] : id;
   if (!key) return undefined;
-  return clubs.find((c) => c.id === key) ?? custom.find((c) => c.id === key);
+  const base = clubs.find((c) => c.id === key) ?? custom.find((c) => c.id === key);
+  return base ? applyInfo(base, overrides) : undefined;
 }
 
 // Créneaux types proposés (démo) — sessions de 1h30, non chevauchantes.

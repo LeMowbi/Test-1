@@ -17,7 +17,7 @@ export default function ReserverScreen() {
   const params = useLocalSearchParams<{ clubId: string; dateKey?: string; time?: string }>();
   const router = useRouter();
   const { state, addReservation } = useApp();
-  const club = findClub(params.clubId, state.customClubs);
+  const club = findClub(params.clubId, state.customClubs, state.clubInfo);
 
   const dates = useMemo(() => nextDays(7), []);
   const [day, setDay] = useState<DayOption | null>(dates.find((d) => d.key === params.dateKey) ?? null);
@@ -38,7 +38,7 @@ export default function ReserverScreen() {
   }
 
   const ctx: AvailCtx = {
-    clubs: activeClubs(state.customClubs),
+    clubs: activeClubs(state.customClubs, state.clubInfo),
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,

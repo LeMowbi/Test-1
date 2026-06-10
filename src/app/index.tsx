@@ -43,7 +43,7 @@ export default function HomeScreen() {
   const go = (route: string) => router.push(route as never);
 
   // Clubs sponsorisés en tête (badge visible), le reste en ordre alphabétique.
-  const nearbyClubs = activeClubs(state.customClubs).sort(
+  const nearbyClubs = activeClubs(state.customClubs, state.clubInfo).sort(
     (a, b) => Number(state.boostedClubIds.includes(b.id)) - Number(state.boostedClubIds.includes(a.id))
   );
   const now = Date.now();

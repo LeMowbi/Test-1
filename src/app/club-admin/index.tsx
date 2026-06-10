@@ -8,10 +8,11 @@ import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, Divider, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { SAMPLE_SLOTS, clubsByName, defaultCourts, findClub, manageableClubs, type Club } from '@/data/clubs';
+import { coaches as allCoaches } from '@/data/coaches';
 import { seedCompetitions } from '@/data/competitions';
 import { hasCompetition } from '@/lib/availability';
-import { dayKey, nextDays } from '@/lib/days';
-import { useApp } from '@/store/AppContext';
+import { dayKey, monthKeyOf, monthLabel, nextDays } from '@/lib/days';
+import { isPlayed, useApp, type ClubInfo } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
@@ -43,6 +44,8 @@ export default function ClubAdmin() {
     confirmReservationByClub,
     requestClub,
     closeCompetition,
+    setClubInfo,
+    toggleHideCoach,
   } = useApp();
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
@@ -67,8 +70,8 @@ export default function ClubAdmin() {
   const [ncPrice, setNcPrice] = useState('');
   const [ncPhone, setNcPhone] = useState('');
 
-  const manageable = manageableClubs(state.customClubs);
-  const club = findClub(state.managedClubId, state.customClubs) ?? clubsByName[0];
+  const manageable = manageableClubs(state.customClubs, state.clubInfo);
+  const club = findClub(state.managedClubId, state.customClubs, state.clubInfo) ?? clubsByName[0];
   const pendingOwn = state.customClubs.find((c) => c.id === club.id)?.status === 'pending';
 
   const openSlots = state.clubSlots[club.id] ?? SAMPLE_SLOTS;
@@ -92,6 +95,7 @@ export default function ClubAdmin() {
   const photos = state.clubPhotos[club.id] ?? [];
   const offers = state.clubOffers[club.id] ?? [];
   const coaches = state.clubCoaches[club.id] ?? [];
+  const seedClubCoaches = allCoaches.filter((c) => c.clubId === club.id);
   const boosted = state.boostedClubIds.includes(club.id);
   const shareBoost = () =>
     Share.share({ message: `Bonjour PadelConnect, je souhaite booster le profil de ${club.name} (paiement par Wave).` }).catch(() => {});
@@ -99,8 +103,10 @@ export default function ClubAdmin() {
   // Réservations du club : à venir (à confirmer) et historique (déjà jouées).
   const now = Date.now();
   const clubRes = state.reservations.filter((r) => r.clubId === club.id);
-  const upcomingRes = clubRes.filter((r) => r.startsAt > now).sort((a, b) => a.startsAt - b.startsAt);
-  const pastRes = clubRes.filter((r) => r.startsAt <= now).sort((a, b) => b.startsAt - a.startsAt);
+  // « Jouée » = heure de fin passée (la même règle que côté joueur — base de la commission).
+  const upcomingRes = clubRes.filter((r) => !isPlayed(r, now)).sort((a, b) => a.startsAt - b.startsAt);
+  const pastRes = clubRes.filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt);
+  const monthPlayed = pastRes.filter((r) => monthKeyOf(r.startsAt) === monthKeyOf(now)).length;
 
   const comps = [
     ...state.myCompetitions.filter((c) => c.clubId === club.id),
@@ -256,7 +262,7 @@ export default function ClubAdmin() {
             <TextInput
               value={ncPrice}
               onChangeText={setNcPrice}
-              placeholder="Tarif par heure (FCFA, ex. 12000)"
+              placeholder="Tarif de la session 1h30 (FCFA, ex. 15000)"
               placeholderTextColor={colors.textFaint}
               keyboardType="numeric"
               style={styles.input}
@@ -445,9 +451,12 @@ export default function ClubAdmin() {
             )}
           </View>
 
-          {/* Historique du club */}
+          {/* Historique du club — base de la commission PadelConnect */}
           <View style={{ marginTop: spacing.xl }}>
             <SectionHeader title={`Historique · ${pastRes.length}`} />
+            <Txt variant="small" color={colors.textMuted} style={{ marginBottom: spacing.sm }}>
+              {monthPlayed} partie{monthPlayed > 1 ? 's' : ''} jouée{monthPlayed > 1 ? 's' : ''} en {monthLabel(monthKeyOf(now))}.
+            </Txt>
             {pastRes.length === 0 ? (
               <Card>
                 <Txt variant="muted">Les réservations déjà jouées s'afficheront ici.</Txt>
@@ -483,7 +492,12 @@ export default function ClubAdmin() {
 
       {section === 'Mon club' ? (
         <>
+          {/* Infos du club — éditables par le gérant */}
+          <SectionHeader title="Infos du club" />
+          <ClubInfoCard key={club.id} club={club} onSave={(patch) => setClubInfo(club.id, patch)} />
+
           {/* Booster le profil */}
+          <View style={{ marginTop: spacing.xl }}>
           <SectionHeader title="Booster mon profil" />
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
@@ -498,6 +512,7 @@ export default function ClubAdmin() {
               <Button size="sm" label="Contacter PadelConnect" icon="paper-plane" onPress={shareBoost} full />
             </View>
           </Card>
+          </View>
 
           {/* Photos du terrain */}
           <View style={{ marginTop: spacing.xl }}>
@@ -599,6 +614,25 @@ export default function ClubAdmin() {
                     </Pressable>
                   </View>
                 ))}
+                {/* Coachs déjà listés pour ce club (profils de démo) : retirables / réaffichables. */}
+                {seedClubCoaches.map((c) => {
+                  const hidden = state.hiddenCoachIds.includes(c.id);
+                  return (
+                    <View key={c.id} style={styles.listRow}>
+                      <IconCircle icon="person" color={hidden ? colors.textFaint : colors.blue} bg={hidden ? colors.surfaceAlt : colors.blueSoft} size={36} />
+                      <View style={{ flex: 1 }}>
+                        <Txt variant="body" style={{ fontWeight: '600', ...(hidden ? { color: colors.textFaint } : null) }}>{c.name}</Txt>
+                        <Txt variant="muted">{c.level}{hidden ? ' · retiré de ta page' : ''}</Txt>
+                      </View>
+                      <Button
+                        size="sm"
+                        label={hidden ? 'Réafficher' : 'Retirer'}
+                        variant={hidden ? 'secondary' : 'ghost'}
+                        onPress={() => toggleHideCoach(c.id)}
+                      />
+                    </View>
+                  );
+                })}
               </View>
             </Card>
           </View>
@@ -749,6 +783,82 @@ export default function ClubAdmin() {
         </>
       ) : null}
     </Screen>
+  );
+}
+
+// Infos éditables du club (nom, quartier, description, type, tarif session, WhatsApp).
+function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: string }; onSave: (patch: ClubInfo) => void }) {
+  const [name, setName] = useState(club.name);
+  const [area, setArea] = useState(club.area);
+  const [blurb, setBlurb] = useState(club.blurb);
+  const [type, setType] = useState<Club['type']>(club.type);
+  const [price, setPrice] = useState(String(club.priceFrom));
+  const [phone, setPhone] = useState(club.contactPhone ?? '');
+  const [saved, setSaved] = useState(false);
+
+  const ready = name.trim().length >= 2 && area.trim().length >= 2 && Number(price) > 0;
+  const save = () => {
+    if (!ready) return;
+    onSave({
+      name: name.trim(),
+      area: area.trim(),
+      blurb: blurb.trim(),
+      type,
+      priceFrom: Number(price),
+      contactPhone: phone.trim() || undefined,
+    });
+    setSaved(true);
+    setTimeout(() => setSaved(false), 2500);
+  };
+
+  return (
+    <Card>
+      <TextInput value={name} onChangeText={setName} placeholder="Nom du club" placeholderTextColor={colors.textFaint} style={styles.input} />
+      <TextInput value={area} onChangeText={setArea} placeholder="Quartier / commune" placeholderTextColor={colors.textFaint} style={styles.input} />
+      <TextInput
+        value={blurb}
+        onChangeText={setBlurb}
+        placeholder="Description (visible par les joueurs)"
+        placeholderTextColor={colors.textFaint}
+        multiline
+        style={[styles.input, { minHeight: 64, textAlignVertical: 'top' }]}
+      />
+      <View style={[styles.wrap, { marginTop: spacing.md }]}>
+        {CLUB_TYPES.map((t) => (
+          <Chip key={t} label={t} active={type === t} onPress={() => setType(t)} />
+        ))}
+      </View>
+      <TextInput
+        value={price}
+        onChangeText={setPrice}
+        placeholder="Tarif de la session 1h30 (FCFA)"
+        placeholderTextColor={colors.textFaint}
+        keyboardType="numeric"
+        style={styles.input}
+      />
+      <TextInput
+        value={phone}
+        onChangeText={setPhone}
+        placeholder="WhatsApp du club (optionnel — affiche « Contacter le club »)"
+        placeholderTextColor={colors.textFaint}
+        keyboardType="phone-pad"
+        style={styles.input}
+      />
+      <View style={{ marginTop: spacing.md }}>
+        <Button
+          size="sm"
+          label={saved ? 'Enregistré ✓' : 'Enregistrer les infos'}
+          icon={saved ? 'checkmark-circle' : 'save-outline'}
+          variant={saved ? 'secondary' : 'primary'}
+          onPress={save}
+          disabled={!ready}
+          full
+        />
+      </View>
+      <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+        Ces infos s'appliquent immédiatement sur ta page et dans les listes.
+      </Txt>
+    </Card>
   );
 }
 

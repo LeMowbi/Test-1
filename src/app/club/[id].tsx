@@ -23,7 +23,7 @@ export default function ClubDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { state, addReview, toggleFavorite } = useApp();
-  const club = findClub(id, state.customClubs);
+  const club = findClub(id, state.customClubs, state.clubInfo);
 
   const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
@@ -49,7 +49,9 @@ export default function ClubDetail() {
   const clubComps = [...state.myCompetitions, ...seedCompetitions].filter((c) => c.clubId === club.id);
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
   const clubCoaches = [
-    ...coaches.filter((c) => c.clubId === club.id).map((c) => ({ id: c.id, name: c.name, sub: c.level, phone: c.phone })),
+    ...coaches
+      .filter((c) => c.clubId === club.id && !state.hiddenCoachIds.includes(c.id))
+      .map((c) => ({ id: c.id, name: c.name, sub: c.level, phone: c.phone })),
     ...(state.clubCoaches[club.id] ?? []).map((c) => ({ id: c.id, name: c.name, sub: c.specialty, phone: c.phone })),
   ];
   const reviews = [
@@ -318,18 +320,19 @@ export default function ClubDetail() {
         )}
       </View>
 
-      {/* Lien discret tout en bas : question d'info seulement (la réservation passe par l'app). */}
-      <Pressable
-        onPress={() =>
-          openWhatsApp((club as { contactPhone?: string }).contactPhone ?? '', `Bonjour, j'ai une question à propos de ${club.name} 👋`)
-        }
-        style={{ alignItems: 'center', paddingVertical: spacing.xl, marginTop: spacing.sm }}
-        hitSlop={6}
-      >
-        <Txt variant="small" color={colors.textFaint}>
-          Une question ? Contacter le club
-        </Txt>
-      </Pressable>
+      {/* Lien discret tout en bas : question d'info seulement (la réservation passe par l'app).
+          Masqué si le club n'a pas renseigné de numéro WhatsApp. */}
+      {club.contactPhone ? (
+        <Pressable
+          onPress={() => openWhatsApp(club.contactPhone!, `Bonjour, j'ai une question à propos de ${club.name}`)}
+          style={{ alignItems: 'center', paddingVertical: spacing.xl, marginTop: spacing.sm }}
+          hitSlop={6}
+        >
+          <Txt variant="small" color={colors.textFaint}>
+            Une question ? Contacter le club
+          </Txt>
+        </Pressable>
+      ) : null}
 
       {/* Visionneuse photos plein écran (défilement horizontal) */}
       {viewer !== null ? (

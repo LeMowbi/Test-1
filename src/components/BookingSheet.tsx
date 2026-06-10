@@ -20,7 +20,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
   const { state, addReservation } = useApp();
 
   const ctx: AvailCtx = {
-    clubs: activeClubs(state.customClubs),
+    clubs: activeClubs(state.customClubs, state.clubInfo),
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,

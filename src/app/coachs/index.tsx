@@ -57,9 +57,12 @@ export default function CoachsScreen() {
   const { state } = useApp();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Tous');
 
-  const list = [...coaches].sort((a, b) => b.levelValue - a.levelValue).filter((c) => inRange(c.levelValue, tab));
+  const list = [...coaches]
+    .filter((c) => !state.hiddenCoachIds.includes(c.id)) // coachs retirés par leur club
+    .sort((a, b) => b.levelValue - a.levelValue)
+    .filter((c) => inRange(c.levelValue, tab));
   const clubCoaches = Object.entries(state.clubCoaches).flatMap(([clubId, l]) =>
-    l.map((c) => ({ ...c, clubName: findClub(clubId, state.customClubs)?.name ?? 'Club' }))
+    l.map((c) => ({ ...c, clubName: findClub(clubId, state.customClubs, state.clubInfo)?.name ?? 'Club' }))
   );
 
   return (

@@ -35,7 +35,7 @@ export default function ReserverScreen() {
   const setView = setReserverView;
   const [sheet, setSheet] = useState<{ club: Club; time: string } | null>(null);
 
-  const visibleClubs = useMemo(() => activeClubs(state.customClubs), [state.customClubs]);
+  const visibleClubs = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs]);
   const ctx: AvailCtx = {
     clubs: visibleClubs,
     clubSlots: state.clubSlots,

@@ -5,7 +5,7 @@ import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
-import { COMMISSION_RATE, useApp } from '@/store/AppContext';
+import { COMMISSION_RATE, isPlayed, useApp } from '@/store/AppContext';
 import { monthKeyOf, monthLabel } from '@/lib/days';
 import { fcfa } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
@@ -25,11 +25,14 @@ export default function Operateur() {
   const [month, setMonth] = useState(months[0]);
   const activeMonth = months.includes(month) ? month : months[0];
 
-  // Réservations du mois sélectionné, regroupées par club.
-  const monthRes = state.reservations.filter((r) => monthKeyOf(r.startsAt) === activeMonth);
+  // La commission se calcule UNIQUEMENT sur les parties JOUÉES du mois
+  // (une résa à venir peut encore être annulée — le club contesterait).
+  const monthAll = state.reservations.filter((r) => monthKeyOf(r.startsAt) === activeMonth);
+  const monthRes = monthAll.filter((r) => isPlayed(r));
+  const monthUpcoming = monthAll.length - monthRes.length;
   const groups = new Map<string, { clubName: string; count: number; revenue: number; items: typeof state.reservations }>();
   for (const r of monthRes) {
-    const price = findClub(r.clubId, state.customClubs)?.priceFrom ?? 0;
+    const price = findClub(r.clubId, state.customClubs, state.clubInfo)?.priceFrom ?? 0;
     const g = groups.get(r.clubId) ?? { clubName: r.clubName, count: 0, revenue: 0, items: [] };
     g.count += 1;
     g.revenue += price;
@@ -53,7 +56,7 @@ export default function Operateur() {
   const twoWeeksAgo = now - 14 * 86400000;
   const resThisWeek = state.reservations.filter((r) => r.createdAt >= weekAgo).length;
   const resPrevWeek = state.reservations.filter((r) => r.createdAt >= twoWeeksAgo && r.createdAt < weekAgo).length;
-  const activeClubsCount = activeClubs(state.customClubs).length;
+  const activeClubsCount = activeClubs(state.customClubs, state.clubInfo).length;
 
   const statusOf = (clubId: string): 'tofacture' | 'sent' | 'paid' =>
     state.operatorPayments[`${clubId}:${activeMonth}`] ?? 'tofacture';
@@ -66,12 +69,12 @@ export default function Operateur() {
       .join('\n');
     const message =
       `*PadelConnect — Décompte ${monthLabel(activeMonth)}*\n${row.clubName}\n\n` +
-      `Réservations : ${row.count}\n` +
+      `Parties jouées : ${row.count}\n` +
       `Volume estimé : ${fcfa(row.revenue)}\n` +
       `Commission PadelConnect (${PAY_PCT}%) : *${fcfa(row.commission)}*\n` +
       `À régler par Wave 🙏\n\n` +
       `Détail :\n${lines}`;
-    const phone = (findClub(row.clubId, state.customClubs) as { contactPhone?: string } | undefined)?.contactPhone ?? '';
+    const phone = (findClub(row.clubId, state.customClubs, state.clubInfo) as { contactPhone?: string } | undefined)?.contactPhone ?? '';
     openWhatsApp(phone, message);
     setPaymentStatus(row.clubId, activeMonth, 'sent');
   };
@@ -104,17 +107,22 @@ export default function Operateur() {
           {monthLabel(activeMonth)}
         </Txt>
         <View style={styles.totals}>
-          <Total value={`${totalCount}`} label="Réservations" color={colors.blue} bg={colors.blueSoft} />
+          <Total value={`${totalCount}`} label="Parties jouées" color={colors.blue} bg={colors.blueSoft} />
           <Total value={fcfa(totalRevenue)} label="Volume" color={colors.green} bg={colors.greenSoft} />
           <Total value={fcfa(totalDue)} label="Reste à encaisser" color={colors.amber} bg={colors.amberSoft} />
         </View>
+        {monthUpcoming > 0 ? (
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+            + {monthUpcoming} réservation{monthUpcoming > 1 ? 's' : ''} à venir ce mois (à titre indicatif — facturée{monthUpcoming > 1 ? 's' : ''} une fois jouée{monthUpcoming > 1 ? 's' : ''}).
+          </Txt>
+        ) : null}
       </Card>
 
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Par club" />
         {rows.length === 0 ? (
           <Card>
-            <Txt variant="muted">Aucune réservation sur {monthLabel(activeMonth)}.</Txt>
+            <Txt variant="muted">Aucune partie jouée sur {monthLabel(activeMonth)} pour l'instant.</Txt>
           </Card>
         ) : (
           rows.map((r) => {
@@ -205,7 +213,7 @@ export default function Operateur() {
           <Txt variant="muted" style={{ marginBottom: spacing.sm }}>
             Un club t'a réglé son boost par Wave ? Active-le ici : il passe en tête de liste avec un badge doré.
           </Txt>
-          {activeClubs(state.customClubs).map((c, i) => {
+          {activeClubs(state.customClubs, state.clubInfo).map((c, i) => {
             const on = state.boostedClubIds.includes(c.id);
             const exp = state.boostExpiry[c.id];
             return (

@@ -45,7 +45,7 @@ export default function NouvelleCompetition() {
   const params = useLocalSearchParams<{ as?: string; clubId?: string }>();
   const asClub = params.as === 'club';
   const { state, addCompetition } = useApp();
-  const club = asClub ? findClub(params.clubId, state.customClubs) : undefined;
+  const club = asClub ? findClub(params.clubId, state.customClubs, state.clubInfo) : undefined;
 
   const dates = useMemo(() => nextDays(7), []);
   const [title, setTitle] = useState('');
