@@ -65,6 +65,11 @@ export default function AmisScreen() {
             Par numéro : il devient ton ami dès qu'il installe PadelConnect.
           </Txt>
           <TextInput value={name} onChangeText={setName} placeholder="Nom de l'ami" placeholderTextColor={colors.textFaint} style={styles.input} />
+          {name.length > 0 && !ready ? (
+            <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>
+              Indique au moins le nom (2 caractères).
+            </Txt>
+          ) : null}
           <TextInput
             value={phone}
             onChangeText={setPhone}
@@ -76,6 +81,11 @@ export default function AmisScreen() {
           <View style={{ marginTop: spacing.md }}>
             <Button size="sm" label="Ajouter l'ami" icon="person-add" disabled={!ready} onPress={submit} />
           </View>
+          {!ready ? (
+            <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+              Le nom est obligatoire pour ajouter un ami.
+            </Txt>
+          ) : null}
         </Card>
       </View>
     </Screen>

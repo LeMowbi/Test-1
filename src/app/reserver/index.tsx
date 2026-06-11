@@ -62,6 +62,10 @@ export default function ReserverScreen() {
 
   const open = (club: Club, time: string) => setSheet({ club, time });
 
+  const isToday = day.key === days[0].key;
+  const goTomorrow = () => setDay(days[1]);
+  const noSlotsByClub = !byClub.some((b) => b.slots.length > 0);
+
   return (
     <Screen back title="Réserver" subtitle="Sessions de 1h30 — on te montre les terrains libres">
       {/* Jour */}
@@ -75,7 +79,7 @@ export default function ReserverScreen() {
         <View style={styles.autoHint}>
           <Ionicons name="moon-outline" size={13} color={colors.textFaint} />
           <Txt variant="small" color={colors.textFaint}>
-            La journée est finie — on t'affiche demain.
+            Plus de créneaux aujourd'hui — voici demain.
           </Txt>
         </View>
       ) : null}
@@ -93,7 +97,14 @@ export default function ReserverScreen() {
 
       {view === 'Par heure' ? (
         rows.length === 0 ? (
-          <EmptyState icon="time-outline" title="Plus de créneaux" text="Aucun horaire à venir ce jour. Choisis un autre jour." />
+          <View>
+            <EmptyState
+              icon="time-outline"
+              title={isToday ? 'Plus de créneaux aujourd’hui' : 'Plus de créneaux'}
+              text={isToday ? 'La journée est terminée.' : 'Aucun horaire à venir ce jour. Choisis un autre jour.'}
+            />
+            {isToday ? <Button label="Voir demain" icon="arrow-forward" onPress={goTomorrow} /> : null}
+          </View>
         ) : (
           rows.map((row) => (
             <View key={row.time} style={styles.hourBlock}>
@@ -146,8 +157,19 @@ export default function ReserverScreen() {
             </View>
           ))
         )
+      ) : noSlotsByClub ? (
+        <View>
+          <EmptyState
+            icon="time-outline"
+            title={isToday ? 'Plus de créneaux aujourd’hui' : 'Aucun créneau libre'}
+            text={isToday ? 'La journée est terminée.' : 'Choisis un autre jour.'}
+          />
+          {isToday ? <Button label="Voir demain" icon="arrow-forward" onPress={goTomorrow} /> : null}
+        </View>
       ) : (
-        byClub.map(({ club, slots }) => (
+        byClub
+          .filter((b) => b.slots.length > 0)
+          .map(({ club, slots }) => (
           <Card key={club.id} style={{ marginBottom: spacing.md }}>
             <View style={styles.clubHead}>
               <View style={{ flex: 1 }}>
@@ -160,17 +182,11 @@ export default function ReserverScreen() {
                 dès {fcfa(club.priceFrom)}
               </Txt>
             </View>
-            {slots.length === 0 ? (
-              <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-                Aucun créneau libre ce jour.
-              </Txt>
-            ) : (
-              <View style={styles.slotWrap}>
-                {slots.map((s) => (
-                  <Chip key={s.time} label={s.time} icon={PRIME_TIMES.has(s.time) ? 'flame' : undefined} onPress={() => open(club, s.time)} />
-                ))}
-              </View>
-            )}
+            <View style={styles.slotWrap}>
+              {slots.map((s) => (
+                <Chip key={s.time} label={s.time} icon={PRIME_TIMES.has(s.time) ? 'flame' : undefined} onPress={() => open(club, s.time)} />
+              ))}
+            </View>
           </Card>
         ))
       )}

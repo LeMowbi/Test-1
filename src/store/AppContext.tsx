@@ -4,6 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { Club, CustomClub } from '@/data/clubs';
 import type { Competition } from '@/data/competitions';
+import { DEMO_CLOSED_COMP, DEMO_FINISHED_COMP } from '@/data/competitions';
 import type { Review } from '@/data/reviews';
 import { seedFriends, type Friend } from '@/data/user';
 import { dayKey, nextDays } from '@/lib/days';
@@ -223,6 +224,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               { id: uid(), clubId: 'district-club', clubName: 'District Club', court: 'Terrain 1', date: demain.label, dateKey: demain.key, time: '18:00', startsAt: demain.value + 18 * 3600000, players: 4, invited: [], bookedBy: { name: 'Invité Démo', phone: '+225 07 00 00 00 00' }, createdAt: now },
               { id: uid(), clubId: 'padel-zone-4', clubName: 'Padel Zone 4', court: 'Terrain 2', date: 'Sem. dernière', dateKey: dayKey(lastWeek), time: '18:00', startsAt: now - 3 * 86400000, players: 4, invited: [], bookedBy: { name: 'Invité Démo', phone: '+225 07 00 00 00 00' }, clubConfirmed: true, createdAt: now - 3 * 86400000 },
             ],
+            // L'utilisateur démo est inscrit aux 2 tournois terminés : un à clôturer (le
+            // gérant désignera le vainqueur) + un déjà clôturé (il a participé, pas gagné).
+            compRegistrations: {
+              [DEMO_FINISHED_COMP]: { partner: 'Karim', at: now },
+              [DEMO_CLOSED_COMP]: { partner: 'Karim', at: now },
+            },
+            compResults: { [DEMO_CLOSED_COMP]: { winner: 'Awa & Yann', closedAt: now - 6 * 86400000 } },
+            officialResults: [
+              { id: uid(), compId: DEMO_CLOSED_COMP, title: 'Americano officiel — Padel Zone 4', result: 'played', at: now - 6 * 86400000, levelAfter: 3.5 },
+            ],
           };
         }),
       signOut: () => setState((s) => ({ ...s, account: null })),
@@ -271,6 +282,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return { ...s, compRegistrations: next };
         }),
       addReservation: (r) => {
+        // Garde-fou : on ne réserve jamais un créneau dont l'heure de début est passée.
+        if (r.startsAt <= Date.now()) return false;
         // Anti double-réservation : un même TERRAIN ne peut être pris 2× au même créneau.
         // (Deux terrains différents au même horaire restent possibles.) Indexé sur dateKey.
         const taken = (x: Reservation) => x.clubId === r.clubId && x.dateKey === r.dateKey && x.time === r.time && x.court === r.court;

@@ -18,6 +18,7 @@ export type Club = {
   reviewsCount: number; // démo
   mapsQuery: string; // requête Google Maps
   accent: string; // couleur du visuel placeholder
+  contactPhone?: string; // WhatsApp du club — alimente le lien discret « Contacter le club »
   photos?: string[]; // photos officielles (sinon photos illustratives par défaut)
   offers?: { title: string; detail: string }[];
 };
@@ -46,6 +47,7 @@ export const clubs: Club[] = [
     rating: 4.6,
     reviewsCount: 38,
     mapsQuery: 'Abidjan Padel Cocody',
+    contactPhone: '+225 07 00 00 04 04',
     accent: ACCENTS[0],
   },
   {
@@ -62,6 +64,7 @@ export const clubs: Club[] = [
     rating: 4.7,
     reviewsCount: 52,
     mapsQuery: 'District Club Padel Abidjan',
+    contactPhone: '+225 07 00 00 02 02',
     accent: ACCENTS[1],
   },
   {
@@ -142,6 +145,7 @@ export const clubs: Club[] = [
     rating: 4.5,
     reviewsCount: 41,
     mapsQuery: 'Padel Zone 4 Rue du Docteur Blanchard Marcory Abidjan',
+    contactPhone: '+225 07 00 00 03 03',
     accent: ACCENTS[2],
   },
   {
@@ -158,6 +162,7 @@ export const clubs: Club[] = [
     rating: 4.8,
     reviewsCount: 73,
     mapsQuery: 'Padelta Cocody Danga Abidjan',
+    contactPhone: '+225 07 00 00 01 01',
     accent: ACCENTS[1],
   },
   {

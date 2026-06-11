@@ -1,6 +1,6 @@
 // Compétitions — données de DÉMONSTRATION. Créées par un CLUB ou par un JOUEUR.
 
-import { nextDays } from '@/lib/days';
+import { dayKey, nextDays } from '@/lib/days';
 
 export type Competition = {
   id: string;
@@ -24,6 +24,14 @@ export type Competition = {
 // Jours réels (relatifs au lancement) pour que l'affichage ET le blocage des terrains
 // pointent toujours sur le bon jour calendaire.
 const D = nextDays(8);
+
+// Jours PASSÉS (pour les tournois terminés de démo) — dateKey stable.
+const yesterday = dayKey(new Date(Date.now() - 86400000));
+const lastWeek = dayKey(new Date(Date.now() - 7 * 86400000));
+
+// IDs des tournois de démo « terminés » — réutilisés par loadDemo (inscription/clôture).
+export const DEMO_FINISHED_COMP = 'c-fin'; // terminé hier, à clôturer par le club
+export const DEMO_CLOSED_COMP = 'c-clos'; // déjà clôturé la semaine dernière
 
 export const seedCompetitions: Competition[] = [
   {
@@ -73,6 +81,40 @@ export const seedCompetitions: Competition[] = [
     fee: 'Gratuit',
     slots: 8,
     registered: 5,
+  },
+  {
+    id: DEMO_FINISHED_COMP,
+    title: 'Tournoi officiel — Padelta',
+    organizerType: 'club',
+    organizer: 'Padelta',
+    clubId: 'padelta',
+    clubName: 'Padelta',
+    date: 'Hier',
+    dateKey: yesterday,
+    format: 'Poules + tableau final',
+    level: 'Intermédiaire',
+    reward: 'Bon d’achat 50 000 FCFA',
+    fee: '10 000 FCFA / équipe',
+    slots: 8,
+    registered: 7,
+    official: true,
+  },
+  {
+    id: DEMO_CLOSED_COMP,
+    title: 'Americano officiel — Padel Zone 4',
+    organizerType: 'club',
+    organizer: 'Padel Zone 4',
+    clubId: 'padel-zone-4',
+    clubName: 'Padel Zone 4',
+    date: 'Sem. dernière',
+    dateKey: lastWeek,
+    format: 'Americano (rotation)',
+    level: 'Tous niveaux',
+    reward: 'Trophée + équipement',
+    fee: '5 000 FCFA / joueur',
+    slots: 8,
+    registered: 8,
+    official: true,
   },
 ];
 
