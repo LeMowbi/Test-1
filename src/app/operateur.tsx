@@ -244,6 +244,28 @@ export default function Operateur() {
           })}
         </Card>
       </View>
+
+      {/* Codes d'accès Espace Club (mode démo) */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Codes d'accès Espace Club" />
+        <Card>
+          <Txt variant="muted" style={{ marginBottom: spacing.sm }}>
+            Chaque club entre son code à 4 chiffres pour accéder à son Espace Club. (Visibles ici en
+            mode démo ; les vrais comptes gérants arriveront avec la version serveur.)
+          </Txt>
+          {activeClubs(state.customClubs, state.clubInfo).map((c, i) => (
+            <View key={c.id}>
+              {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
+                <Txt variant="price" style={{ fontSize: 16, letterSpacing: 4 }}>
+                  {state.clubCodes[c.id] ?? '—'}
+                </Txt>
+              </View>
+            </View>
+          ))}
+        </Card>
+      </View>
     </Screen>
   );
 }

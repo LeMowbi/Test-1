@@ -46,6 +46,7 @@ export default function ClubAdmin() {
     closeCompetition,
     setClubInfo,
     toggleHideCoach,
+    unlockClub,
   } = useApp();
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
@@ -73,6 +74,8 @@ export default function ClubAdmin() {
   const manageable = manageableClubs(state.customClubs, state.clubInfo);
   const club = findClub(state.managedClubId, state.customClubs, state.clubInfo) ?? clubsByName[0];
   const pendingOwn = state.customClubs.find((c) => c.id === club.id)?.status === 'pending';
+  // Espace verrouillé par un code à 4 chiffres tant que ce club n'a pas été déverrouillé ici.
+  const locked = !state.unlockedClubIds.includes(club.id);
 
   const openSlots = state.clubSlots[club.id] ?? SAMPLE_SLOTS;
   const toggleSlot = (t: string) => {
@@ -285,9 +288,13 @@ export default function ClubAdmin() {
         ) : null}
       </View>
 
-      <SegmentedControl options={SECTIONS} value={section} onChange={setSection} />
+      {locked ? (
+        <CodeGate club={club} onUnlock={(code) => unlockClub(club.id, code)} />
+      ) : (
+        <SegmentedControl options={SECTIONS} value={section} onChange={setSection} />
+      )}
 
-      {section === 'Réservations' ? (
+      {!locked && section === 'Réservations' ? (
         <>
           {/* Vue d'ensemble */}
           <View style={styles.stats}>
@@ -490,7 +497,7 @@ export default function ClubAdmin() {
         </>
       ) : null}
 
-      {section === 'Mon club' ? (
+      {!locked && section === 'Mon club' ? (
         <>
           {/* Infos du club — éditables par le gérant */}
           <SectionHeader title="Infos du club" />
@@ -687,7 +694,7 @@ export default function ClubAdmin() {
         </>
       ) : null}
 
-      {section === 'Tournois' ? (
+      {!locked && section === 'Tournois' ? (
         <>
           <SectionHeader title="Tournois du club" />
           <Button
@@ -862,6 +869,51 @@ function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: string }
   );
 }
 
+// Verrou d'accès : 4 chiffres (mémorisé sur l'appareil après la 1ʳᵉ saisie correcte).
+function CodeGate({ club, onUnlock }: { club: Club; onUnlock: (code: string) => boolean }) {
+  const [code, setCode] = useState('');
+  const [error, setError] = useState(false);
+  return (
+    <Card style={{ marginTop: spacing.md, alignItems: 'center', borderColor: colors.gold }}>
+      <IconCircle icon="lock-closed" />
+      <Txt variant="h3" style={{ marginTop: spacing.sm }}>
+        Accès gérant — {club.name}
+      </Txt>
+      <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
+        Entre le code à 4 chiffres du club. (Démo : le code est visible dans l'Espace opérateur.)
+      </Txt>
+      <TextInput
+        value={code}
+        onChangeText={(t) => {
+          setCode(t.replace(/\D/g, '').slice(0, 4));
+          setError(false);
+        }}
+        placeholder="••••"
+        placeholderTextColor={colors.textFaint}
+        keyboardType="number-pad"
+        maxLength={4}
+        style={styles.codeInput}
+      />
+      {error ? (
+        <Txt variant="small" color={colors.danger} style={{ marginTop: spacing.sm }}>
+          Code incorrect — réessaie.
+        </Txt>
+      ) : null}
+      <View style={{ alignSelf: 'stretch', marginTop: spacing.md }}>
+        <Button
+          label="Déverrouiller"
+          icon="lock-open"
+          disabled={code.length !== 4}
+          onPress={() => {
+            if (!onUnlock(code)) setError(true);
+          }}
+          full
+        />
+      </View>
+    </Card>
+  );
+}
+
 function LegendDot({ color, label }: { color: string; label: string }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
@@ -914,6 +966,19 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   planCellSel: { borderWidth: 2, borderColor: colors.text },
+  codeInput: {
+    backgroundColor: colors.bg,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    color: colors.text,
+    fontSize: 28,
+    letterSpacing: 12,
+    textAlign: 'center',
+    paddingVertical: spacing.md,
+    marginTop: spacing.md,
+    alignSelf: 'stretch',
+  },
   planLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md },
   stat: {
     flex: 1,

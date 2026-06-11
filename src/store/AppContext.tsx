@@ -2,7 +2,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
-import type { Club, CustomClub } from '@/data/clubs';
+import { clubs, type Club, type CustomClub } from '@/data/clubs';
 import type { Competition } from '@/data/competitions';
 import { DEMO_CLOSED_COMP, DEMO_FINISHED_COMP } from '@/data/competitions';
 import type { Review } from '@/data/reviews';
@@ -77,6 +77,8 @@ type AppState = {
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
   clubInfo: Record<string, ClubInfo>; // surcharges gérant (nom, tarif, WhatsApp…)
+  clubCodes: Record<string, string>; // code à 4 chiffres d'accès à l'Espace Club (démo)
+  unlockedClubIds: string[]; // clubs déjà déverrouillés sur cet appareil
   hiddenCoachIds: string[]; // coachs (de démo) retirés par leur club
   boostedClubIds: string[];
   boostExpiry: Record<string, number>; // clubId → date d'expiration du boost (affichage)
@@ -112,6 +114,9 @@ const initialState: AppState = {
   clubOffers: {},
   clubCoaches: {},
   clubInfo: {},
+  // Codes de démo : un code à 4 chiffres par club de base (visibles dans l'Espace opérateur).
+  clubCodes: Object.fromEntries(clubs.map((c, i) => [c.id, String(((i + 1) * 1234) % 9000 + 1000)])),
+  unlockedClubIds: [],
   hiddenCoachIds: [],
   boostedClubIds: [],
   boostExpiry: {},
@@ -159,6 +164,8 @@ type AppContextType = {
   requestClub: (input: { name: string; area: string; type: Club['type']; courts: number; priceFrom: number; contactPhone?: string }) => void;
   approveClub: (id: string) => void;
   rejectClub: (id: string) => void;
+  unlockClub: (clubId: string, code: string) => boolean;
+  setClubCode: (clubId: string, code: string) => void;
   setClubMode: (on: boolean) => void;
   setManagedClub: (id: string) => void;
   setClubSlots: (clubId: string, slots: string[]) => void;
@@ -344,6 +351,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({ ...s, clubCoaches: { ...s.clubCoaches, [clubId]: (s.clubCoaches[clubId] ?? []).filter((c) => c.id !== id) } })),
       setClubInfo: (clubId, patch) =>
         setState((s) => ({ ...s, clubInfo: { ...s.clubInfo, [clubId]: { ...s.clubInfo[clubId], ...patch } } })),
+      // Déverrouille l'Espace Club si le code correspond (mémorisé ensuite sur l'appareil).
+      unlockClub: (clubId, code) => {
+        const expected = state.clubCodes[clubId];
+        if (!expected || code.trim() !== expected) return false;
+        setState((s) => ({
+          ...s,
+          unlockedClubIds: s.unlockedClubIds.includes(clubId) ? s.unlockedClubIds : [...s.unlockedClubIds, clubId],
+        }));
+        return true;
+      },
+      setClubCode: (clubId, code) =>
+        setState((s) => ({ ...s, clubCodes: { ...s.clubCodes, [clubId]: code } })),
       toggleHideCoach: (coachId) =>
         setState((s) => ({
           ...s,
@@ -407,6 +426,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({
           ...s,
           customClubs: s.customClubs.map((c) => (c.id === id ? { ...c, status: 'active' } : c)),
+          // À l'activation, l'opérateur attribue un code d'accès (au hasard, modifiable ensuite).
+          clubCodes: s.clubCodes[id] ? s.clubCodes : { ...s.clubCodes, [id]: String(Math.floor(1000 + Math.random() * 9000)) },
         })),
       rejectClub: (id) =>
         setState((s) => ({

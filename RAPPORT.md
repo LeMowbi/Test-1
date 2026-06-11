@@ -85,3 +85,18 @@ nouveaux écrans, wording unifié.
 ## Reste volontairement pour la version serveur
 Notifications croisées réelles entre appareils, baisse de niveau sur défaite officielle,
 comptes synchronisés / SMS, validation des inscrits d'un tournoi côté serveur.
+
+---
+
+## Patch v4.1 (correctifs post-tests)
+- **Créneaux passés** : garde-fou dans `addReservation` (refuse tout `startsAt` ≤ maintenant) ;
+  Réserver bascule sur Demain + bouton « Voir demain » (vues Par heure & Par club).
+- **Bascule « jouée »** : dérivée de l'heure de fin (`isPlayed`), partagée joueur/club/opérateur.
+- **Seeds tournois terminés** : un officiel « hier » à clôturer + un déjà clôturé → flux
+  clôture → +0.25 → trophée démontrable en démo.
+- **Contacter le club** : 4 clubs seeds ont un numéro WhatsApp (lien visible).
+- **Ajout d'ami** : erreur inline + bouton désactivé si vide.
+- **Option « code d'accès club » (validée)** : code à 4 chiffres par club, attribué à
+  l'activation par l'opérateur, demandé à l'entrée de l'Espace Club (mémorisé sur l'appareil),
+  codes visibles dans l'Espace opérateur en mode démo. Vrais comptes gérants → version serveur.
+
