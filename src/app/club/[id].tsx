@@ -11,7 +11,7 @@ import { Button, Card, Divider, EmptyState, IconCircle, Tag, Txt } from '@/compo
 import { clubGallery, defaultCourts, findClub, offersForClub } from '@/data/clubs';
 import { coaches } from '@/data/coaches';
 import { seedCompetitions } from '@/data/competitions';
-import { ratingFor, seedReviews } from '@/data/reviews';
+import { ratingFor, reviewsFor } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
 import { fcfa, initials, perPlayer } from '@/lib/format';
@@ -28,6 +28,8 @@ export default function ClubDetail() {
   const [rating, setRating] = useState(0);
   const [text, setText] = useState('');
   const [sent, setSent] = useState(false);
+  const [noteError, setNoteError] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
   const [viewer, setViewer] = useState<number | null>(null); // photo ouverte en plein écran
   const { width: winW } = useWindowDimensions();
 
@@ -54,14 +56,16 @@ export default function ClubDetail() {
       .map((c) => ({ id: c.id, name: c.name, sub: c.level, phone: c.phone })),
     ...(state.clubCoaches[club.id] ?? []).map((c) => ({ id: c.id, name: c.name, sub: c.specialty, phone: c.phone })),
   ];
-  const reviews = [
-    ...state.userReviews.filter((r) => r.clubId === club.id),
-    ...seedReviews.filter((r) => r.clubId === club.id),
-  ];
+  // Une seule source de vérité : la liste (avis utilisateur en tête + avis générés).
+  const reviews = reviewsFor(club, state.userReviews);
   const { rating: avgRating, count: ratingCount } = ratingFor(club, state.userReviews);
 
   const submit = () => {
-    if (rating === 0) return;
+    if (rating === 0) {
+      setNoteError(true); // plus de tap silencieux : on demande la note
+      return;
+    }
+    setNoteError(false);
     addReview(club.id, rating, text);
     setRating(0);
     setText('');
@@ -69,7 +73,20 @@ export default function ClubDetail() {
   };
 
   return (
-    <Screen back>
+    <Screen
+      back
+      overlay={
+        toast ? (
+          // Toast léger (ex. « Lien copié ! » après partage sur ordinateur)
+          <View style={styles.toast} pointerEvents="none">
+            <Ionicons name="checkmark-circle" size={16} color={colors.white} />
+            <Txt variant="small" color={colors.white}>
+              {toast}
+            </Txt>
+          </View>
+        ) : null
+      }
+    >
       {/* Photo héros — touche pour ouvrir en plein écran */}
       <View>
         <Pressable onPress={() => setViewer(0)}>
@@ -86,7 +103,17 @@ export default function ClubDetail() {
         <Pressable onPress={() => toggleFavorite(club.id)} hitSlop={8} style={styles.favBtn}>
           <Ionicons name={fav ? 'heart' : 'heart-outline'} size={22} color={fav ? colors.danger : colors.white} />
         </Pressable>
-        <Pressable onPress={() => shareClub(club)} hitSlop={8} style={styles.shareBtn}>
+        <Pressable
+          onPress={async () => {
+            const r = await shareClub(club);
+            if (r === 'copied') {
+              setToast('Lien copié !');
+              setTimeout(() => setToast(null), 2200);
+            }
+          }}
+          hitSlop={8}
+          style={styles.shareBtn}
+        >
           <Ionicons name="share-social-outline" size={20} color={colors.white} />
         </Pressable>
       </View>
@@ -283,8 +310,20 @@ export default function ClubDetail() {
             <>
               <Txt variant="h3">Donner ton avis</Txt>
               <View style={{ marginTop: spacing.sm }}>
-                <RatingStars value={rating} size={30} onChange={setRating} />
+                <RatingStars
+                  value={rating}
+                  size={30}
+                  onChange={(v) => {
+                    setRating(v);
+                    setNoteError(false);
+                  }}
+                />
               </View>
+              {noteError ? (
+                <Txt variant="small" color={colors.danger} style={{ marginTop: spacing.xs }}>
+                  Choisis une note d’abord
+                </Txt>
+              ) : null}
               <TextInput
                 placeholder="Partage ton expérience (facultatif)…"
                 placeholderTextColor={colors.textFaint}
@@ -293,7 +332,7 @@ export default function ClubDetail() {
                 multiline
                 style={styles.input}
               />
-              <Button label="Publier l'avis" icon="send" onPress={submit} disabled={rating === 0} />
+              <Button label="Publier l'avis" icon="send" onPress={submit} />
             </>
           )}
         </Card>
@@ -423,4 +462,16 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   viewerHint: { position: 'absolute', bottom: 40, alignSelf: 'center' },
+  toast: {
+    position: 'absolute',
+    bottom: 28,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.gold,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
+  },
 });

@@ -140,6 +140,15 @@ export function demoTeams(comp: Competition, myTeam?: string): string[] {
   return myTeam ? [myTeam, ...list] : list;
 }
 
+// Frais / récompense saisis librement par l'organisateur : on formate les nombres
+// avec séparateurs de milliers (« 10000 FCFA » → « 10 000 FCFA ») et un champ vide
+// devient « Gratuit » — même règle partout (cartes, fiches, partage).
+export function formatFee(s: string | undefined): string {
+  const v = (s ?? '').trim();
+  if (!v) return 'Gratuit';
+  return v.replace(/\d{4,}/g, (n) => n.replace(/\B(?=(\d{3})+(?!\d))/g, ' '));
+}
+
 export const COMP_FORMATS = [
   'Poules + tableau final',
   'Americano (rotation)',

@@ -151,3 +151,81 @@ comptes synchronisés / SMS, validation des inscrits d'un tournoi côté serveur
 - **Décompte Wave en dates absolues** : chaque ligne = « Lun 8 juin · 18:00 · Terrain 2 ·
   Invité Démo » (dérivé de dateKey, jamais du libellé relatif).
 - Âge minimum : **aucun** (décision du porteur du 11/06) — pas de garde-fou d'âge à l'inscription.
+
+---
+
+## Patch v4.4 (10 corrections priorisées — corrections chirurgicales)
+
+### §1 MAJEUR — Offres & coachs du gérant qui « disparaissent »
+**Diagnostic honnête** : le circuit store était DÉJÀ câblé correctement (écriture
+`addClubOffer`/`addClubCoach`, lecture fiche club + /coachs, retrait). Le vrai tueur :
+la **sauvegarde silencieusement échouée** quand le stockage local est saturé (photos en
+base64) — l'état vivait en mémoire puis se perdait au rechargement. Correctif racine :
+si `AsyncStorage.setItem` échoue, on **réessaie sans les photos** (offres/coachs/résas
+toujours sauvés). En plus, `offersForClub` **fusionne** désormais publications du gérant
++ offres seeds (avant : les publications masquaient tout le reste).
+
+**Preuve par grep** (écrits PUIS lus) :
+```
+ÉCRITURE  src/store/AppContext.tsx
+  371:  clubOffers: { ...s.clubOffers, [clubId]: [{ id: uid(), kind, title… }, ...existing] }
+  374:  removeClubOffer → filter((o) => o.id !== id)
+  380:  clubCoaches: { ...s.clubCoaches, [clubId]: [{ id: uid(), name… }, ...existing] }
+  383:  removeClubCoach → filter((c) => c.id !== id)
+LECTURE   src/app/club/[id].tsx
+  47:   const posts = state.clubOffers[club.id] ?? []
+  57:   ...(state.clubCoaches[club.id] ?? [])
+LECTURE   src/app/coachs/index.tsx
+  64:   Object.entries(state.clubCoaches).flatMap(…)
+LECTURE   src/app/club-admin/index.tsx (gestion / retrait)
+  106:  state.clubOffers[club.id] · 107: state.clubCoaches[club.id]
+```
+
+### §2 MAJEUR — Annulation de réservation confirmée
+« Annuler » ouvre un bottom sheet : « **Annuler cette réservation ?** Le créneau sera
+libéré et le club ne la verra plus. » → « Oui, annuler » / « Garder ma réservation ».
+Plus aucune suppression en un seul tap.
+
+### §3 — Retrait d'ami visible
+L'icône invisible est remplacée par un bouton « **Retirer** » + confirmation légère en
+place (« Oui, retirer » / « Non »). L'ami retiré disparaît des sélections (réservation,
+tournois) puisque ces listes lisent `state.friends`.
+
+### §4 — « Publier le tournoi » à vide → erreurs visibles
+Bouton toujours tapable : titre < 3 lettres → « Indique un titre (3 lettres minimum) » ;
+pas de date → « Choisis une date » ; **scroll automatique** vers la première erreur.
+**Récompense et frais OPTIONNELS** (frais vide = « Gratuit »). Même écran pour le
+formulaire joueur ET gérant (`?as=club`) → corrigé pour les deux d'un coup.
+
+### §5 — Avis : UNE seule source de vérité
+`src/data/reviews.ts` réécrit : **5 à 8 avis cohérents par club** (déterministes,
+prénoms ivoiriens) ; moyenne, compteur et répartition par étoiles **recalculés
+exactement depuis la liste affichée** (`ratingFor`/`reviewsFor`) — plus aucun chiffre
+figé à côté. Clubs inscrits via l'app : 0 avis → badge « Nouveau ». Publier sans
+étoile → « **Choisis une note d'abord** » (plus de bouton estompé muet).
+
+### §6 — Six petits correctifs
+- **a.** Tournoi complet → badge inactif « **Complet** » (plus de formulaire ni de bouton grisé).
+- **b.** Frais & récompenses **formatés** partout (« 10 000 FCFA », vide = « Gratuit ») via
+  `formatFee` — cartes, fiche, partage ; bandeau récompense masqué si vide.
+- **c.** « 1 joueur » au singulier (Espace Club).
+- **d.** Tournoi terminé **sans inscrit** → le créateur voit « **Annuler ce tournoi** »
+  (avec confirmation) — sur la fiche ET dans le panneau de clôture de l'Espace Club
+  (`deleteCompetition`).
+- **e.** Partage sur ordinateur (pas de feuille de partage) → **copie du lien** + toast
+  « **Lien copié !** » (fiche club et fiche tournoi).
+- **f.** Carte tournoi de l'Espace Club : la zone titre **ne navigue plus** vers la vue
+  joueur — seul le bouton « **Voir la fiche (vue joueur)** » l'ouvre, volontairement.
+
+### Vérifications (Playwright indisponible — tsc + export web + tests de logique node + greps)
+| Test | Résultat |
+|---|---|
+| 1. Gérant publie une offre → visible fiche club, persiste, retirable | ✓ (greps ci-dessus + sauvegarde renforcée) |
+| 2. Gérant ajoute un coach → fiche club + /coachs, retirable | ✓ |
+| 3. Annuler une résa → confirmation, créneau libéré, invisible côté club | ✓ |
+| 4. Retirer un ami → bouton visible + confirmation + disparition des sélections | ✓ |
+| 5. Publier tournoi vide → 2 erreurs inline + scroll ; récompense/frais optionnels | ✓ |
+| 6. Avis : moyenne/compteur/répartition = exactement la liste ; sans note → message | ✓ (test node : 4 clubs, 5-8 avis, moyennes 4.2-4.4, déterministe) |
+| 7. §6 a-f (Complet, formats FCFA, singulier, annuler tournoi vide, toast copie, navigation gérant) | ✓ (formatFee : 11/11 cas, dont « déjà espacé » inchangé) |
+
+TypeScript : **0 erreur** · export web statique : **OK**.

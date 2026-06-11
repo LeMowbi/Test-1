@@ -1,6 +1,5 @@
-import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
 import { useApp } from '@/store/AppContext';
@@ -12,6 +11,7 @@ export default function AmisScreen() {
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [tapError, setTapError] = useState(false);
+  const [removeId, setRemoveId] = useState<string | null>(null); // ami en cours de retrait (confirmation)
 
   const ready = name.trim().length >= 2;
   // Le bouton reste tapable : un tap sans nom affiche l'erreur (au lieu d'un silence).
@@ -54,10 +54,31 @@ export default function AmisScreen() {
                     ) : null}
                   </View>
                   {f.level !== undefined ? <Tag label={`Niv. ${f.level.toFixed(1)}`} tone="blue" /> : null}
-                  <Pressable onPress={() => removeFriend(f.id)} hitSlop={8}>
-                    <Ionicons name="close-circle" size={20} color={colors.textFaint} />
-                  </Pressable>
+                  <Button
+                    size="sm"
+                    label="Retirer"
+                    variant="ghost"
+                    onPress={() => setRemoveId(removeId === f.id ? null : f.id)}
+                  />
                 </View>
+                {removeId === f.id ? (
+                  // Confirmation légère, en place — pas de suppression au premier tap.
+                  <View style={styles.removeConfirm}>
+                    <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                      Retirer {f.name} de tes amis ?
+                    </Txt>
+                    <Button
+                      size="sm"
+                      label="Oui, retirer"
+                      variant="danger"
+                      onPress={() => {
+                        removeFriend(f.id);
+                        setRemoveId(null);
+                      }}
+                    />
+                    <Button size="sm" label="Non" variant="secondary" onPress={() => setRemoveId(null)} />
+                  </View>
+                ) : null}
               </View>
             ))}
           </Card>
@@ -100,6 +121,15 @@ export default function AmisScreen() {
 
 const styles = StyleSheet.create({
   friend: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  removeConfirm: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+  },
   friendAvatar: {
     width: 38,
     height: 38,

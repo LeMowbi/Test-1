@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { seedCompetitions } from '@/data/competitions';
@@ -17,6 +18,7 @@ export default function ReservationsScreen() {
   const router = useRouter();
   const { state, cancelReservation } = useApp();
   const [showAllPast, setShowAllPast] = useState(false);
+  const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null); // confirmation avant annulation
 
   const now = Date.now();
   const upcoming = state.reservations.filter((r) => !isPlayed(r, now)).sort((a, b) => a.startsAt - b.startsAt);
@@ -93,7 +95,7 @@ export default function ReservationsScreen() {
                     />
                   </View>
                   {canCancel ? (
-                    <Button size="sm" label="Annuler" icon="close" variant="danger" onPress={() => cancelReservation(r.id)} />
+                    <Button size="sm" label="Annuler" icon="close" variant="danger" onPress={() => setCancelTarget(r)} />
                   ) : null}
                 </View>
                 {!canCancel ? (
@@ -183,6 +185,31 @@ export default function ReservationsScreen() {
           </Card>
         )}
       </View>
+
+      {/* Confirmation avant annulation — plus de suppression en un seul tap */}
+      <BottomSheet
+        visible={cancelTarget !== null}
+        title="Annuler cette réservation ?"
+        subtitle={cancelTarget ? `${cancelTarget.clubName} — ${cancelTarget.date} à ${cancelTarget.time} · ${cancelTarget.court}` : undefined}
+        onClose={() => setCancelTarget(null)}
+      >
+        <Txt variant="body" color={colors.textMuted}>
+          Le créneau sera libéré et le club ne la verra plus.
+        </Txt>
+        <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
+          <Button
+            label="Oui, annuler"
+            icon="close-circle"
+            variant="danger"
+            onPress={() => {
+              if (cancelTarget) cancelReservation(cancelTarget.id);
+              setCancelTarget(null);
+            }}
+            full
+          />
+          <Button label="Garder ma réservation" variant="secondary" onPress={() => setCancelTarget(null)} full />
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }

@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Card, Tag, Txt } from './ui';
-import { teamCount, type Competition } from '@/data/competitions';
+import { formatFee, teamCount, type Competition } from '@/data/competitions';
 import { dayKey } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
@@ -35,12 +35,14 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
         {comp.title}
       </Txt>
 
-      <View style={styles.reward}>
-        <Ionicons name="gift-outline" size={16} color={colors.purple} />
-        <Txt variant="small" color={colors.purple} style={{ flex: 1, fontWeight: '600' }}>
-          {comp.reward}
-        </Txt>
-      </View>
+      {comp.reward.trim() ? (
+        <View style={styles.reward}>
+          <Ionicons name="gift-outline" size={16} color={colors.purple} />
+          <Txt variant="small" color={colors.purple} style={{ flex: 1, fontWeight: '600' }}>
+            {formatFee(comp.reward)}
+          </Txt>
+        </View>
+      ) : null}
 
       <View style={styles.barTrack}>
         <View style={[styles.barFill, { width: (`${pct}%` as `${number}%`) }]} />
@@ -48,7 +50,7 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
 
       <View style={styles.footer}>
         <Txt variant="muted">
-          {teams}/{comp.slots} équipes · {comp.fee}
+          {teams}/{comp.slots} équipes · {formatFee(comp.fee)}
         </Txt>
         {result ? (
           mine?.result === 'win' ? (

@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
-import { demoTeams, seedCompetitions, teamCount } from '@/data/competitions';
+import { demoTeams, formatFee, seedCompetitions, teamCount } from '@/data/competitions';
 import { dayKey } from '@/lib/days';
 import { shareCompetition } from '@/lib/share';
 import { useApp } from '@/store/AppContext';
@@ -14,7 +14,7 @@ import { colors, radius, spacing } from '@/theme';
 export default function CompetitionDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { state, registerCompetition, unregisterCompetition, closeCompetition } = useApp();
+  const { state, registerCompetition, unregisterCompetition, closeCompetition, deleteCompetition } = useApp();
 
   const key = Array.isArray(id) ? id[0] : id;
   const comp = [...state.myCompetitions, ...seedCompetitions].find((c) => c.id === key);
@@ -22,6 +22,8 @@ export default function CompetitionDetail() {
   const [partnerId, setPartnerId] = useState<string | null>(null);
   const [partnerName, setPartnerName] = useState('');
   const [winnerName, setWinnerName] = useState('');
+  const [confirmCancel, setConfirmCancel] = useState(false); // annulation d'un tournoi sans inscrit
+  const [toast, setToast] = useState<string | null>(null);
 
   if (!comp) {
     return (
@@ -57,7 +59,21 @@ export default function CompetitionDetail() {
   };
 
   return (
-    <Screen back title="Tournoi">
+    <Screen
+      back
+      title="Tournoi"
+      overlay={
+        toast ? (
+          // Toast léger (« Lien copié ! » après partage sur ordinateur)
+          <View style={styles.toast} pointerEvents="none">
+            <Ionicons name="checkmark-circle" size={16} color={colors.white} />
+            <Txt variant="small" color={colors.white}>
+              {toast}
+            </Txt>
+          </View>
+        ) : null
+      }
+    >
       <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
         <Tag
           label={byClub ? `Organisé par ${comp.organizer}` : `Créé par ${comp.organizer} (joueur)`}
@@ -71,22 +87,26 @@ export default function CompetitionDetail() {
       </Txt>
 
       <Card style={{ marginTop: spacing.lg }}>
-        <View style={styles.reward}>
-          <Ionicons name="gift" size={22} color={colors.purple} />
-          <View style={{ flex: 1 }}>
-            <Txt variant="label" color={colors.textFaint}>
-              Récompense
-            </Txt>
-            <Txt variant="h3" color={colors.purple}>
-              {comp.reward}
-            </Txt>
-          </View>
-        </View>
-        <Divider style={{ marginVertical: spacing.md }} />
+        {comp.reward.trim() ? (
+          <>
+            <View style={styles.reward}>
+              <Ionicons name="gift" size={22} color={colors.purple} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="label" color={colors.textFaint}>
+                  Récompense
+                </Txt>
+                <Txt variant="h3" color={colors.purple}>
+                  {formatFee(comp.reward)}
+                </Txt>
+              </View>
+            </View>
+            <Divider style={{ marginVertical: spacing.md }} />
+          </>
+        ) : null}
         <Info icon="calendar-outline" label="Date" value={comp.date} />
         <Info icon="git-network-outline" label="Format" value={comp.format} />
         <Info icon="podium-outline" label="Niveau" value={comp.level} />
-        <Info icon="cash-outline" label="Inscription" value={comp.fee} />
+        <Info icon="cash-outline" label="Inscription" value={formatFee(comp.fee)} />
       </Card>
 
       {/* Places — limitées, en équipes */}
@@ -130,7 +150,18 @@ export default function CompetitionDetail() {
             onPress={() => router.push(`/club/${comp.clubId}`)}
           />
         ) : null}
-        <Button label="Partager le tournoi" icon="share-social-outline" variant="ghost" onPress={() => shareCompetition(comp)} />
+        <Button
+          label="Partager le tournoi"
+          icon="share-social-outline"
+          variant="ghost"
+          onPress={async () => {
+            const r = await shareCompetition(comp);
+            if (r === 'copied') {
+              setToast('Lien copié !');
+              setTimeout(() => setToast(null), 2200);
+            }
+          }}
+        />
       </View>
 
       {/* Résultats (tournoi clôturé) */}
@@ -156,8 +187,40 @@ export default function CompetitionDetail() {
         </Card>
       ) : null}
 
+      {/* Tournoi terminé SANS inscrit : rien à clôturer — le créateur peut l'annuler. */}
+      {canClose && teamList.length === 0 ? (
+        <Card style={{ marginTop: spacing.lg, borderColor: colors.danger }}>
+          <Txt variant="h3">Tournoi terminé sans inscrit</Txt>
+          <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
+            Aucune équipe ne s'est inscrite : il n'y a pas de vainqueur à désigner.
+          </Txt>
+          <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+            {confirmCancel ? (
+              <>
+                <Txt variant="small" color={colors.textMuted}>
+                  Annuler définitivement ce tournoi ? Il disparaîtra des listes.
+                </Txt>
+                <Button
+                  label="Oui, annuler le tournoi"
+                  icon="trash-outline"
+                  variant="danger"
+                  onPress={() => {
+                    deleteCompetition(comp.id);
+                    router.back();
+                  }}
+                  full
+                />
+                <Button label="Le garder" variant="secondary" onPress={() => setConfirmCancel(false)} full />
+              </>
+            ) : (
+              <Button label="Annuler ce tournoi" icon="trash-outline" variant="danger" onPress={() => setConfirmCancel(true)} full />
+            )}
+          </View>
+        </Card>
+      ) : null}
+
       {/* Clôture — réservée au créateur du défi : choisir l'équipe vainqueure dans la liste */}
-      {canClose ? (
+      {canClose && teamList.length > 0 ? (
         <Card style={{ marginTop: spacing.lg, borderColor: colors.purple }}>
           <Txt variant="h3">Clôturer & désigner le vainqueur</Txt>
           <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
@@ -211,7 +274,15 @@ export default function CompetitionDetail() {
             </View>
           ) : null}
         </Card>
-      ) : played ? null : (
+      ) : played ? null : full ? (
+        // Tournoi complet : badge inactif — plus de formulaire ni de bouton estompé.
+        <Card style={{ marginTop: spacing.lg, alignItems: 'center' }}>
+          <Tag label="Complet" tone="coral" icon="lock-closed" />
+          <Txt variant="muted" style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+            Toutes les places sont prises — les inscriptions sont fermées.
+          </Txt>
+        </Card>
+      ) : (
         <View style={{ marginTop: spacing.lg }}>
           <Txt variant="h3">S'inscrire en équipe</Txt>
           <Txt variant="muted" style={{ marginTop: 2 }}>
@@ -231,7 +302,6 @@ export default function CompetitionDetail() {
                     icon={partnerId === f.id ? 'checkmark' : 'person-add'}
                     active={partnerId === f.id}
                     onPress={() => pickFriend(f.id)}
-                    disabled={full}
                   />
                 ))}
               </View>
@@ -249,14 +319,13 @@ export default function CompetitionDetail() {
             }}
             placeholder="Nom du coéquipier"
             placeholderTextColor={colors.textFaint}
-            editable={!full}
             style={styles.input}
           />
 
           <View style={{ marginTop: spacing.lg }}>
             <Button
-              label={full ? 'Complet' : "S'inscrire en équipe"}
-              icon={full ? 'lock-closed' : 'add'}
+              label="S'inscrire en équipe"
+              icon="add"
               onPress={() => {
                 if (!canRegister) return;
                 registerCompetition(comp.id, partner);
@@ -314,5 +383,17 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginTop: spacing.sm,
     fontSize: 15,
+  },
+  toast: {
+    position: 'absolute',
+    bottom: 28,
+    alignSelf: 'center',
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    backgroundColor: colors.gold,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.pill,
   },
 });

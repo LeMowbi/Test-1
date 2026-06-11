@@ -21,6 +21,7 @@ type Props = {
   headerRight?: React.ReactNode;
   contentStyle?: ViewStyle;
   overlay?: React.ReactNode;
+  scrollRef?: React.Ref<ScrollView>;
 };
 
 export function Screen({
@@ -32,6 +33,7 @@ export function Screen({
   headerRight,
   contentStyle,
   overlay,
+  scrollRef,
 }: Props) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -73,6 +75,7 @@ export function Screen({
     <View style={[styles.root, { paddingTop: insets.top }]}>
       {scroll ? (
         <ScrollView
+          ref={scrollRef}
           showsVerticalScrollIndicator={false}
           contentContainerStyle={{ paddingBottom: insets.bottom + spacing.xxxl }}
         >

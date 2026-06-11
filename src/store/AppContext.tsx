@@ -148,6 +148,7 @@ type AppContextType = {
   setReserverView: (v: 'Par heure' | 'Par club') => void;
   addReview: (clubId: string, rating: number, text: string) => void;
   addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => void;
+  deleteCompetition: (id: string) => void; // annulation d'un tournoi sans inscrit (créateur)
   registerCompetition: (id: string, partner: string) => void;
   unregisterCompetition: (id: string) => void;
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy'>) => boolean;
@@ -213,7 +214,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!hydrated) return;
-    AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state)).catch(() => {});
+    (async () => {
+      try {
+        await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      } catch {
+        // Quota dépassé (photos volumineuses en data-uri sur le web) : plutôt que de
+        // TOUT perdre silencieusement (offres, coachs…), on persiste sans les photos.
+        try {
+          const slim = {
+            ...state,
+            clubPhotos: {},
+            account: state.account ? { ...state.account, photoUri: undefined } : null,
+          };
+          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
+        } catch {
+          // stockage indisponible — l'app continue en mémoire
+        }
+      }
+    })();
   }, [state, hydrated]);
 
   const stats = useMemo(() => computeStats(state.reservations, state.officialResults), [state.reservations, state.officialResults]);
@@ -284,6 +302,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           userReviews: [{ id: uid(), clubId, author: 'Vous', rating, text: text.trim() || 'Bonne expérience.', date: "À l'instant" }, ...s.userReviews],
         })),
       addCompetition: (c) => setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true }, ...s.myCompetitions] })),
+      deleteCompetition: (id) =>
+        setState((s) => {
+          const regs = { ...s.compRegistrations };
+          delete regs[id];
+          return { ...s, myCompetitions: s.myCompetitions.filter((c) => c.id !== id), compRegistrations: regs };
+        }),
       registerCompetition: (id, partner) =>
         setState((s) =>
           s.compRegistrations[id]

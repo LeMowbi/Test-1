@@ -47,6 +47,7 @@ export default function ClubAdmin() {
     confirmReservationByClub,
     requestClub,
     closeCompetition,
+    deleteCompetition,
     setClubInfo,
     toggleHideCoach,
     unlockClub,
@@ -458,7 +459,7 @@ export default function ClubAdmin() {
                       <Txt variant="h3" style={{ fontSize: 15 }}>
                         {r.date} · {r.time}
                       </Txt>
-                      <Txt variant="muted">{r.court} · {r.players} joueurs</Txt>
+                      <Txt variant="muted">{r.court} · {r.players} joueur{r.players > 1 ? 's' : ''}</Txt>
                       {r.bookedBy ? (
                         <Txt variant="small" color={colors.textMuted}>
                           Réservé par {r.bookedBy.name}{r.bookedBy.phone ? ` · ${r.bookedBy.phone}` : ''}
@@ -757,30 +758,40 @@ export default function ClubAdmin() {
                 const result = state.compResults[c.id];
                 return (
                   <Card key={c.id} style={{ marginBottom: spacing.sm }}>
-                    <Pressable onPress={() => router.push(`/competition/${c.id}`)}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                        <View style={{ flex: 1 }}>
-                          <Txt variant="h3" style={{ fontSize: 15 }}>
-                            {c.title}
-                          </Txt>
-                          <Txt variant="muted">
-                            {c.date} · {teamCount(c, !!state.compRegistrations[c.id])}/{c.slots} équipes
-                          </Txt>
-                        </View>
-                        {result ? (
-                          <Tag label={`Vainqueur : ${result.winner}`} tone="amber" icon="trophy" />
-                        ) : finished ? (
-                          <Tag label="À clôturer" tone="coral" icon="flag" />
-                        ) : (
-                          <Tag label="À venir" tone="purple" />
-                        )}
+                    {/* Zone titre NON cliquable : le gérant ne quitte plus l'Espace Club par erreur.
+                        La fiche joueur s'ouvre uniquement via « Voir la fiche ». */}
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                      <View style={{ flex: 1 }}>
+                        <Txt variant="h3" style={{ fontSize: 15 }}>
+                          {c.title}
+                        </Txt>
+                        <Txt variant="muted">
+                          {c.date} · {teamCount(c, !!state.compRegistrations[c.id])}/{c.slots} équipes
+                        </Txt>
                       </View>
-                    </Pressable>
+                      {result ? (
+                        <Tag label={`Vainqueur : ${result.winner}`} tone="amber" icon="trophy" />
+                      ) : finished ? (
+                        <Tag label="À clôturer" tone="coral" icon="flag" />
+                      ) : (
+                        <Tag label="À venir" tone="purple" />
+                      )}
+                    </View>
                     {finished && !result ? (
                       <View style={{ marginTop: spacing.sm }}>
                         <Button size="sm" label="Clôturer & désigner le vainqueur" icon="flag" onPress={() => setClosingId(c.id)} full />
                       </View>
                     ) : null}
+                    <View style={{ marginTop: spacing.sm }}>
+                      <Button
+                        size="sm"
+                        label="Voir la fiche (vue joueur)"
+                        icon="open-outline"
+                        variant="ghost"
+                        onPress={() => router.push(`/competition/${c.id}`)}
+                        full
+                      />
+                    </View>
                   </Card>
                 );
               })
@@ -895,6 +906,14 @@ export default function ClubAdmin() {
               setClosingId(null);
             }}
             onCancel={() => setClosingId(null)}
+            onDelete={
+              closingComp.createdByMe
+                ? () => {
+                    deleteCompetition(closingComp.id);
+                    setClosingId(null);
+                  }
+                : undefined
+            }
           />
         ) : null}
       </BottomSheet>
@@ -985,15 +1004,44 @@ function ClosePanel({
   myTeam,
   onClose,
   onCancel,
+  onDelete,
 }: {
   comp: Competition;
   myTeam?: string;
   onClose: (winner: string, winnerIsMe: boolean) => void;
   onCancel: () => void;
+  onDelete?: () => void;
 }) {
   const teams = demoTeams(comp, myTeam);
   const [selected, setSelected] = useState<string | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [confirmDelete, setConfirmDelete] = useState(false);
+
+  // Aucun inscrit : rien à clôturer — on propose d'annuler le tournoi (avec confirmation).
+  if (teams.length === 0) {
+    return (
+      <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
+        <Txt variant="body" color={colors.textMuted}>
+          Aucune équipe ne s'est inscrite : il n'y a pas de vainqueur à désigner.
+        </Txt>
+        {onDelete ? (
+          confirmDelete ? (
+            <>
+              <Txt variant="small" color={colors.textMuted}>
+                Annuler définitivement ce tournoi ? Il disparaîtra des listes.
+              </Txt>
+              <Button size="sm" label="Oui, annuler le tournoi" icon="trash-outline" variant="danger" onPress={onDelete} full />
+              <Button size="sm" label="Le garder" variant="secondary" onPress={() => setConfirmDelete(false)} full />
+            </>
+          ) : (
+            <Button size="sm" label="Annuler ce tournoi" icon="trash-outline" variant="danger" onPress={() => setConfirmDelete(true)} full />
+          )
+        ) : (
+          <Button size="sm" label="Fermer" variant="secondary" onPress={onCancel} full />
+        )}
+      </View>
+    );
+  }
 
   return (
     <View style={{ marginTop: spacing.sm }}>

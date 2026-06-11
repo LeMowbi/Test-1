@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { useMemo, useRef, useState } from 'react';
+import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Txt } from '@/components/ui';
@@ -18,11 +18,13 @@ function Field({
   value,
   onChangeText,
   placeholder,
+  error,
 }: {
   label: string;
   value: string;
   onChangeText: (t: string) => void;
   placeholder: string;
+  error?: string;
 }) {
   return (
     <>
@@ -34,8 +36,13 @@ function Field({
         onChangeText={onChangeText}
         placeholder={placeholder}
         placeholderTextColor={colors.textFaint}
-        style={styles.input}
+        style={[styles.input, error ? { borderColor: colors.danger } : null]}
       />
+      {error ? (
+        <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>
+          {error}
+        </Txt>
+      ) : null}
     </>
   );
 }
@@ -50,22 +57,34 @@ export default function NouvelleCompetition() {
   const dates = useMemo(() => nextDays(7), []);
   const [title, setTitle] = useState('');
   const [reward, setReward] = useState('');
-  const [fee, setFee] = useState('Gratuit');
+  const [fee, setFee] = useState('');
   const [day, setDay] = useState<DayOption | null>(null);
   const [format, setFormat] = useState(COMP_FORMATS[2]);
   const [level, setLevel] = useState('Tous niveaux');
   const [slots, setSlots] = useState(8);
+  // Erreurs par champ — affichées au tap sur « Publier » (aucun tap silencieux).
+  const [errors, setErrors] = useState<{ title?: string; date?: string }>({});
+  const scrollRef = useRef<ScrollView>(null);
+  const datePos = useRef(0);
 
   const create = () => {
-    if (title.trim().length < 2 || reward.trim().length < 2 || !day) return;
+    const e: { title?: string; date?: string } = {};
+    if (title.trim().length < 3) e.title = 'Indique un titre (3 lettres minimum).';
+    if (!day) e.date = 'Choisis une date.';
+    setErrors(e);
+    if (e.title || e.date) {
+      // Scroll automatique vers le premier champ en erreur.
+      scrollRef.current?.scrollTo({ y: e.title ? 0 : Math.max(0, datePos.current - 24), animated: true });
+      return;
+    }
     addCompetition({
       title: title.trim(),
       organizerType: asClub ? 'club' : 'joueur',
       organizer: club?.name ?? state.account?.firstName ?? 'Joueur',
       clubId: club?.id,
       clubName: club?.name,
-      date: day.label,
-      dateKey: day.key,
+      date: day!.label,
+      dateKey: day!.key,
       format,
       level,
       reward: reward.trim(),
@@ -77,21 +96,43 @@ export default function NouvelleCompetition() {
     router.replace(asClub ? '/club-admin' : '/competitions');
   };
 
-  const ready = title.trim().length > 1 && reward.trim().length > 1 && !!day;
-
   return (
-    <Screen back title="Créer un tournoi" subtitle={asClub ? `Pour ${club?.name ?? 'votre club'}` : 'En tant que joueur'}>
-      <Field label="Titre" value={title} onChangeText={setTitle} placeholder="Ex. Défi entre amis — Riviera" />
-      <Field label="Récompense" value={reward} onChangeText={setReward} placeholder="Ex. Cagnotte 30 000 FCFA" />
-      <Field label="Frais d'inscription" value={fee} onChangeText={setFee} placeholder="Gratuit / 5 000 FCFA…" />
+    <Screen back title="Créer un tournoi" subtitle={asClub ? `Pour ${club?.name ?? 'votre club'}` : 'En tant que joueur'} scrollRef={scrollRef}>
+      <Field
+        label="Titre"
+        value={title}
+        onChangeText={(t) => {
+          setTitle(t);
+          if (errors.title) setErrors((cur) => ({ ...cur, title: undefined }));
+        }}
+        placeholder="Ex. Défi entre amis — Riviera"
+        error={errors.title}
+      />
+      <Field label="Récompense (optionnel)" value={reward} onChangeText={setReward} placeholder="Ex. Cagnotte 30 000 FCFA" />
+      <Field label="Frais d'inscription (optionnel)" value={fee} onChangeText={setFee} placeholder="Vide = Gratuit" />
 
-      <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-        Date
-      </Txt>
-      <View style={styles.wrap}>
-        {dates.map((d) => (
-          <Chip key={d.key} label={d.label} active={d.key === day?.key} onPress={() => setDay(d)} />
-        ))}
+      <View onLayout={(ev) => (datePos.current = ev.nativeEvent.layout.y)}>
+        <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
+          Date
+        </Txt>
+        <View style={styles.wrap}>
+          {dates.map((d) => (
+            <Chip
+              key={d.key}
+              label={d.label}
+              active={d.key === day?.key}
+              onPress={() => {
+                setDay(d);
+                if (errors.date) setErrors((cur) => ({ ...cur, date: undefined }));
+              }}
+            />
+          ))}
+        </View>
+        {errors.date ? (
+          <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>
+            {errors.date}
+          </Txt>
+        ) : null}
       </View>
 
       <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
@@ -125,7 +166,7 @@ export default function NouvelleCompetition() {
       </Txt>
 
       <View style={{ marginTop: spacing.xl }}>
-        <Button label="Publier le tournoi" icon="trophy" onPress={create} disabled={!ready} full />
+        <Button label="Publier le tournoi" icon="trophy" onPress={create} full />
       </View>
     </Screen>
   );
