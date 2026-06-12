@@ -1,8 +1,7 @@
-// Joueurs de DÉMONSTRATION — alimentent le Classement et les mini-fiches « Suivre ».
-// Les 4 premiers partagent les id des amis seeds (data/user.ts) : toucher un ami
-// ouvre donc sa vraie fiche. Niveaux volontairement étalés (dont un à 1.0 pour
-// tester le plancher du malus, et plusieurs sous 4.00 que l'utilisateur dépasse
-// après une victoire).
+// Joueurs de DÉMONSTRATION — alimentent les mini-fiches « Suivre » (écran Amis +
+// équipes inscrites d'un tournoi). Les 4 premiers partagent les id des amis seeds
+// (data/user.ts) : toucher un ami ouvre donc sa vraie fiche. Niveaux volontairement
+// étalés (dont un à 1.0, utilisé pour tester le plancher du malus de niveau).
 
 export type Player = {
   id: string;

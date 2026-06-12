@@ -3,7 +3,7 @@
 //   node --experimental-strip-types tests/pricing.test.ts
 // (les imports de types de pricing.ts sont effacés à l'exécution — aucun double).
 
-import { minPrice, priceForSlot, priceTiersFor } from '../src/lib/pricing.ts';
+import { minPrice, priceForSlot, priceTiersFor, validateTiers } from '../src/lib/pricing.ts';
 import { perPlayer } from '../src/lib/format.ts';
 
 let failed = 0;
@@ -56,6 +56,47 @@ check(priceForSlot(broken, '18:00') === 12000, 'Plages invalides ignorées → t
 check(perPlayer(30000) === '7 500 FCFA', 'Part par joueur à 30 000 → « 7 500 FCFA » (message partenaires)');
 check(perPlayer(10000) === '2 500 FCFA', 'Part par joueur à 10 000 → « 2 500 FCFA »');
 check(Math.round(30000 * 0.1) === 3000, 'Commission 10 % sur une résa 18:00 Padelta → 3 000');
+
+// ——— Validation des plages à l'enregistrement (v4.5.2, fonction pure) ———
+const tier = (start: string, end: string, price = 10000) => ({ start, end, price });
+
+// Aucune plage → tarif unique, toujours valide (rétro-compatibilité).
+check(validateTiers([]).ok === true, 'Aucune plage → valide (tarif unique)');
+
+// Couverture exacte 07:00 → 24:00 en continu → OK (ordre d'entrée quelconque).
+check(validateTiers([tier('16:00', '20:30'), tier('07:00', '16:00'), tier('20:30', '24:00')]).ok === true, 'Couverture 07:00→24:00 continue (désordonnée) → OK');
+check(validateTiers([tier('07:00', '24:00')]).ok === true, 'Une seule plage 07:00→24:00 → OK');
+
+// Trou → erreur, message désignant le trou exact.
+const gap = validateTiers([tier('07:00', '16:00'), tier('17:00', '24:00')]);
+check(gap.ok === false && /Trou entre 16:00 et 17:00/.test((gap as { error: string }).error), 'Trou 16:00–17:00 → bloqué avec message précis');
+
+// Chevauchement → erreur.
+const ov = validateTiers([tier('07:00', '20:30'), tier('19:00', '24:00')]);
+check(ov.ok === false && /chevauchent/.test((ov as { error: string }).error), 'Chevauchement 19:00 dans 07:00–20:30 → bloqué');
+
+// Bornes : ne commence pas à 07:00 / ne finit pas à 24:00.
+check(validateTiers([tier('08:00', '24:00')]).ok === false, 'Début ≠ 07:00 → bloqué');
+check(validateTiers([tier('07:00', '22:00')]).ok === false, 'Fin ≠ 24:00 → bloqué');
+
+// Bornes 07:00 et 24:00 PILE acceptées.
+check(validateTiers([tier('07:00', '12:00'), tier('12:00', '24:00')]).ok === true, 'Bornes 07:00 et 24:00 pile, jointure 12:00 → OK');
+
+// Plage incohérente (début ≥ fin) et format invalide → erreur.
+check(validateTiers([tier('16:00', '07:00')]).ok === false, 'Début après fin → bloqué');
+check(validateTiers([tier('7h', '24:00')]).ok === false, 'Format heure invalide → bloqué');
+
+// L'état n'est PAS modifié quand la validation échoue (miroir de ClubInfoCard.save).
+let savedPatch: unknown = null;
+const fakeSave = (built: ReturnType<typeof tier>[]) => {
+  const v = validateTiers(built);
+  if (!v.ok) return; // on n'appelle pas onSave → store intact
+  savedPatch = built;
+};
+fakeSave([tier('07:00', '16:00'), tier('17:00', '24:00')]); // trou
+check(savedPatch === null, 'Validation en échec → onSave NON appelé (état du club intact)');
+fakeSave([tier('07:00', '24:00')]); // valide
+check(savedPatch !== null, 'Validation OK → onSave appelé');
 
 console.log(failed === 0 ? '\nTOUS LES TESTS TARIFS PASSENT.' : `\n${failed} test(s) tarifs en échec.`);
 if (failed > 0) process.exitCode = 1;

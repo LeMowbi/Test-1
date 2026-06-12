@@ -12,6 +12,7 @@ import { SAMPLE_SLOTS, clubsByName, defaultCourts, findClub, manageableClubs, ty
 import { coaches as allCoaches } from '@/data/coaches';
 import { demoTeams, seedCompetitions, teamCount, type Competition } from '@/data/competitions';
 import { canAccessClub } from '@/lib/access';
+import { validateTiers } from '@/lib/pricing';
 import { hasCompetition } from '@/lib/availability';
 import { dayKey, nextDays, slotTimestamp, weekKeyOf, weekLabel } from '@/lib/days';
 import { isPlayed, useApp, type ClubInfo } from '@/store/AppContext';
@@ -943,9 +944,12 @@ function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: string }
   const [tiers, setTiers] = useState<TierRow[]>(emptyTiers(club));
   const [phone, setPhone] = useState(club.contactPhone ?? '');
   const [saved, setSaved] = useState(false);
+  const [tierError, setTierError] = useState<string | null>(null);
 
-  const setTier = (i: number, patch: Partial<TierRow>) =>
+  const setTier = (i: number, patch: Partial<TierRow>) => {
+    setTierError(null);
     setTiers((cur) => cur.map((t, k) => (k === i ? { ...t, ...patch } : t)));
+  };
 
   const ready = name.trim().length >= 2 && area.trim().length >= 2 && Number(price) > 0;
   const save = () => {
@@ -954,6 +958,14 @@ function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: string }
     const built: PriceTier[] = tiers
       .filter((t) => t.start.trim() && t.end.trim() && Number(t.price) > 0)
       .map((t) => ({ start: t.start.trim(), end: t.end.trim(), price: Number(t.price) }));
+    // Validation À LA SOURCE : des plages doivent couvrir 07:00→24:00 sans trou ni
+    // chevauchement. Échec → on N'ENREGISTRE RIEN (l'état du club reste intact).
+    const v = validateTiers(built);
+    if (!v.ok) {
+      setTierError(v.error);
+      return;
+    }
+    setTierError(null);
     onSave({
       name: name.trim(),
       area: area.trim(),
@@ -1005,6 +1017,17 @@ function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: string }
           <TextInput value={t.price} onChangeText={(v) => setTier(i, { price: v })} placeholder="FCFA" placeholderTextColor={colors.textFaint} keyboardType="numeric" style={[styles.input, styles.tierPrice, { marginTop: 0 }]} />
         </View>
       ))}
+      <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
+        Si tu définis des plages, elles doivent couvrir 07:00 → 24:00 sans trou.
+      </Txt>
+      {tierError ? (
+        <View style={styles.tierErrorBox}>
+          <Ionicons name="alert-circle" size={15} color={colors.danger} />
+          <Txt variant="small" color={colors.danger} style={{ flex: 1 }}>
+            {tierError}
+          </Txt>
+        </View>
+      ) : null}
 
       <TextInput
         value={phone}
@@ -1481,4 +1504,13 @@ const styles = StyleSheet.create({
   tierRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   tierCell: { flex: 1, textAlign: 'center' },
   tierPrice: { flex: 1.3 },
+  tierErrorBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.xs,
+    marginTop: spacing.sm,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.sm,
+    padding: spacing.sm,
+  },
 });

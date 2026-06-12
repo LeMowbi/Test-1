@@ -435,3 +435,40 @@ seul point remonté à Moustapha : le repli « créneau hors plages → prix min
 qui ouvre à 06:00 sans plage correspondante) est un choix par défaut raisonnable mais à valider.
 **« 100 % correct » s'entend donc : 0 erreur tsc strict, 0 erreur/warning lint, 95/95 tests de
 logique, 21/21 cohérences seeds, build web OK (15 routes)** — pas une garantie sur le visuel.
+
+---
+
+## Patch v4.5.2 — Retrait du Classement + validation des plages à la source
+
+### 1. Classement retiré (proprement)
+**Retiré** : l'écran `/classement` (route supprimée — `src/app/classement.tsx`), la **tuile
+« Classement »** de l'accueil (grille rééquilibrée : 4 tuiles → 2×2 parfait), et toute
+référence (`grep classement` dans `src/` : ne restent que des commentaires sans rapport —
+« aucun classement de clubs », filtre des coachs).
+**Conservé (non sur-supprimé)** : les **mini-fiches joueurs + Suivre/Suivis** (toujours via
+l'écran **Amis** et les **équipes inscrites** d'une fiche tournoi) ; la règle de niveau
+**+0.50 / −0.25 plancher 1.0** et le **palmarès** du profil (inchangés) ; les **joueurs seeds**
+(dont Idriss 1.0) qui alimentent les mini-fiches. Tests seeds « classement » → **adaptés**
+(l'alignement amis ↔ joueurs reste vérifié, désormais au titre des mini-fiches).
+
+### 2. Validation des plages tarifaires à la source
+Nouvelle **fonction pure** `validateTiers(tiers)` (+ `timeToMinutes`) dans `src/lib/pricing.ts`.
+À l'enregistrement dans « Mon club », si au moins une plage complète est définie, elles doivent
+couvrir **07:00 → 24:00 en continu** (sans trou ni chevauchement) — sinon **l'enregistrement est
+bloqué**, l'état du club reste intact, et un **message précis** s'affiche (« …Trou entre 16:00 et
+17:00. », « Deux plages se chevauchent (16:00–20:30 et 19:00–22:00). », bornes 07:00/24:00…).
+Plage incomplète toujours ignorée ; **aucune plage + tarif unique reste valide** (rétro-compat).
+Le repli `minPrice` de `priceForSlot` **reste** comme ceinture de sécurité défensive, mais n'est
+plus atteignable par la saisie. Seed Padelta : `20:30→24:00` (au lieu de `23:59`) pour passer la
+validation et couvrir minuit.
+
+### Résultats des 5 tests
+| Test | Résultat |
+|---|---|
+| 1. Plus de `/classement` dans `src` ; tuile retirée ; grille équilibrée ; build OK | ✓ (route supprimée, 4 tuiles 2×2 ; build OK — décompte de routes selon convention) |
+| 2. Mini-fiche + Suivre via Amis ET via équipe inscrite ; Suivis + Retirer | ✓ (flux intacts, indépendants du classement) |
+| 3. Clôture +0.50 / −0.25 plancher 1.0 / « Passer » / palmarès | ✓ (tests reset inchangés, tous verts) |
+| 4. Validation plages : trou → erreur, chevauchement → erreur, 07:00–24:00 → OK, aucune plage → OK, échec ⇒ état non modifié | ✓ (tests sur la fonction pure + miroir « save ») |
+| 5. Non-régression : tsc 0, lint 0/0, suite node 100 % verte, export OK, reset strict | ✓ (**107/107 tests** ; tsc 0 ; lint 0/0 ; export OK) |
+
+Suite de tests : **95 → 107** (retrait des libellés classement, ajout de 12 cas `validateTiers`).

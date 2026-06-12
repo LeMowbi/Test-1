@@ -9,7 +9,7 @@ export type Coach = {
   id: string;
   name: string;
   level: string;
-  levelValue: number; // niveau enseigné (1.0 → 7.0), pour le classement
+  levelValue: number; // niveau enseigné (1.0 → 7.0) — tri et filtre de la liste des coachs
   area: string;
   clubId: string; // club où le coach exerce
   phone: string; // numéro direct (appel / WhatsApp)

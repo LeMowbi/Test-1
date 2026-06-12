@@ -18,6 +18,9 @@ export function minPrice(club: Club): number {
 }
 
 // Prix d'un créneau « HH:MM » : la plage qui le contient, sinon le tarif unique.
+// Le repli `minPrice` est une CEINTURE DE SÉCURITÉ silencieuse : grâce à
+// validateTiers (à l'enregistrement), une saisie valide couvre 07:00→24:00 sans
+// trou, donc ce repli n'est en pratique jamais atteint.
 export function priceForSlot(club: Club, time: string): number {
   const tiers = priceTiersFor(club);
   if (tiers.length) {
@@ -25,4 +28,57 @@ export function priceForSlot(club: Club, time: string): number {
     return match ? match.price : minPrice(club);
   }
   return club.priceFrom;
+}
+
+// ——— Validation des plages tarifaires (à l'enregistrement, Espace Club) ———
+// Fonction PURE et testable. Reçoit les plages COMPLÈTES (les plages incomplètes
+// sont déjà ignorées par l'appelant). Règle : soit aucune plage (→ tarif unique,
+// rétro-compatible), soit une couverture CONTINUE 07:00 → 24:00, sans trou ni
+// chevauchement. Renvoie un message d'erreur précis et actionnable.
+
+const OPEN_MIN = 7 * 60; // 07:00
+const CLOSE_MIN = 24 * 60; // 24:00 (minuit, borne de fin exclusive des plages)
+
+// « HH:MM » → minutes depuis minuit, ou null si le format est invalide.
+export function timeToMinutes(t: string): number | null {
+  const m = /^(\d{1,2}):(\d{2})$/.exec((t ?? '').trim());
+  if (!m) return null;
+  const h = Number(m[1]);
+  const min = Number(m[2]);
+  if (h > 24 || min > 59 || (h === 24 && min !== 0)) return null;
+  return h * 60 + min;
+}
+
+export type TierValidation = { ok: true } | { ok: false; error: string };
+
+export function validateTiers(tiers: PriceTier[]): TierValidation {
+  if (tiers.length === 0) return { ok: true }; // aucune plage → le tarif unique s'applique
+
+  const parsed = tiers.map((t) => ({ t, s: timeToMinutes(t.start), e: timeToMinutes(t.end) }));
+  for (const p of parsed) {
+    if (p.s === null) return { ok: false, error: `Heure de début invalide « ${p.t.start} » (format attendu HH:MM, ex. 07:00).` };
+    if (p.e === null) return { ok: false, error: `Heure de fin invalide « ${p.t.end} » (format attendu HH:MM, ex. 16:00).` };
+    if (p.s >= p.e) return { ok: false, error: `Plage incohérente : ${p.t.start} doit être avant ${p.t.end}.` };
+  }
+
+  const sorted = parsed.slice().sort((a, b) => a.s! - b.s!);
+  const first = sorted[0];
+  const last = sorted[sorted.length - 1];
+  if (first.s !== OPEN_MIN) {
+    return { ok: false, error: `Tes plages doivent couvrir 07:00 → 24:00. La première commence à ${first.t.start} au lieu de 07:00.` };
+  }
+  if (last.e !== CLOSE_MIN) {
+    return { ok: false, error: `Tes plages doivent couvrir 07:00 → 24:00. La dernière finit à ${last.t.end} au lieu de 24:00.` };
+  }
+  for (let i = 1; i < sorted.length; i++) {
+    const prev = sorted[i - 1];
+    const cur = sorted[i];
+    if (cur.s! > prev.e!) {
+      return { ok: false, error: `Tes plages doivent couvrir 07:00 → 24:00. Trou entre ${prev.t.end} et ${cur.t.start}.` };
+    }
+    if (cur.s! < prev.e!) {
+      return { ok: false, error: `Deux plages se chevauchent (${prev.t.start}–${prev.t.end} et ${cur.t.start}–${cur.t.end}).` };
+    }
+  }
+  return { ok: true };
 }

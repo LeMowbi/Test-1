@@ -20,7 +20,7 @@ const uniqueIds = (items: { id: string }[]) => new Set(items.map((i) => i.id)).s
 check(uniqueIds(clubs), `Clubs : ${clubs.length} ids uniques`);
 check(uniqueIds(seedCompetitions), `Tournois seeds : ${seedCompetitions.length} ids uniques`);
 check(uniqueIds(coaches), `Coachs : ${coaches.length} ids uniques`);
-check(uniqueIds(seedPlayers), `Joueurs classement : ${seedPlayers.length} ids uniques`);
+check(uniqueIds(seedPlayers), `Joueurs (mini-fiches) : ${seedPlayers.length} ids uniques`);
 check(uniqueIds(seedFriends), `Amis seeds : ${seedFriends.length} ids uniques`);
 
 // 2. Références croisées : tous les clubId pointent vers un club existant.
@@ -32,20 +32,21 @@ check(
 check(coaches.every((c) => !c.clubId || clubIds.has(c.clubId)), 'Coachs → clubId existants');
 check(
   seedPlayers.every((p) => !p.favoriteClubId || clubIds.has(p.favoriteClubId)),
-  'Joueurs classement → club favori existant'
+  'Joueurs (mini-fiches) → club favori existant'
 );
 
-// 3. Les 4 premiers joueurs du classement = les 4 amis seeds (mêmes ids, mêmes niveaux).
+// 3. Toucher un ami doit ouvrir sa VRAIE fiche : chaque ami seed se résout dans
+//    seedPlayers (même id, nom, niveau) — sinon la mini-fiche serait incomplète.
 check(
   seedFriends.every((f) => {
     const p = seedPlayers.find((x) => x.id === f.id);
     return !!p && p.name === f.name && p.level === f.level;
   }),
-  'Amis seeds alignés avec les joueurs du classement (id, nom, niveau)'
+  'Amis seeds résolus dans les joueurs (mini-fiches : id, nom, niveau)'
 );
 
 // 4. Niveaux bornés [1.0, 7.0].
-check(seedPlayers.every((p) => p.level >= 1 && p.level <= 7), 'Niveaux classement ∈ [1.0, 7.0]');
+check(seedPlayers.every((p) => p.level >= 1 && p.level <= 7), 'Niveaux joueurs ∈ [1.0, 7.0]');
 check(seedFriends.every((f) => f.level === undefined || (f.level >= 1 && f.level <= 7)), 'Niveaux amis ∈ [1.0, 7.0]');
 check(seedPlayers.some((p) => p.level === 1.0), 'Un seed à 1.0 existe (test du plancher)');
 

@@ -7,8 +7,8 @@ import { colors } from '@/theme';
 
 // L'avatar UNIQUE de l'app : photo (ou initiales en repli) en cercle, anneau
 // dégradé fin aux couleurs de l'app + ombre douce. Même rendu partout — profil,
-// accueil, classement, mini-fiches, amis. Tailles usuelles : 76 (profil),
-// 48 (mini-fiche), 34–46 (en-têtes et listes).
+// accueil, mini-fiches, amis. Tailles usuelles : 76 (profil), 48 (mini-fiche),
+// 34–46 (en-têtes et listes).
 const RING = 2.5; // épaisseur de l'anneau dégradé
 const GAP = 2; // liseré entre l'anneau et la photo
 

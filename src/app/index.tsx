@@ -21,7 +21,6 @@ type Action = { icon: keyof typeof Ionicons.glyphMap; label: string; route: stri
 const ACTIONS: Action[] = [
   { icon: 'calendar', label: 'Mes réservations', route: '/reservations', tint: colors.green, bg: colors.greenSoft },
   { icon: 'trophy', label: 'Tournois', route: '/competitions', tint: colors.purple, bg: colors.purpleSoft },
-  { icon: 'podium', label: 'Classement', route: '/classement', tint: colors.amber, bg: colors.amberSoft },
   { icon: 'school', label: 'Trouver un coach', route: '/coachs', tint: colors.blue, bg: colors.blueSoft },
   { icon: 'book', label: 'Découvrir le padel', route: '/decouvrir', tint: colors.coral, bg: colors.coralSoft },
 ];
