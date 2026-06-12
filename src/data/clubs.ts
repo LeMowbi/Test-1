@@ -165,10 +165,11 @@ export const clubs: Club[] = [
     amenities: ['Terrains couverts', 'Café La Pausa', 'Salle de sport', 'Vestiaires'],
     priceFrom: 10000,
     // Tarifs réels Padelta : heures creuses, prime time, fin de soirée.
+    // La fin de plage est EXCLUSIVE → « 24:00 » couvre la soirée jusqu'à minuit inclus.
     priceTiers: [
       { start: '07:00', end: '16:00', price: 10000 },
       { start: '16:00', end: '20:30', price: 30000 },
-      { start: '20:30', end: '23:59', price: 15000 },
+      { start: '20:30', end: '24:00', price: 15000 },
     ],
     rating: 4.8,
     reviewsCount: 73,
@@ -244,7 +245,6 @@ export function findClub(
 
 // Créneaux types proposés (démo) — sessions de 1h30, non chevauchantes.
 // Une vraie version lirait les disponibilités du club.
-export const SLOT_DURATION_LABEL = '1h30';
 export const SAMPLE_SLOTS = [
   '07:30', '09:00', '10:30', '12:00',
   '16:30', '18:00', '19:30', '21:00',
@@ -282,10 +282,6 @@ export const DEFAULT_OFFERS = [
   { title: 'Happy hour', detail: '-20% en semaine de 12h à 15h.' },
   { title: 'Initiation offerte', detail: '1ʳᵉ séance découverte gratuite.' },
 ];
-
-export function clubOffers(club: Club) {
-  return club.offers && club.offers.length ? club.offers : DEFAULT_OFFERS;
-}
 
 // Publication d'un club (offre ou actualité) — texte libre géré par le club.
 export type ClubPost = { id?: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string };

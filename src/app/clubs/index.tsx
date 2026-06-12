@@ -21,7 +21,7 @@ export default function ClubsScreen() {
   const [filter, setFilter] = useState('Tous');
   const [query, setQuery] = useState('');
 
-  const all = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs]);
+  const all = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs, state.clubInfo]);
   const list = useMemo(() => {
     let base = all;
     const q = norm(query.trim());

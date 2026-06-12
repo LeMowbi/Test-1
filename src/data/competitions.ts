@@ -135,8 +135,16 @@ export function demoTeams(comp: Competition, myTeam?: string): string[] {
   const seed = comp.id.split('').reduce((s, ch) => s + ch.charCodeAt(0), 0);
   const total = teamCount(comp, !!myTeam);
   const others = total - (myTeam ? 1 : 0);
+  // Noms UNIQUES garantis (le pool fait 12 noms, un tournoi peut avoir 24 équipes) :
+  // indispensable pour les clés React et la sélection du vainqueur par nom.
   const list: string[] = [];
-  for (let i = 0; i < others; i++) list.push(TEAM_POOL[(seed + i) % TEAM_POOL.length]);
+  const used = new Map<string, number>();
+  for (let i = 0; i < others; i++) {
+    const base = TEAM_POOL[(seed + i) % TEAM_POOL.length];
+    const n = (used.get(base) ?? 0) + 1;
+    used.set(base, n);
+    list.push(n === 1 ? base : `${base} (${n})`);
+  }
   return myTeam ? [myTeam, ...list] : list;
 }
 

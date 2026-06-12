@@ -7,7 +7,7 @@
 // EST présent, simplement étiqueté « Demain » (et non « Samedi 13 »). La liste produit
 // toujours n jours consécutifs sans trou — ce test le verrouille.
 
-import { nextDays } from '../src/lib/days.ts';
+import { dayKey, nextDays, weekKeyOf } from '../src/lib/days.ts';
 
 let failed = 0;
 const check = (cond: boolean, msg: string) => {
@@ -54,6 +54,17 @@ check(jeudi[0].label === "Aujourd'hui 11" && jeudi[1].label === 'Demain 12', "Je
 // Fin de mois : le numéro suit le calendrier (30 juin → « Demain 1 »).
 const finJuin = nextDays(7, new Date(2026, 5, 30, 23, 40));
 check(finJuin[0].label === "Aujourd'hui 30" && finJuin[1].label === 'Demain 1', "30 juin → « Aujourd'hui 30 » · « Demain 1 » (bascule de mois)");
+
+// 5) dateKey en heure LOCALE : une résa à 23h ne glisse JAMAIS au lendemain
+//    (piège UTC classique — getFullYear/getMonth/getDate sont locaux).
+check(dayKey(new Date(2026, 5, 12, 23, 0)) === '2026-06-12', 'dayKey(12 juin 23h locale) = 2026-06-12 (pas de glissement UTC)');
+check(dayKey(new Date(2026, 5, 12, 0, 0)) === '2026-06-12', 'dayKey(12 juin 00h locale) = 2026-06-12');
+
+// 6) Semaine calendaire lundi → dimanche : bornes exactes (base de la facturation).
+check(weekKeyOf(new Date(2026, 5, 14, 23, 59).getTime()) === '2026-06-08', 'Dimanche 14 juin 23:59 → semaine du lundi 8 juin');
+check(weekKeyOf(new Date(2026, 5, 15, 0, 0).getTime()) === '2026-06-15', 'Lundi 15 juin 00:00 → semaine du lundi 15 juin');
+check(weekKeyOf(new Date(2026, 5, 8, 0, 0).getTime()) === '2026-06-08', 'Lundi 8 juin 00:00 → sa propre semaine');
+check(weekKeyOf(new Date(2026, 6, 1, 12, 0).getTime()) === '2026-06-29', 'Mercredi 1ᵉʳ juillet → semaine à cheval du lundi 29 juin');
 
 console.log(failed === 0 ? '\nTOUS LES TESTS JOURS PASSENT.' : `\n${failed} test(s) jours en échec.`);
 if (failed > 0) process.exitCode = 1;

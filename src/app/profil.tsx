@@ -3,24 +3,33 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Avatar } from '@/components/Avatar';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { useApp } from '@/store/AppContext';
-import { initials, levelLabel } from '@/lib/format';
+import { levelLabel } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
 import { GENDERS, ageFrom, genderLabel, maskBirthDate, parseBirthDate, zodiacFor, type Gender } from '@/lib/zodiac';
 import { colors, radius, spacing } from '@/theme';
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { state, stats, setRemindersOn, signOut, resetAll, loadDemo } = useApp();
+  const { state, stats, setRemindersOn, signOut, resetAll, loadDemo, updateAccount } = useApp();
   const { account, level, friends, officialResults } = state;
 
   const [editing, setEditing] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
+  const [photoSheet, setPhotoSheet] = useState(false);
 
   if (!account) return null;
+
+  const changePhoto = async () => {
+    const uri = await pickImage({ square: true });
+    if (uri) updateAccount({ photoUri: uri });
+    setPhotoSheet(false);
+  };
 
   // Trophées basés sur du réel : parties jouées (auto), tournois, niveau, amis.
   const badges = [
@@ -45,15 +54,9 @@ export default function ProfilScreen() {
       ) : (
         <Card style={{ marginTop: spacing.sm }}>
           <View style={styles.head}>
-            <View style={styles.avatar}>
-              {account.photoUri ? (
-                <Image source={{ uri: account.photoUri }} style={styles.avatarImg} contentFit="cover" />
-              ) : (
-                <Txt variant="display" color={colors.gold}>
-                  {initials(`${account.firstName} ${account.lastName}`)}
-                </Txt>
-              )}
-            </View>
+            <Pressable onPress={() => setPhotoSheet(true)} hitSlop={6} accessibilityLabel="Photo de profil">
+              <Avatar uri={account.photoUri} name={`${account.firstName} ${account.lastName}`} size={76} />
+            </Pressable>
             <View style={{ flex: 1 }}>
               <Txt variant="h2">
                 {account.firstName} {account.lastName}
@@ -229,6 +232,26 @@ export default function ProfilScreen() {
           }}
         />
       </View>
+
+      {/* Photo de profil : changer (recadrée + compressée) ou revenir aux initiales */}
+      <BottomSheet visible={photoSheet} title="Photo de profil" onClose={() => setPhotoSheet(false)}>
+        <View style={{ gap: spacing.sm }}>
+          <Button label="Changer la photo" icon="image-outline" onPress={changePhoto} full />
+          {account.photoUri ? (
+            <Button
+              label="Retirer la photo"
+              icon="trash-outline"
+              variant="danger"
+              onPress={() => {
+                updateAccount({ photoUri: undefined });
+                setPhotoSheet(false);
+              }}
+              full
+            />
+          ) : null}
+          <Button label="Annuler" variant="ghost" onPress={() => setPhotoSheet(false)} full />
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }
@@ -244,7 +267,7 @@ function EditAccount({ onDone }: { onDone: () => void }) {
   const [photoUri, setPhotoUri] = useState<string | undefined>(a.photoUri);
 
   const choose = async () => {
-    const uri = await pickImage();
+    const uri = await pickImage({ square: true });
     if (uri) setPhotoUri(uri);
   };
   const save = () => {

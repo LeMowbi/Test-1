@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
 import { Linking, Pressable, ScrollView, StyleSheet, View } from 'react-native';
+import { Avatar } from '@/components/Avatar';
 import { ClubCard } from '@/components/ClubCard';
 import { CompetitionCard } from '@/components/CompetitionCard';
 import { Logo } from '@/components/Logo';
@@ -12,7 +12,6 @@ import { Button, Card, IconCircle, SectionHeader, Txt } from '@/components/ui';
 import { activeClubs } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { dayKey } from '@/lib/days';
-import { initials } from '@/lib/format';
 import { isBirthdayToday, parseBirthDate, zodiacFor } from '@/lib/zodiac';
 import { useApp } from '@/store/AppContext';
 import { colors, gradients, radius, spacing } from '@/theme';
@@ -113,17 +112,9 @@ export default function HomeScreen() {
                   Abidjan
                 </Txt>
               </View>
-              {/* Avatar → raccourci vers le Profil (point rouge si un résultat t'attend) */}
+              {/* Avatar → raccourci vers le Profil */}
               <Pressable onPress={() => go('/profil')} hitSlop={6}>
-                <View style={styles.avatarBtn}>
-                  {state.account?.photoUri ? (
-                    <Image source={{ uri: state.account.photoUri }} style={styles.avatarImg} contentFit="cover" />
-                  ) : (
-                    <Txt variant="small" color={colors.gold} style={{ fontWeight: '800' }}>
-                      {initials(`${state.account?.firstName ?? ''} ${state.account?.lastName ?? ''}`)}
-                    </Txt>
-                  )}
-                </View>
+                <Avatar uri={state.account?.photoUri} name={`${state.account?.firstName ?? ''} ${state.account?.lastName ?? ''}`} size={34} />
               </Pressable>
             </View>
           </View>
@@ -140,15 +131,7 @@ export default function HomeScreen() {
 
         {/* Mon profil — accès direct, bien visible */}
         <Card onPress={() => go('/profil')} style={styles.profileCard}>
-          <View style={styles.profileAvatar}>
-            {state.account?.photoUri ? (
-              <Image source={{ uri: state.account.photoUri }} style={styles.avatarImg} contentFit="cover" />
-            ) : (
-              <Txt variant="h3" color={colors.gold}>
-                {initials(`${state.account?.firstName ?? ''} ${state.account?.lastName ?? ''}`)}
-              </Txt>
-            )}
-          </View>
+          <Avatar uri={state.account?.photoUri} name={`${state.account?.firstName ?? ''} ${state.account?.lastName ?? ''}`} size={46} />
           <View style={{ flex: 1 }}>
             <Txt variant="h3">
               {state.account?.firstName} {state.account?.lastName}
@@ -256,18 +239,6 @@ const styles = StyleSheet.create({
     borderColor: colors.border,
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
-  avatarBtn: {
-    width: 34,
-    height: 34,
-    borderRadius: radius.pill,
-    backgroundColor: colors.goldSoft,
-    borderWidth: 1,
-    borderColor: colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
-  avatarImg: { width: '100%', height: '100%' },
   alert: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -294,15 +265,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   profileCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
-  profileAvatar: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.pill,
-    backgroundColor: colors.goldSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-    overflow: 'hidden',
-  },
   cityChip: {
     flexDirection: 'row',
     alignItems: 'center',

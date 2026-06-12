@@ -357,3 +357,81 @@ migration sera un branchement dans ce module, pas une réécriture. **Navigation
 **Greps clés** : `grep -rn '+0.25' src/` → **0 occurrence** (seul le malus « −0.25 » et la
 constante `LEVEL_PENALTY` existent) · `Reservation.price` écrit dans `addReservation`
 (écran Réserver + sheet + seeds démo) et lu par l'opérateur (`r.price ?? priceFrom`).
+
+---
+
+## Patch v4.5.1 — A) Photo de profil embellie · B) Audit complet du code
+
+### Partie A — Photo de profil
+- **Traitement au choix de l'image** (`expo-image-manipulator`, fonctionne aussi sur web/canvas) :
+  recadrage **carré centré** + redimensionnement **512×512 max** (jamais d'agrandissement) +
+  **JPEG qualité 0.8**, stocké en data-URI base64. Annulation → aucun changement, aucune erreur ;
+  échec du traitement → image d'origine (comportement d'avant). Bonus cohérent : les **photos de
+  club** passent par le même tuyau (1280 max, non carré) — c'était la cause racine du quota v4.4.
+- **Composant `Avatar` unique** (`src/components/Avatar.tsx`) : cercle + **anneau dégradé**
+  vert profond → or (2.5 px) + ombre douce ; **mêmes initiales en repli** dans le même cercle.
+  Harmonisé : Profil (76), accueil ×2 (34/46), Classement (36, photo sur la ligne « Toi »),
+  mini-fiches joueurs (48), Amis & Suivis (38).
+- **Tap sur l'avatar du Profil** → « Changer la photo » / « Retirer la photo » (bottom sheet).
+- **Reset** : purge la photo par construction (état seed : compte démo sans photo).
+
+| Test A | Résultat |
+|---|---|
+| 1. Photo stockée < 200 Ko | ◐ par calcul : 512×512 JPEG q0.8 ≈ 30–80 Ko → ×1.37 en base64 ≈ **40–110 Ko**. Pipeline non exécutable sous Node (canvas/natif) → **à confirmer à l'audit externe** |
+| 2. Cercle + anneau sur Profil / accueil / Classement (Toi) / mini-fiche | ✓ (composant unique, 7 emplacements) |
+| 3. Sans photo : initiales, même cercle + anneau | ✓ (repli dans le même composant) |
+| 4. Retirer → initiales ; reset → état usine strict | ✓ (test reset 22/22 inchangé) |
+| 5. tsc 0 erreur, reset strict, zéro console.* dans src | ✓ |
+
+### Partie B — Audit (périmètre : statique + logique node ; PAS de navigateur ici)
+
+**B1 — Hygiène statique.** `strict: true` confirmé, **tsc 0 erreur**. **ESLint installé et
+configuré** (`eslint-config-expo` flat — l'auto-config `expo lint` est bloquée hors ligne) :
+**0 erreur, 0 warning** après corrections. 3 règles désactivées AVEC justification dans
+`eslint.config.js` : `react/no-unescaped-entities` (apostrophes françaises voulues, 58 faux
+positifs), `react-hooks/purity` et `react-hooks/refs` (condamnent l'architecture assumée
+« Date.now() recalculé à chaque affichage » et le pattern RN canonique
+`useRef(new Animated.Value())` — les « corriger » serait un refactor interdit).
+Résidus : **0 console.***, TODO uniquement structurés (access.ts), **code mort supprimé**
+(`clubOffers()`, `SLOT_DURATION_LABEL`), imports inutilisés supprimés (Chip, initials, Image…).
+
+**Bugs trouvés ET corrigés (minimes, justifiés)** :
+1. `clubs/index.tsx` + `reserver/index.tsx` : dépendance `state.clubInfo` **manquante** dans
+   `useMemo` → listes potentiellement périmées après modification des infos club par un gérant.
+2. `demoTeams` : noms d'équipes **dupliqués** possibles (pool de 12, tournois jusqu'à 24) →
+   clés React en double ET radio de clôture sélectionnant 2 équipes. Noms désormais uniques
+   (suffixe « (2) »), vérifié sur la vraie fonction (tournoi plein 24/24).
+3. Invités : ajout du **même nom deux fois** possible → clés dupliquées + retrait double.
+   Doublon ignoré (2 écrans).
+4. Plage Padelta `20:30–23:59` : fin **exclusive** → 23:59 pile n'était couverte par rien →
+   seed corrigé en `24:00` (continuité 07:00 → 24:00 vérifiée sur la vraie donnée).
+
+**B2 — Tests de logique : 41 → 95, tous verts** (`npm run test:logic`).
+Bornes tarifs sur la vraie `priceForSlot` (07:00/16:00/20:30 pile, 23:59, hors plage → repli
+prix minimum — choix assumé, club sans plage, plage invalide) · décompte hebdo (dimanche 23:59
+DANS la semaine, lundi 00:00 dehors — vraie `weekKeyOf` —, prix mixtes multi-clubs, annulée
+exclue, arrondi 12 345 → 1 235) · niveau (6.75 → 7.0 plafonné, 7.0 → 7.0, plancher 1.0,
+**1.1 − 0.25 → ramené à 1.0 (comportement choisi et documenté)**, « Passer » = aucun loser,
+double clôture = no-op strict) · garde-fous (annulation 4h59 refusée / 5h00 pile refusée / 5h01
+autorisée, anti-double terrain/jour, blocage sur résa refusé, 8/8 et 16/16 complets, compteur
+plafonné) · dates (dayKey **local** 23h sans glissement UTC, semaines à cheval).
+
+**B3 — Seeds : 21 vérifications sur les VRAIES données** (`tests/seeds.test.mjs`, bundle
+esbuild avec alias résolu) : ids uniques (5 familles), références croisées clubId/club favori,
+amis ↔ classement alignés (id/nom/niveau), niveaux ∈ [1.0, 7.0] + un seed à 1.0, plages Padelta
+continues, `priceFrom` = min des plages, registered ≤ slots, équipes démo uniques, FCFA
+idempotents. **Toutes vertes.**
+
+**B4 — Pièges React/RN.** Clés par index restantes : uniquement sur des listes **statiques de
+taille fixe** (5 étoiles, puces Découvrir, 3 lignes de plages, confettis) — sûres. Immutabilité
+du seed : testée (inchangé). États vides : tous couverts (0 ami, 0 résa, 0 suivi → section
+masquée, club sans offre → offres par défaut, classement jamais vide : seeds + toi). Textes
+longs : `numberOfLines` présent sur les lignes critiques + ajouté au Classement.
+
+**B5 — Limites honnêtes du périmètre.** NON couvert par mes moyens (→ audit externe Playwright) :
+rendu visuel réel (anneau, ombre, tailles), pipeline image complet (taille réelle du base64,
+test A1), parcours tactiles, erreurs console navigateur. AUCUNE décision produit prise seul —
+seul point remonté à Moustapha : le repli « créneau hors plages → prix minimum » (ex. un club
+qui ouvre à 06:00 sans plage correspondante) est un choix par défaut raisonnable mais à valider.
+**« 100 % correct » s'entend donc : 0 erreur tsc strict, 0 erreur/warning lint, 95/95 tests de
+logique, 21/21 cohérences seeds, build web OK (15 routes)** — pas une garantie sur le visuel.

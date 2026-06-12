@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Avatar } from '@/components/Avatar';
 import { PlayerSheet, type PlayerLike } from '@/components/PlayerSheet';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
 import { playerById } from '@/data/players';
 import { useApp } from '@/store/AppContext';
-import { initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
 export default function AmisScreen() {
@@ -46,11 +46,7 @@ export default function AmisScreen() {
                 {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
                 <View style={styles.friend}>
                   <Pressable onPress={() => openFriend(f)} style={styles.friendTap}>
-                    <View style={styles.friendAvatar}>
-                      <Txt variant="h3" color={colors.blue} style={{ fontSize: 14 }}>
-                        {initials(f.name)}
-                      </Txt>
-                    </View>
+                    <Avatar name={f.name} size={38} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="body" style={{ fontWeight: '600' }}>
                         {f.name}
@@ -104,11 +100,7 @@ export default function AmisScreen() {
                 {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
                 <View style={styles.friend}>
                   <Pressable onPress={() => setOpenPlayer({ id, name: info.name, level: info.level })} style={styles.friendTap}>
-                    <View style={styles.friendAvatar}>
-                      <Txt variant="h3" color={colors.blue} style={{ fontSize: 14 }}>
-                        {initials(info.name)}
-                      </Txt>
-                    </View>
+                    <Avatar name={info.name} size={38} />
                     <View style={{ flex: 1 }}>
                       <Txt variant="body" style={{ fontWeight: '600' }}>
                         {info.name}
@@ -174,14 +166,6 @@ const styles = StyleSheet.create({
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.md,
     padding: spacing.sm,
-  },
-  friendAvatar: {
-    width: 38,
-    height: 38,
-    borderRadius: radius.pill,
-    backgroundColor: colors.blueSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   input: {
     backgroundColor: colors.bg,

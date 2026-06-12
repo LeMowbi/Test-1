@@ -48,6 +48,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
   const addExtra = () => {
     const n = extraName.trim();
     if (n.length < 2 || participantCount >= 3) return;
+    if (extraNames.includes(n)) return; // pas de doublon (clé de liste + retrait par nom)
     setExtraNames((cur) => [...cur, n]);
     setExtraName('');
   };

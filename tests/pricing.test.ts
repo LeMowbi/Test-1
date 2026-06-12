@@ -12,20 +12,27 @@ const check = (cond: boolean, msg: string) => {
   if (!cond) failed++;
 };
 
-// Club façon Padelta : 3 plages réelles (creuses / prime time / soirée).
+// Club façon Padelta : 3 plages réelles (creuses / prime time / soirée) — mêmes
+// valeurs que le seed (la cohérence seed ↔ ce miroir est vérifiée par seeds.test.mjs).
 const padelta = {
   priceFrom: 10000,
   priceTiers: [
     { start: '07:00', end: '16:00', price: 10000 },
     { start: '16:00', end: '20:30', price: 30000 },
-    { start: '20:30', end: '23:59', price: 15000 },
+    { start: '20:30', end: '24:00', price: 15000 },
   ],
 } as Parameters<typeof priceForSlot>[0];
 
 check(priceForSlot(padelta, '10:30') === 10000, 'Padelta 10:30 → 10 000 (heures creuses)');
 check(priceForSlot(padelta, '18:00') === 30000, 'Padelta 18:00 → 30 000 (prime time)');
 check(priceForSlot(padelta, '21:00') === 15000, 'Padelta 21:00 → 15 000 (soirée)');
-check(priceForSlot(padelta, '16:00') === 30000, 'Borne 16:00 → plage prime time (début inclus)');
+// BORNES : début de plage INCLUS, fin EXCLUSIVE.
+check(priceForSlot(padelta, '07:00') === 10000, 'Borne 07:00 pile → heures creuses (début inclus)');
+check(priceForSlot(padelta, '16:00') === 30000, 'Borne 16:00 pile → prime time (frontière creuse/prime)');
+check(priceForSlot(padelta, '20:30') === 15000, 'Borne 20:30 pile → soirée (frontière prime/soirée)');
+check(priceForSlot(padelta, '23:59') === 15000, 'Borne 23:59 → soirée (plage jusqu’à 24:00 exclu)');
+// Hors plages (ex. 06:00 si le club ouvre tôt) → repli sur le MIN des plages (choix assumé).
+check(priceForSlot(padelta, '06:00') === 10000, 'Créneau hors plages (06:00) → repli prix minimum');
 check(priceForSlot(padelta, '07:30') === 10000, 'Padelta 07:30 → 10 000');
 check(minPrice(padelta) === 10000, 'Fiche « dès » = min des plages (10 000)');
 

@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
+import { Avatar } from '@/components/Avatar';
 import { PlayerSheet, type PlayerLike } from '@/components/PlayerSheet';
 import { Screen } from '@/components/Screen';
 import { Card, Divider, Tag, Txt } from '@/components/ui';
 import { findClub } from '@/data/clubs';
 import { seedPlayers } from '@/data/players';
-import { initials } from '@/lib/format';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -41,14 +41,10 @@ export default function ClassementScreen() {
                 <Txt variant="h3" color={i < 3 ? colors.amber : colors.textMuted} style={{ width: 28, textAlign: 'center' }}>
                   {i + 1}
                 </Txt>
-                <View style={styles.avatar}>
-                  <Txt variant="small" color={colors.blue} style={{ fontWeight: '800' }}>
-                    {initials(p.name)}
-                  </Txt>
-                </View>
+                <Avatar uri={isMe ? state.account?.photoUri : undefined} name={p.name} size={36} />
                 <View style={{ flex: 1 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                    <Txt variant="body" style={{ fontWeight: isMe ? '800' : '600' }}>
+                    <Txt variant="body" style={{ fontWeight: isMe ? '800' : '600' }} numberOfLines={1}>
                       {p.name}
                     </Txt>
                     {isMe ? <Tag label="Toi" tone="gold" /> : null}
@@ -79,12 +75,4 @@ export default function ClassementScreen() {
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 4 },
   me: { backgroundColor: colors.goldSoft, borderRadius: radius.md, paddingHorizontal: spacing.sm, marginHorizontal: -spacing.sm },
-  avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: radius.pill,
-    backgroundColor: colors.blueSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
 });

@@ -1,8 +1,9 @@
 import { StyleSheet, View } from 'react-native';
+import { Avatar } from './Avatar';
 import { BottomSheet } from './BottomSheet';
 import { Button, Tag, Txt } from './ui';
 import { findClub } from '@/data/clubs';
-import { initials, levelLabel } from '@/lib/format';
+import { levelLabel } from '@/lib/format';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -33,9 +34,7 @@ export function PlayerSheet({ player, onClose }: { player: PlayerLike | null; on
       {player ? (
         <View style={{ gap: spacing.md }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <View style={styles.avatar}>
-              <Txt variant="h3" color={colors.blue}>{initials(player.name)}</Txt>
-            </View>
+            <Avatar name={player.name} size={48} />
             <View style={{ flex: 1 }}>
               {player.level !== undefined ? (
                 <Tag label={`Niveau ${player.level.toFixed(2)}`} tone="blue" icon="ribbon" />
@@ -83,14 +82,6 @@ function Stat({ value, label }: { value: number; label: string }) {
 }
 
 const styles = StyleSheet.create({
-  avatar: {
-    width: 48,
-    height: 48,
-    borderRadius: radius.pill,
-    backgroundColor: colors.blueSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
   stat: {
     flex: 1,
     backgroundColor: colors.surfaceAlt,

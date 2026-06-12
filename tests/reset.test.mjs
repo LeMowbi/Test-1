@@ -31,9 +31,9 @@ const makeInitial = () => ({
 });
 
 // Reducers (miroir exact d'AppContext) — clôture v4.5 : vainqueur + (option) dernière équipe.
-const closeCompetition = (s, comp, winnerIsMe, loserIsMe = false) => {
+const closeCompetition = (s, comp, winnerIsMe, loserName, loserIsMe = false) => {
   if (s.compResults[comp.id]) return s;
-  const compResults = { ...s.compResults, [comp.id]: { winner: 'X', closedAt: 1 } };
+  const compResults = { ...s.compResults, [comp.id]: { winner: 'X', loser: loserName?.trim() || undefined, closedAt: 1 } };
   const registered = !!s.compRegistrations[comp.id];
   const already = s.officialResults.some((o) => o.compId === comp.id);
   if (!registered || already) return { ...s, compResults };
@@ -75,22 +75,35 @@ let s = {
 s = closeCompetition(s, { id: DEMO_FINISHED_COMP, official: true }, true);
 check(s.level === 4.0, 'Clôture officielle gagnée : niveau 3.50 → 4.00 (+0.50)');
 
+// Plafond 7.0 : 6.75 + 0.50 = 7.25 → 7.0 ; 7.0 reste 7.0.
+const regOnly = { compRegistrations: { [DEMO_FINISHED_COMP]: { partner: 'K' } }, account: { firstName: 'I' } };
+let sTop = closeCompetition({ ...makeInitial(), ...regOnly, level: 6.75 }, { id: DEMO_FINISHED_COMP, official: true }, true);
+check(sTop.level === 7.0, 'Plafond : 6.75 + 0.50 → 7.0 (jamais au-delà)');
+sTop = closeCompetition({ ...makeInitial(), ...regOnly, level: 7.0 }, { id: DEMO_FINISHED_COMP, official: true }, true);
+check(sTop.level === 7.0, 'Plafond : 7.0 reste 7.0');
+
 // Malus « dernière place » : −0.25, avec plancher 1.0.
-let sLast = {
-  ...makeInitial(),
-  account: { firstName: 'Invité' },
-  level: 3.5,
-  compRegistrations: { [DEMO_FINISHED_COMP]: { partner: 'Karim' } },
-};
-sLast = closeCompetition(sLast, { id: DEMO_FINISHED_COMP, official: true }, false, true);
+let sLast = closeCompetition({ ...makeInitial(), ...regOnly, level: 3.5 }, { id: DEMO_FINISHED_COMP, official: true }, false, 'Awa & Yann', true);
 check(sLast.level === 3.25, 'Dernière place officielle : 3.50 → 3.25 (−0.25)');
 check(sLast.officialResults[0].result === 'last', "Palmarès : entrée « Dernière place »");
-let sFloor = { ...makeInitial(), account: { firstName: 'Invité' }, level: 1.0, compRegistrations: { [DEMO_FINISHED_COMP]: { partner: 'K' } } };
-sFloor = closeCompetition(sFloor, { id: DEMO_FINISHED_COMP, official: true }, false, true);
+check(sLast.compResults[DEMO_FINISHED_COMP].loser === 'Awa & Yann', 'Résultat : équipe dernière enregistrée');
+let sFloor = closeCompetition({ ...makeInitial(), ...regOnly, level: 1.0 }, { id: DEMO_FINISHED_COMP, official: true }, false, 'X', true);
 check(sFloor.level === 1.0, 'Plancher : un niveau 1.0 ne descend pas sous 1.0');
+// Comportement CHOISI et documenté : 1.1 − 0.25 = 0.85 → remonté au plancher 1.0.
+let sNear = closeCompetition({ ...makeInitial(), ...regOnly, level: 1.1 }, { id: DEMO_FINISHED_COMP, official: true }, false, 'X', true);
+check(sNear.level === 1.0, 'Plancher : 1.1 − 0.25 (= 0.85) → ramené à 1.0');
+
+// « Passer » : clôture sans dernière équipe → aucun loser écrit, niveau intact.
+let sSkip = closeCompetition({ ...makeInitial(), ...regOnly, level: 3.5 }, { id: DEMO_FINISHED_COMP, official: true }, false, undefined, false);
+check(sSkip.compResults[DEMO_FINISHED_COMP].loser === undefined && sSkip.level === 3.5, '« Passer » : pas de dernière équipe écrite, niveau inchangé');
+
+// Double clôture impossible : le second appel ne change RIEN.
+const once = closeCompetition({ ...makeInitial(), ...regOnly, level: 3.5 }, { id: DEMO_FINISHED_COMP, official: true }, true);
+const twice = closeCompetition(once, { id: DEMO_FINISHED_COMP, official: true }, true);
+check(twice === once, 'Double clôture : le 2ᵉ appel est un no-op strict');
+
 // Tournoi AMICAL : ni bonus ni malus, palmarès seulement.
-let sAmical = { ...makeInitial(), account: { firstName: 'Invité' }, level: 3.5, compRegistrations: { d1: { partner: 'K' } } };
-sAmical = closeCompetition(sAmical, { id: 'd1', official: false }, true);
+let sAmical = closeCompetition({ ...makeInitial(), account: { firstName: 'I' }, level: 3.5, compRegistrations: { d1: { partner: 'K' } } }, { id: 'd1', official: false }, true);
 check(sAmical.level === 3.5, 'Tournoi amical gagné : niveau inchangé');
 s = blockSlot(s, { clubId: 'padelta', dateKey: '2026-06-13', time: '18:00', court: 'Terrain 1', reason: 'Entretien' });
 s = removeFriend(s, 'f4');

@@ -35,7 +35,7 @@ export default function Onboarding() {
   const zodiac = birthDate ? zodiacFor(birthDate) : null;
 
   const choosePhoto = async () => {
-    const uri = await pickImage();
+    const uri = await pickImage({ square: true });
     if (uri) setPhotoUri(uri);
   };
 
