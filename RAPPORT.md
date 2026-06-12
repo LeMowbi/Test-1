@@ -273,3 +273,20 @@ tout affichage post-reset (`if (!account) return null`).
 
 TypeScript : **0 erreur** · export web statique : **OK** · (Playwright toujours indisponible
 dans l'environnement — vérifs par tsc + build + tests node sur la source réelle).
+
+---
+
+## Patch v4.4.2 (polish — 3 micro-améliorations, base validée intacte)
+- **Chips de jours** : « **Aujourd'hui 12** » · « **Demain 13** » (numéro du jour sur les
+  libellés relatifs) — un seul générateur partagé (`nextDays`), donc les 4 écrans (Réserver,
+  Bloquer un créneau, Créer un tournoi joueur/club) sont corrigés d'un coup ; dateKey inchangés.
+- **Trophée « Niveau 4+ »** : « Niveau **3.75**/4 » (deux décimales, même précision que « Mon niveau »).
+- **Réinitialiser la démo** : la confirmation (« Réinitialiser et relancer la démo ») efface tout
+  (clé persistée comprise), **relance une démo propre** et ramène à l'accueil — plus d'inscription à retraverser.
+
+| Test demandé | Résultat |
+|---|---|
+| 1. Chips « Aujourd'hui NN » / « Demain NN », bons numéros, 7 jours consécutifs, dateKey corrects | ✓ (tests sur la vraie `nextDays` : numéros, bascule de mois 30 juin → « Demain 1 », 13/13) |
+| 2. Niveau 3.75 → trophée « Niveau 3.75/4 » | ✓ (`toFixed(2)`) |
+| 3. Salir → Réinitialiser → accueil démo direct, état = première ouverture stricte | ✓ (resetAll efface la clé + loadDemo seed ; test reset 11/11) |
+| 4. Non-régression : clôture 3.50 → 3.75, état seed jamais pollué, tsc, build | ✓ (24/24 tests logique · TypeScript 0 erreur · export OK ; Playwright indisponible ici) |

@@ -14,7 +14,7 @@ import { colors, radius, spacing } from '@/theme';
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { state, stats, setRemindersOn, signOut, resetAll } = useApp();
+  const { state, stats, setRemindersOn, signOut, resetAll, loadDemo } = useApp();
   const { account, level, friends, officialResults } = state;
 
   const [editing, setEditing] = useState(false);
@@ -29,7 +29,7 @@ export default function ProfilScreen() {
     { label: '20 parties', ok: stats.played >= 20, need: `${stats.played}/20 parties` },
     { label: 'Premier tournoi', ok: stats.tournamentsPlayed >= 1, need: 'Joue un tournoi' },
     { label: 'Vainqueur de tournoi', ok: stats.tournamentsWon >= 1, need: 'Gagne un tournoi' },
-    { label: 'Niveau 4+', ok: level >= 4, need: `Niveau ${level.toFixed(1)}/4` },
+    { label: 'Niveau 4+', ok: level >= 4, need: `Niveau ${level.toFixed(2)}/4` },
     { label: '5 amis', ok: friends.length >= 5, need: `${friends.length}/5 amis` },
   ];
 
@@ -209,12 +209,17 @@ export default function ProfilScreen() {
         <Button label="Mentions légales & CGU" icon="document-text-outline" variant="ghost" onPress={() => router.push('/legal')} />
         <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={signOut} />
         <Button
-          label={confirmReset ? 'Confirmer la réinitialisation ?' : 'Réinitialiser la démo'}
+          label={confirmReset ? 'Réinitialiser et relancer la démo' : 'Réinitialiser la démo'}
           icon="refresh"
           variant={confirmReset ? 'danger' : 'ghost'}
           onPress={() => {
-            if (confirmReset) resetAll();
-            else {
+            if (confirmReset) {
+              // Tout effacer (y compris la clé persistée) PUIS relancer une démo propre
+              // et revenir à l'accueil — sans repasser par l'écran d'inscription.
+              resetAll();
+              loadDemo();
+              router.replace('/');
+            } else {
               setConfirmReset(true);
               setTimeout(() => setConfirmReset(false), 4000);
             }

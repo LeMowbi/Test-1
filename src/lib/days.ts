@@ -16,14 +16,15 @@ export function dayKey(d: Date): string {
 
 // `from` permet d'injecter une date de référence (tests déterministes) ; par défaut,
 // maintenant. Génère n jours consécutifs SANS trou — les deux premiers portent un
-// libellé amical (« Aujourd'hui », « Demain »), les suivants leur nom de jour.
+// libellé amical AVEC le numéro du jour (« Aujourd'hui 12 », « Demain 13 ») pour rester
+// sans ambiguïté le soir, les suivants leur nom de jour.
 export function nextDays(n: number, from: Date = new Date()): DayOption[] {
   const now = from;
   return Array.from({ length: n }, (_, i) => {
     const d = new Date(now);
     d.setDate(now.getDate() + i);
     d.setHours(0, 0, 0, 0);
-    const label = i === 0 ? "Aujourd'hui" : i === 1 ? 'Demain' : `${DAYS[d.getDay()]} ${d.getDate()}`;
+    const label = i === 0 ? `Aujourd'hui ${d.getDate()}` : i === 1 ? `Demain ${d.getDate()}` : `${DAYS[d.getDay()]} ${d.getDate()}`;
     return { label, value: d.getTime(), key: dayKey(d) };
   });
 }

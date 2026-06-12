@@ -43,10 +43,17 @@ for (const s of starts) {
 const jeudi = nextDays(7, new Date(2026, 5, 11, 23, 40));
 check(jeudi[2].label === 'Samedi 13' && jeudi[2].key === '2026-06-13', 'Jeudi 11 → J+2 = « Samedi 13 » (2026-06-13)');
 
-// 3) Vendredi 12 juin : le samedi 13 n'a PAS disparu — c'est le chip « Demain » (J+1).
+// 3) Vendredi 12 juin : le samedi 13 n'a PAS disparu — c'est le chip « Demain 13 » (J+1).
 const vendredi = nextDays(7, new Date(2026, 5, 12, 9, 0));
-check(vendredi[1].label === 'Demain' && vendredi[1].key === '2026-06-13', 'Vendredi 12 → samedi 13 présent comme « Demain » (J+1)');
+check(vendredi[1].label === 'Demain 13' && vendredi[1].key === '2026-06-13', 'Vendredi 12 → samedi 13 présent comme « Demain 13 » (J+1)');
 check(vendredi.some((d) => d.key === '2026-06-13'), 'Vendredi 12 → 2026-06-13 bien dans la liste (non manquant)');
+
+// 4) v4.4.2 : les libellés relatifs portent le NUMÉRO du jour (anti-ambiguïté le soir).
+check(vendredi[0].label === "Aujourd'hui 12", "Vendredi 12 → chip 0 = « Aujourd'hui 12 »");
+check(jeudi[0].label === "Aujourd'hui 11" && jeudi[1].label === 'Demain 12', "Jeudi 11 → « Aujourd'hui 11 » · « Demain 12 »");
+// Fin de mois : le numéro suit le calendrier (30 juin → « Demain 1 »).
+const finJuin = nextDays(7, new Date(2026, 5, 30, 23, 40));
+check(finJuin[0].label === "Aujourd'hui 30" && finJuin[1].label === 'Demain 1', "30 juin → « Aujourd'hui 30 » · « Demain 1 » (bascule de mois)");
 
 console.log(failed === 0 ? '\nTOUS LES TESTS JOURS PASSENT.' : `\n${failed} test(s) jours en échec.`);
 if (failed > 0) process.exitCode = 1;

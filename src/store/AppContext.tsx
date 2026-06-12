@@ -25,7 +25,7 @@ export type Reservation = {
   clubId: string;
   clubName: string;
   court: string; // terrain précis réservé (ex. « Terrain 2 »)
-  date: string; // libellé d'affichage (ex. « Demain »)
+  date: string; // libellé d'affichage (ex. « Demain 13 »)
   dateKey: string; // identité stable du jour (AAAA-MM-JJ) — base des calculs
   time: string;
   startsAt: number; // horodatage réel du créneau (rappel, anti double-réservation)
