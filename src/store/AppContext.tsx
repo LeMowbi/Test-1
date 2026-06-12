@@ -491,7 +491,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             (x) => !(x.clubId === clubId && x.dateKey === dateKey && x.time === time && x.court === court)
           ),
         })),
-      resetAll: () => setState(initialState),
+      resetAll: () => {
+        // Réinitialisation TOTALE de la démo : on efface AUSSI la clé persistée pour
+        // qu'aucune donnée (niveau, palmarès, blocages, amis retirés…) ne survive à
+        // un rechargement, puis on revient à l'état seed complet. La persistance
+        // réécrira ensuite l'état seed — équivalent à une toute première ouverture.
+        AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
+        setState(initialState);
+      },
     }),
     [state, hydrated, stats]
   );

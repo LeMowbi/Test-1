@@ -1,0 +1,52 @@
+// Test de logique — sélecteur de jours (régression A du patch v4.4.1).
+// Exécute la VRAIE fonction source `nextDays` (src/lib/days.ts) ; aucun double.
+//   node --experimental-strip-types tests/days.test.ts
+//
+// Contexte : un audit avait cru que « Samedi 13 » disparaissait des chips. En réalité,
+// le jour J+1 porte le libellé « Demain » : quand on est un vendredi, le samedi suivant
+// EST présent, simplement étiqueté « Demain » (et non « Samedi 13 »). La liste produit
+// toujours n jours consécutifs sans trou — ce test le verrouille.
+
+import { nextDays } from '../src/lib/days.ts';
+
+let failed = 0;
+const check = (cond: boolean, msg: string) => {
+  console.log(`${cond ? '✓' : '✗ ÉCHEC'} ${msg}`);
+  if (!cond) failed++;
+};
+
+const dayDiff = (a: string, b: string) =>
+  (new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime()) / 86400000;
+
+function isConsecutive(keys: string[]): boolean {
+  for (let i = 1; i < keys.length; i++) if (dayDiff(keys[i - 1], keys[i]) !== 1) return false;
+  return true;
+}
+
+// 1) 7 jours consécutifs sans trou, sur 7 dates de départ variées (jours de semaine
+//    différents + bascules de mois et d'année).
+const starts = [
+  new Date(2026, 5, 11, 23, 40), // jeudi (scénario de l'audit)
+  new Date(2026, 5, 12, 9, 0),   // vendredi (date « réelle » du test)
+  new Date(2026, 5, 30, 23, 40), // 30 juin → bascule de mois
+  new Date(2026, 1, 26, 23, 59), // février
+  new Date(2026, 11, 29, 23, 40),// 29 déc → bascule d'année
+  new Date(2026, 2, 1, 0, 1),    // 1er mars
+  new Date(2026, 9, 31, 23, 40), // 31 oct
+];
+for (const s of starts) {
+  const keys = nextDays(7, s).map((d) => d.key);
+  check(keys.length === 7 && isConsecutive(keys), `7 jours consécutifs depuis ${keys[0]} → ${keys[keys.length - 1]}`);
+}
+
+// 2) Scénario audit, jeudi 11 juin : J+2 apparaît bien étiqueté « Samedi 13 ».
+const jeudi = nextDays(7, new Date(2026, 5, 11, 23, 40));
+check(jeudi[2].label === 'Samedi 13' && jeudi[2].key === '2026-06-13', 'Jeudi 11 → J+2 = « Samedi 13 » (2026-06-13)');
+
+// 3) Vendredi 12 juin : le samedi 13 n'a PAS disparu — c'est le chip « Demain » (J+1).
+const vendredi = nextDays(7, new Date(2026, 5, 12, 9, 0));
+check(vendredi[1].label === 'Demain' && vendredi[1].key === '2026-06-13', 'Vendredi 12 → samedi 13 présent comme « Demain » (J+1)');
+check(vendredi.some((d) => d.key === '2026-06-13'), 'Vendredi 12 → 2026-06-13 bien dans la liste (non manquant)');
+
+console.log(failed === 0 ? '\nTOUS LES TESTS JOURS PASSENT.' : `\n${failed} test(s) jours en échec.`);
+if (failed > 0) process.exitCode = 1;

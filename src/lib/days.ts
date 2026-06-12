@@ -14,8 +14,11 @@ export function dayKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-export function nextDays(n: number): DayOption[] {
-  const now = new Date();
+// `from` permet d'injecter une date de référence (tests déterministes) ; par défaut,
+// maintenant. Génère n jours consécutifs SANS trou — les deux premiers portent un
+// libellé amical (« Aujourd'hui », « Demain »), les suivants leur nom de jour.
+export function nextDays(n: number, from: Date = new Date()): DayOption[] {
+  const now = from;
   return Array.from({ length: n }, (_, i) => {
     const d = new Date(now);
     d.setDate(now.getDate() + i);

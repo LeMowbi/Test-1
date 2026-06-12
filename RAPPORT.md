@@ -229,3 +229,47 @@ figé à côté. Clubs inscrits via l'app : 0 avis → badge « Nouveau ». Publ
 | 7. §6 a-f (Complet, formats FCFA, singulier, annuler tournoi vide, toast copie, navigation gérant) | ✓ (formatFee : 11/11 cas, dont « déjà espacé » inchangé) |
 
 TypeScript : **0 erreur** · export web statique : **OK**.
+
+---
+
+## Patch v4.4.1 (vérification des 2 « régressions » signalées au test réel)
+
+Conclusion après enquête : **les deux régressions signalées n'existent pas dans le code** —
+ce sont des faux positifs de l'audit. Détail honnête + preuves ci-dessous. J'ai ajouté
+**deux tests de logique versionnés** (`npm run test:logic`) pour verrouiller le bon
+comportement, et une petite **fiabilisation du reset**. Aucune correction « à l'aveugle ».
+
+### A. « Le jour J+2 (Samedi 13) a disparu des sélecteurs » → FAUX POSITIF
+La vraie fonction `nextDays` (inchangée depuis v4.3, et **pas** dans les 14 fichiers
+touchés par v4.4) génère toujours 7 jours consécutifs sans trou. Exécutée **aujourd'hui
+(vendredi 12 juin)**, elle produit exactement ce que l'audit a vu :
+`Aujourd'hui · Demain · Dimanche 14 · Lundi 15 · …`. « Samedi 13 » n'est pas manquant :
+**le 13 juin EST « Demain »** (J+1), car on est vendredi 12. L'audit, en l'appelant
+« après-demain », supposait qu'on était jeudi 11 — d'où l'attente d'un libellé « Samedi 13 ».
+Le jour est bien présent et réservable, simplement étiqueté « Demain ». Sa propre
+observation le confirme : « Dimanche 14 = 2026-06-14 » est exactement l'index 2 quand on
+est le 12. **Aucune correction du générateur** (le modifier aurait introduit un vrai bug).
+- Petit ajout sûr : `nextDays(n, from?)` accepte une date de référence optionnelle (défaut
+  = maintenant, comportement identique) pour permettre un test déterministe sur la **source
+  réelle**, sur 7 dates de départ (dont bascules de mois/d'année).
+
+### B. « Réinitialiser la démo ne réinitialise plus tout » → FAUX POSITIF
+`resetAll` était déjà `setState(initialState)` — une **réinitialisation à l'état seed
+complet** (pas une liste de clés manuelle), et tous les reducers sont immuables, donc
+l'état seed n'est jamais pollué. La simulation fidèle du scénario (clôture 3.50→3.75 +
+blocage + retrait d'ami → reset) revient **strictement** à l'état d'une première ouverture
+(niveau 3.0, palmarès vide, `compResults`/`officialResults`/`blockedSlots` vides, 4 amis
+seeds, compte déconnecté). `seedFriends` contient bien **4** amis, et le profil se garde de
+tout affichage post-reset (`if (!account) return null`).
+- Fiabilisation appliquée (suggérée par la demande) : `resetAll` **efface aussi la clé
+  persistée** `padelco_state_v4` avant de revenir au seed → reset autoritaire, plus aucun
+  risque qu'une donnée survive à un rechargement (même en cas d'écriture partielle).
+
+### Tests ajoutés (versionnés) — `npm run test:logic`
+| Test | Résultat |
+|---|---|
+| `tests/days.test.ts` (importe la **vraie** `nextDays`) : 7 jours consécutifs sur 7 dates de départ ; J+2 = « Samedi 13 » un jeudi ; 13/06 présent comme « Demain » un vendredi | ✓ 10/10 |
+| `tests/reset.test.mjs` : reset → état === première ouverture (strict) ; immutabilité du seed ; défi sans inscrit → « Annuler ce tournoi » | ✓ 11/11 |
+
+TypeScript : **0 erreur** · export web statique : **OK** · (Playwright toujours indisponible
+dans l'environnement — vérifs par tsc + build + tests node sur la source réelle).
