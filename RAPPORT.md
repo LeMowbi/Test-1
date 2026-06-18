@@ -554,3 +554,26 @@ reste. Les écrans qui marchent restent propres ; rien n'est facturé au joueur.
 > **Note déploiement** : la démo (`gh-pages`) est bien republiée à chaque patch (hash du bundle
 > JS différent à chaque fois). Si « rien ne change » à l'écran, c'est le **cache du navigateur** :
 > ouvrir en navigation privée, ou ajouter `?v=462` à l'URL pour forcer le rechargement.
+
+---
+
+## Patch v4.8 — Écrans cœur refaits d'après les MAQUETTES (pas seulement le handoff .md)
+
+Le handoff `.md` (tokens/kit/§A) était appliqué, mais les **maquettes HTML** (mise en page exacte)
+ne l'étaient pas. Cette vague refait les écrans d'après les maquettes, en parallèle (un agent par
+fichier, logique préservée) :
+- **Accueil** : salutation + avatar anneau, héros (pastille « live » lime + CTA pilule), accès
+  rapide 4 univers en icônes, carte « Ton prochain match » (pastille date + statut + avatars),
+  clubs proches, tournois.
+- **Profil** : bandeau signature (avatar + identité + édition), carte Niveau avec **jauge bornée**
+  (monte/descend, tournois only), StatTile, trophées, palmarès.
+- **Fiche club** : rangée de 3 info-chips (note/terrains/localisation) + **tarifs en lignes**
+  (horaire → prix) ; héros photo + barre « Réserver » collante déjà en place.
+- **Réserver guidé** : créneaux **groupés par période** (Matin/Après-midi/Soirée) avec icône +
+  prix indicatif ; stepper conservé.
+- **Mes réservations** : cartes avec **pastille date** dégradée + statut + boutons pill.
+- **Fiche tournoi** : **héros violet** (univers Tournois) + chips Récompense/Date ; moteur de
+  tournoi (inscription, clôture 2 étapes, annulation) strictement inchangé.
+- Vérifs : **tsc 0 · lint 0/0 · 107 tests verts · export OK**. Tokens uniquement, logique intacte.
+- **Déploiement confirmé côté GitHub** : Pages build #40 `success` — si l'écran ne change pas,
+  c'est le cache (ouvrir avec `?v=…` neuf en navigation privée).

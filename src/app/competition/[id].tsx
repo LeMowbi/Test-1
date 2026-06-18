@@ -10,7 +10,7 @@ import { demoTeams, formatFee, seedCompetitions, teamCount } from '@/data/compet
 import { dayKey } from '@/lib/days';
 import { shareCompetition } from '@/lib/share';
 import { useApp } from '@/store/AppContext';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, shadows, spacing } from '@/theme';
 
 export default function CompetitionDetail() {
   const { id } = useLocalSearchParams();
@@ -82,35 +82,58 @@ export default function CompetitionDetail() {
         ) : null
       }
     >
-      <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
-        <Tag
-          label={byClub ? `Organisé par ${comp.organizer}` : `Créé par ${comp.organizer} (joueur)`}
-          tone={byClub ? 'blue' : 'green'}
-          icon={byClub ? 'business' : 'person'}
-        />
-        {comp.official ? <Tag label="Officiel" tone="amber" icon="shield-checkmark" /> : null}
+      {/* En-tête héros violet (univers Tournois) */}
+      <View style={styles.hero}>
+        <View style={styles.heroTopRow}>
+          <View style={styles.heroPill}>
+            <Txt variant="label" color={colors.purple} style={styles.heroPillText}>
+              Tournoi · {comp.level}
+            </Txt>
+          </View>
+          {comp.official ? <Tag label="Officiel" tone="amber" icon="shield-checkmark" /> : null}
+        </View>
+        <Txt variant="display" color={colors.white} style={styles.heroTitle}>
+          {comp.title}
+        </Txt>
+        <View style={styles.heroMetaRow}>
+          <Ionicons name="calendar-outline" size={14} color={colors.white} style={{ opacity: 0.85 }} />
+          <Txt variant="small" color={colors.white} style={styles.heroMeta}>
+            {comp.date}
+            {comp.clubName ? ` · ${comp.clubName}` : ''}
+          </Txt>
+        </View>
+        <View style={styles.heroOrg}>
+          <Tag
+            label={byClub ? `Organisé par ${comp.organizer}` : `Créé par ${comp.organizer} (joueur)`}
+            tone={byClub ? 'blue' : 'green'}
+            icon={byClub ? 'business' : 'person'}
+          />
+        </View>
       </View>
-      <Txt variant="display" style={{ fontSize: 26, marginTop: spacing.md }}>
-        {comp.title}
-      </Txt>
 
-      <Card style={{ marginTop: spacing.lg }}>
+      {/* Chips d'info sous le héros */}
+      <View style={styles.chipsRow}>
         {comp.reward.trim() ? (
-          <>
-            <View style={styles.reward}>
-              <Ionicons name="gift" size={22} color={colors.purple} />
-              <View style={{ flex: 1 }}>
-                <Txt variant="label" color={colors.textFaint}>
-                  Récompense
-                </Txt>
-                <Txt variant="h3" color={colors.purple}>
-                  {formatFee(comp.reward)}
-                </Txt>
-              </View>
-            </View>
-            <Divider style={{ marginVertical: spacing.md }} />
-          </>
+          <View style={[styles.infoChip, styles.infoChipReward]}>
+            <Txt variant="label" color={colors.purple}>
+              Récompense
+            </Txt>
+            <Txt variant="h3" color={colors.purple} style={{ marginTop: 2 }}>
+              {formatFee(comp.reward)}
+            </Txt>
+          </View>
         ) : null}
+        <View style={styles.infoChip}>
+          <Txt variant="label" color={colors.textFaint}>
+            {played ? 'Date' : 'Clôture'}
+          </Txt>
+          <Txt variant="h3" style={{ marginTop: 2 }}>
+            {comp.date}
+          </Txt>
+        </View>
+      </View>
+
+      <Card style={{ marginTop: spacing.md }}>
         <Info icon="calendar-outline" label="Date" value={comp.date} />
         <Info icon="git-network-outline" label="Format" value={comp.format} />
         <Info icon="podium-outline" label="Niveau" value={comp.level} />
@@ -420,11 +443,42 @@ function Info({ icon, label, value }: { icon: keyof typeof Ionicons.glyphMap; la
 }
 
 const styles = StyleSheet.create({
-  reward: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  hero: {
+    backgroundColor: colors.purple,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.e2,
+  },
+  heroTopRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  heroPill: {
+    backgroundColor: colors.white,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.md,
+    paddingVertical: 4,
+    alignSelf: 'flex-start',
+  },
+  heroPillText: { color: colors.purple },
+  heroTitle: { fontSize: 26, marginTop: spacing.md },
+  heroMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm },
+  heroMeta: { opacity: 0.9 },
+  heroOrg: { flexDirection: 'row', marginTop: spacing.md },
+  chipsRow: { flexDirection: 'row', gap: spacing.sm },
+  infoChip: {
+    flex: 1,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.md,
+    ...shadows.e1,
+  },
+  infoChipReward: { backgroundColor: colors.purpleSoft, borderColor: colors.purpleSoft },
   info: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: 6 },
   placesHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   barTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, marginTop: spacing.sm, overflow: 'hidden' },
-  barFill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.signature },
+  barFill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.purple },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   teamsWrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   teamRow: {

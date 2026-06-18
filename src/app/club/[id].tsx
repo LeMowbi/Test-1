@@ -15,7 +15,7 @@ import { seedCompetitions } from '@/data/competitions';
 import { ratingFor, reviewsFor } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
-import { fcfa, initials, perPlayer } from '@/lib/format';
+import { fcfa, initials } from '@/lib/format';
 import { minPrice, priceTiersFor } from '@/lib/pricing';
 import { shareClub } from '@/lib/share';
 import { openMaps } from '@/lib/maps';
@@ -153,6 +153,35 @@ export default function ClubDetail() {
         )}
       </View>
 
+      {/* Rangée de 3 « info chips » : note · terrains · localisation */}
+      <View style={styles.infoChips}>
+        <View style={styles.infoChip}>
+          <Ionicons name="star" size={16} color={colors.amber} />
+          {ratingCount === 0 ? (
+            <Txt variant="h3">Nouveau</Txt>
+          ) : (
+            <Txt variant="h3">{avgRating.toFixed(1)}</Txt>
+          )}
+          <Txt variant="small" color={colors.textFaint}>
+            {ratingCount === 0 ? 'club' : `${ratingCount} avis`}
+          </Txt>
+        </View>
+        <View style={styles.infoChip}>
+          <Txt variant="h3">{courtCount}</Txt>
+          <Txt variant="small" color={colors.textFaint}>
+            terrains
+          </Txt>
+        </View>
+        <View style={styles.infoChip}>
+          <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
+            {club.area}
+          </Txt>
+          <Txt variant="small" color={colors.textFaint}>
+            {club.city}
+          </Txt>
+        </View>
+      </View>
+
       <View style={styles.actions}>
         <Button label="Voir sur la carte" icon="map-outline" variant="secondary" onPress={() => openMaps(club)} full />
       </View>
@@ -174,32 +203,45 @@ export default function ClubDetail() {
             </View>
           ))}
         </View>
-        <Divider style={{ marginVertical: spacing.md }} />
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end' }}>
-          <View>
-            <Txt variant="muted">Tarif indicatif</Txt>
-            <Txt variant="small" color={colors.textFaint}>soit ~{perPlayer(minPrice(club))} / joueur à 4</Txt>
-          </View>
-          <View style={{ alignItems: 'flex-end' }}>
-            <Txt variant="price">dès {fcfa(minPrice(club))}</Txt>
-            <Txt variant="small" color={colors.textMuted}>la session · 1h30</Txt>
-          </View>
-        </View>
-        {/* Détail des plages tarifaires (si le club en a défini). */}
-        {tiers.length > 0 ? (
-          <View style={{ marginTop: spacing.sm, gap: 4 }}>
-            {tiers.map((t) => (
-              <View key={`${t.start}-${t.end}`} style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                <Txt variant="small" color={colors.textMuted}>{t.start} – {t.end}</Txt>
-                <Txt variant="small" color={colors.text} style={{ fontWeight: '600' }}>{fcfa(t.price)}</Txt>
-              </View>
-            ))}
-          </View>
-        ) : null}
-        <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
-          Tarif à confirmer auprès du club.
-        </Txt>
       </Card>
+
+      {/* Tarifs par créneau — lignes horaires (ou tarif unique si aucune plage). */}
+      <Txt variant="h3" style={{ marginTop: spacing.lg, marginBottom: spacing.sm }}>
+        Tarifs par créneau
+      </Txt>
+      <Card>
+        {tiers.length > 0 ? (
+          tiers.map((t, i) => (
+            <View key={`${t.start}-${t.end}`}>
+              {i > 0 ? <Divider /> : null}
+              <View style={styles.tierRow}>
+                <View style={styles.tierLeft}>
+                  <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+                  <Txt variant="body">
+                    {t.start} – {t.end}
+                  </Txt>
+                </View>
+                <Txt variant="body" style={{ fontWeight: '700' }}>
+                  {fcfa(t.price)}
+                </Txt>
+              </View>
+            </View>
+          ))
+        ) : (
+          <View style={styles.tierRow}>
+            <View style={styles.tierLeft}>
+              <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+              <Txt variant="body">Session · 1h30</Txt>
+            </View>
+            <Txt variant="body" style={{ fontWeight: '700' }}>
+              dès {fcfa(minPrice(club))}
+            </Txt>
+          </View>
+        )}
+      </Card>
+      <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+        Tarif à confirmer auprès du club.
+      </Txt>
 
       {/* Offres & actus (gérées par le club) */}
       <Card style={{ marginTop: spacing.lg }}>
@@ -450,6 +492,20 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   tags: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, flexWrap: 'wrap' },
+  infoChips: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg },
+  infoChip: {
+    flex: 1,
+    alignItems: 'center',
+    gap: spacing.xs,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.sm,
+  },
+  tierRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: spacing.md },
+  tierLeft: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   actions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.lg, alignItems: 'stretch' },
   amenities: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md },
   amenity: { flexDirection: 'row', alignItems: 'center', gap: 4 },

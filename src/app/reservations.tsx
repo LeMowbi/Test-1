@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Divider, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
+import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
 import { seedCompetitions } from '@/data/competitions';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
@@ -14,6 +14,7 @@ import { colors, radius, spacing } from '@/theme';
 
 const FIVE_H = 5 * 3600000;
 const PAST_PREVIEW = 5; // passées : 5 dernières + « Voir tout »
+const MONTHS = ['JANV.', 'FÉVR.', 'MARS', 'AVR.', 'MAI', 'JUIN', 'JUIL.', 'AOÛT', 'SEPT.', 'OCT.', 'NOV.', 'DÉC.'];
 
 export default function ReservationsScreen() {
   const router = useRouter();
@@ -62,16 +63,26 @@ export default function ReservationsScreen() {
         ) : (
           upcoming.map((r) => {
             const canCancel = r.startsAt - now > FIVE_H;
+            const [, mm, dd] = r.dateKey.split('-');
+            const day = dd ?? '';
+            const month = MONTHS[Number(mm) - 1] ?? '';
             return (
               <Card key={r.id} style={{ marginBottom: spacing.md }}>
                 <View style={styles.row}>
-                  <IconCircle icon="tennisball" color={colors.green} bg={colors.greenSoft} size={40} />
+                  <View style={styles.dateChip}>
+                    <Txt variant="h2" color={colors.onSignature} style={styles.dateDay}>
+                      {day}
+                    </Txt>
+                    <Txt variant="small" color={colors.onSignature} style={styles.dateMonth}>
+                      {month}
+                    </Txt>
+                  </View>
                   <View style={{ flex: 1 }}>
                     <Txt variant="h3" style={{ fontSize: 15 }}>
                       {r.clubName}
                     </Txt>
                     <Txt variant="muted">
-                      {r.date} · {r.time} · {r.court} · 1h30
+                      {r.time} · {r.court} · 1h30
                     </Txt>
                     {r.price ? (
                       <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
@@ -80,9 +91,9 @@ export default function ReservationsScreen() {
                     ) : null}
                   </View>
                   {r.clubConfirmed ? (
-                    <Tag label="Confirmée ✓" tone="green" icon="checkmark-circle" />
+                    <Tag label="Confirmé" tone="green" icon="checkmark-circle" />
                   ) : (
-                    <Tag label="En attente" tone="neutral" icon="hourglass-outline" />
+                    <Tag label="En attente" tone="amber" icon="hourglass-outline" />
                   )}
                 </View>
 
@@ -104,11 +115,12 @@ export default function ReservationsScreen() {
                       icon="logo-whatsapp"
                       variant="secondary"
                       onPress={() => notifyPartners(r)}
+                      pill
                       full
                     />
                   </View>
                   {canCancel ? (
-                    <Button size="sm" label="Annuler" icon="close" variant="danger" onPress={() => setCancelTarget(r)} />
+                    <Button size="sm" label="Annuler" icon="close" variant="danger" onPress={() => setCancelTarget(r)} pill />
                   ) : null}
                 </View>
                 {!canCancel ? (
@@ -231,6 +243,16 @@ export default function ReservationsScreen() {
 
 const styles = StyleSheet.create({
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  dateChip: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.md,
+    backgroundColor: colors.signature,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dateDay: { lineHeight: 24 },
+  dateMonth: { fontSize: 9, letterSpacing: 0.5, opacity: 0.85 },
   compRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: 0, borderWidth: 0, shadowOpacity: 0, elevation: 0, backgroundColor: 'transparent' },
   participants: {
     flexDirection: 'row',

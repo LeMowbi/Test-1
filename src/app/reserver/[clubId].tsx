@@ -5,7 +5,7 @@ import { StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Stepper } from '@/components/Stepper';
-import { Button, Card, EmptyState, Txt } from '@/components/ui';
+import { Button, Card, EmptyState, Txt, type IconName } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { courtsFor, freeCourts, hasCompetition, openSlotsFor, type AvailCtx } from '@/lib/availability';
@@ -133,22 +133,37 @@ export default function ReserverScreen() {
       ) : null}
 
       <Label text={day ? 'Créneau' : 'Créneau (choisis d’abord un jour)'} />
-      <View style={styles.wrap}>
-        {openSlots.map((s) => {
-          const slotTs = slotTimestamp(day?.value ?? 0, s);
-          const isPast = !!day && slotTs <= Date.now();
-          const noCourt = !!day && freeCourts(club, day.key, s, ctx).length === 0;
-          const blocked = !day || compToday || isPast || noCourt;
-          // Avec des plages tarifaires, on montre le prix de chaque créneau.
-          const label = isPast ? `${s} · passé` : noCourt ? `${s} · complet` : hasTiers ? `${s} · ${fcfa(priceForSlot(club, s))}` : s;
-          return <Chip key={s} label={label} active={s === slot} disabled={blocked} onPress={() => { setSlot(s); setCourt(null); }} size="lg" />;
-        })}
-        {openSlots.length === 0 ? (
-          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-            Aucun créneau ouvert par le club pour le moment.
-          </Txt>
-        ) : null}
-      </View>
+      {SLOT_PERIODS.map((period) => {
+        const periodSlots = openSlots.filter((s) => periodOf(s) === period.id);
+        if (periodSlots.length === 0) return null;
+        return (
+          <View key={period.id}>
+            <View style={styles.periodHeader}>
+              <Ionicons name={period.icon} size={15} color={period.color} />
+              <Txt variant="label" color={colors.textMuted}>
+                {period.label}
+                {hasTiers && periodSlots[0] ? ` · ${fcfa(priceForSlot(club, periodSlots[0]))}` : ''}
+              </Txt>
+            </View>
+            <View style={styles.wrap}>
+              {periodSlots.map((s) => {
+                const slotTs = slotTimestamp(day?.value ?? 0, s);
+                const isPast = !!day && slotTs <= Date.now();
+                const noCourt = !!day && freeCourts(club, day.key, s, ctx).length === 0;
+                const blocked = !day || compToday || isPast || noCourt;
+                // Avec des plages tarifaires, on montre le prix de chaque créneau.
+                const label = isPast ? `${s} · passé` : noCourt ? `${s} · complet` : hasTiers ? `${s} · ${fcfa(priceForSlot(club, s))}` : s;
+                return <Chip key={s} label={label} active={s === slot} disabled={blocked} onPress={() => { setSlot(s); setCourt(null); }} size="lg" />;
+              })}
+            </View>
+          </View>
+        );
+      })}
+      {openSlots.length === 0 ? (
+        <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+          Aucun créneau ouvert par le club pour le moment.
+        </Txt>
+      ) : null}
 
       {day && slot ? (
         <>
@@ -203,6 +218,20 @@ export default function ReserverScreen() {
   );
 }
 
+// Regroupement des créneaux par moment de journée (maquette « Réserver · B »).
+const SLOT_PERIODS: { id: 'morning' | 'afternoon' | 'evening'; label: string; icon: IconName; color: string }[] = [
+  { id: 'morning', label: 'Matin', icon: 'partly-sunny-outline', color: colors.amber },
+  { id: 'afternoon', label: 'Après-midi', icon: 'sunny-outline', color: colors.amber },
+  { id: 'evening', label: 'Soirée', icon: 'moon-outline', color: colors.purple },
+];
+
+function periodOf(slot: string): 'morning' | 'afternoon' | 'evening' {
+  const hour = parseInt(slot.slice(0, 2), 10);
+  if (hour < 12) return 'morning';
+  if (hour < 17) return 'afternoon';
+  return 'evening';
+}
+
 function Label({ text }: { text: string }) {
   return (
     <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
@@ -224,6 +253,7 @@ function Row({ label, value }: { label: string; value: string }) {
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  periodHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.md },
   extraRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
   extraInput: {
     flex: 1,
