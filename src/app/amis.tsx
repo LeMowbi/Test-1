@@ -3,13 +3,18 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
 import { PlayerSheet, type PlayerLike } from '@/components/PlayerSheet';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
+import { SegmentedControl } from '@/components/SegmentedControl';
+import { Button, Card, Divider, EmptyState, Txt } from '@/components/ui';
 import { playerById } from '@/data/players';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
+const TABS = ['Amis', 'Suivis'] as const;
+type Tab = (typeof TABS)[number];
+
 export default function AmisScreen() {
   const { state, addFriend, removeFriend, toggleFollow } = useApp();
+  const [tab, setTab] = useState<Tab>('Amis');
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
   const [tapError, setTapError] = useState(false);
@@ -34,130 +39,158 @@ export default function AmisScreen() {
   };
 
   return (
-    <Screen back title="Mes amis" subtitle="Tes partenaires de jeu — invite-les sur tes réservations">
-      <View style={{ marginTop: spacing.sm }}>
-        <SectionHeader title={`Amis · ${state.friends.length}`} />
-        {state.friends.length === 0 ? (
-          <EmptyState icon="people-outline" title="Aucun ami pour l'instant" text="Ajoute tes partenaires ci-dessous : tu pourras les inviter en réservant." />
-        ) : (
-          <Card>
-            {state.friends.map((f, i) => (
-              <View key={f.id}>
-                {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
-                <View style={styles.friend}>
-                  <Pressable onPress={() => openFriend(f)} style={styles.friendTap}>
-                    <Avatar name={f.name} size={38} />
-                    <View style={{ flex: 1 }}>
-                      <Txt variant="body" style={{ fontWeight: '600' }}>
-                        {f.name}
-                      </Txt>
-                      {f.phone ? (
-                        <Txt variant="small" color={colors.textFaint}>
-                          {f.phone}
+    <Screen back title="Amis" subtitle="Tes partenaires de jeu — invite-les sur tes réservations">
+      <SegmentedControl options={TABS} value={tab} onChange={setTab} />
+
+      {tab === 'Amis' ? (
+        <>
+          {state.friends.length === 0 ? (
+            <EmptyState
+              icon="people-outline"
+              title="Aucun ami pour l'instant"
+              text="Ajoute tes partenaires ci-dessous : tu pourras les inviter en réservant."
+            />
+          ) : (
+            <Card>
+              {state.friends.map((f, i) => (
+                <View key={f.id}>
+                  {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
+                  <View style={styles.row}>
+                    <Pressable onPress={() => openFriend(f)} style={styles.rowTap}>
+                      <Avatar name={f.name} size={44} />
+                      <View style={styles.rowInfo}>
+                        <Txt variant="body" style={styles.rowName}>
+                          {f.name}
                         </Txt>
-                      ) : null}
-                    </View>
-                    {f.level !== undefined ? <Tag label={`Niv. ${f.level.toFixed(1)}`} tone="blue" /> : null}
-                  </Pressable>
-                  <Button
-                    size="sm"
-                    label="Retirer"
-                    variant="ghost"
-                    onPress={() => setRemoveId(removeId === f.id ? null : f.id)}
-                  />
-                </View>
-                {removeId === f.id ? (
-                  // Confirmation légère, en place — pas de suppression au premier tap.
-                  <View style={styles.removeConfirm}>
-                    <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-                      Retirer {f.name} de tes amis ?
-                    </Txt>
+                        <Txt variant="small" color={colors.textMuted}>
+                          {subtitleFor(f.level, f.phone)}
+                        </Txt>
+                      </View>
+                    </Pressable>
                     <Button
                       size="sm"
-                      label="Oui, retirer"
-                      variant="danger"
-                      onPress={() => {
-                        removeFriend(f.id);
-                        setRemoveId(null);
-                      }}
+                      label="Retirer"
+                      variant="ghost"
+                      onPress={() => setRemoveId(removeId === f.id ? null : f.id)}
                     />
-                    <Button size="sm" label="Non" variant="secondary" onPress={() => setRemoveId(null)} />
                   </View>
-                ) : null}
-              </View>
-            ))}
-          </Card>
-        )}
-      </View>
-
-      {/* Joueurs suivis (via les mini-fiches) — retirables */}
-      {followed.length > 0 ? (
-        <View style={{ marginTop: spacing.xl }}>
-          <SectionHeader title={`Suivis · ${followed.length}`} />
-          <Card>
-            {followed.map(([id, info], i) => (
-              <View key={id}>
-                {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
-                <View style={styles.friend}>
-                  <Pressable onPress={() => setOpenPlayer({ id, name: info.name, level: info.level })} style={styles.friendTap}>
-                    <Avatar name={info.name} size={38} />
-                    <View style={{ flex: 1 }}>
-                      <Txt variant="body" style={{ fontWeight: '600' }}>
-                        {info.name}
+                  {removeId === f.id ? (
+                    // Confirmation légère, en place — pas de suppression au premier tap.
+                    <View style={styles.removeConfirm}>
+                      <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                        Retirer {f.name} de tes amis ?
                       </Txt>
-                      {info.favoriteClub ? (
-                        <Txt variant="small" color={colors.textFaint}>{info.favoriteClub}</Txt>
-                      ) : null}
+                      <Button
+                        size="sm"
+                        label="Oui, retirer"
+                        variant="danger"
+                        onPress={() => {
+                          removeFriend(f.id);
+                          setRemoveId(null);
+                        }}
+                      />
+                      <Button size="sm" label="Non" variant="secondary" onPress={() => setRemoveId(null)} />
                     </View>
-                    {info.level !== undefined ? <Tag label={`Niv. ${info.level.toFixed(2)}`} tone="blue" /> : null}
-                  </Pressable>
-                  <Button size="sm" label="Retirer" variant="ghost" onPress={() => toggleFollow(id, info)} />
+                  ) : null}
                 </View>
-              </View>
-            ))}
-          </Card>
-        </View>
-      ) : null}
+              ))}
+            </Card>
+          )}
 
-      <View style={{ marginTop: spacing.xl }}>
-        <SectionHeader title="Ajouter un ami" />
-        <Card>
-          <Txt variant="small" color={colors.textFaint}>
-            Par numéro : il devient ton ami dès qu'il installe PadelConnect.
-          </Txt>
-          <TextInput value={name} onChangeText={setName} placeholder="Nom de l'ami" placeholderTextColor={colors.textFaint} style={styles.input} />
-          {tapError || (name.length > 0 && !ready) ? (
-            <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>
-              Indique au moins le nom (2 caractères).
-            </Txt>
-          ) : null}
-          <TextInput
-            value={phone}
-            onChangeText={setPhone}
-            placeholder="Numéro (+225…) — optionnel"
-            placeholderTextColor={colors.textFaint}
-            keyboardType="phone-pad"
-            style={styles.input}
-          />
-          <View style={{ marginTop: spacing.md, opacity: ready ? 1 : 0.5 }}>
-            <Button size="sm" label="Ajouter l'ami" icon="person-add" onPress={submit} />
+          <View style={styles.section}>
+            <Card>
+              <Txt variant="h3">Ajouter un ami</Txt>
+              <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
+                Par numéro : il devient ton ami dès qu'il installe PadelConnect.
+              </Txt>
+              <TextInput
+                value={name}
+                onChangeText={setName}
+                placeholder="Nom de l'ami"
+                placeholderTextColor={colors.textFaint}
+                style={styles.input}
+              />
+              {tapError || (name.length > 0 && !ready) ? (
+                <Txt variant="small" color={colors.danger} style={{ marginTop: spacing.xs }}>
+                  Indique au moins le nom (2 caractères).
+                </Txt>
+              ) : null}
+              <TextInput
+                value={phone}
+                onChangeText={setPhone}
+                placeholder="Numéro (+225…) — optionnel"
+                placeholderTextColor={colors.textFaint}
+                keyboardType="phone-pad"
+                style={styles.input}
+              />
+              <View style={{ marginTop: spacing.md, opacity: ready ? 1 : 0.5 }}>
+                <Button size="sm" label="Ajouter l'ami" icon="person-add" onPress={submit} pill />
+              </View>
+              {!ready ? (
+                <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+                  Le nom est obligatoire pour ajouter un ami.
+                </Txt>
+              ) : null}
+            </Card>
           </View>
-          {!ready ? (
-            <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-              Le nom est obligatoire pour ajouter un ami.
-            </Txt>
-          ) : null}
-        </Card>
-      </View>
+        </>
+      ) : (
+        <>
+          {followed.length === 0 ? (
+            <EmptyState
+              icon="star-outline"
+              title="Aucun joueur suivi"
+              text="Ouvre la fiche d'un joueur puis « Suivre » : il apparaîtra ici."
+            />
+          ) : (
+            <Card>
+              {followed.map(([id, info], i) => (
+                <View key={id}>
+                  {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
+                  <View style={styles.row}>
+                    <Pressable
+                      onPress={() => setOpenPlayer({ id, name: info.name, level: info.level })}
+                      style={styles.rowTap}
+                    >
+                      <Avatar name={info.name} size={44} />
+                      <View style={styles.rowInfo}>
+                        <Txt variant="body" style={styles.rowName}>
+                          {info.name}
+                        </Txt>
+                        <Txt variant="small" color={colors.textMuted}>
+                          {subtitleFor(info.level, info.favoriteClub)}
+                        </Txt>
+                      </View>
+                    </Pressable>
+                    <Button size="sm" label="Retirer" variant="ghost" onPress={() => toggleFollow(id, info)} />
+                  </View>
+                </View>
+              ))}
+            </Card>
+          )}
+        </>
+      )}
 
       <PlayerSheet player={openPlayer} onClose={() => setOpenPlayer(null)} />
     </Screen>
   );
 }
 
+// Sous-titre « Niveau X · {ville/zone si dispo} » — le second segment n'apparaît
+// que s'il est renseigné (numéro de l'ami ou club favori du joueur suivi).
+function subtitleFor(level: number | undefined, extra?: string): string {
+  const parts: string[] = [];
+  if (level !== undefined) parts.push(`Niveau ${level.toFixed(1)}`);
+  if (extra) parts.push(extra);
+  return parts.length > 0 ? parts.join(' · ') : 'Joueur PadelConnect';
+}
+
 const styles = StyleSheet.create({
-  friend: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  friendTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  section: { marginTop: spacing.xl },
+  row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  rowTap: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  rowInfo: { flex: 1, gap: 2 },
+  rowName: { fontWeight: '600' },
   removeConfirm: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -168,7 +201,7 @@ const styles = StyleSheet.create({
     padding: spacing.sm,
   },
   input: {
-    backgroundColor: colors.bg,
+    backgroundColor: colors.surfaceAlt,
     borderWidth: 1,
     borderColor: colors.border,
     borderRadius: radius.md,

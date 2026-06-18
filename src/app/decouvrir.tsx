@@ -1,65 +1,109 @@
-import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
+import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
 import { Screen } from '@/components/Screen';
-import { Card, IconCircle, Txt } from '@/components/ui';
-import { padelIntro, padelSections, padelTips } from '@/data/padel';
-import { colors, radius, spacing } from '@/theme';
+import { Button, Card, Txt } from '@/components/ui';
+import { colors, gradients, radius, shadows, spacing } from '@/theme';
+
+// Les 3 règles essentielles présentées dans la maquette (éditorial débutants).
+const RULES = [
+  'Le service se fait à la cuillère, sous la hanche, en diagonale.',
+  'Les vitres font partie du jeu : la balle peut rebondir dessus.',
+  'Comptage comme au tennis : 15, 30, 40, jeu.',
+];
 
 export default function DecouvrirScreen() {
+  const router = useRouter();
+
   return (
     <Screen back title="Découvrir le padel">
-      <Card style={{ marginTop: spacing.sm }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginBottom: spacing.sm }}>
-          <IconCircle icon="tennisball" />
-          <Txt variant="h2">C’est quoi le padel ?</Txt>
-        </View>
-        <Txt variant="body">{padelIntro}</Txt>
-      </Card>
+      {/* Héros dégradé vert signature */}
+      <LinearGradient
+        colors={gradients.deepGreen}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.hero}
+      >
+        <View style={styles.heroBlob} />
+        <Txt variant="label" color={colors.lime}>
+          En 2 minutes
+        </Txt>
+        <Txt variant="h1" color={colors.white} style={styles.heroTitle}>
+          Le padel, c’est quoi ?
+        </Txt>
+      </LinearGradient>
 
-      {padelSections.map((s, idx) => {
-        // Une couleur par thème pour rythmer la lecture.
-        const tint = [colors.signature, colors.blue, colors.purple, colors.coral, colors.green][idx % 5];
-        return (
-          <Card key={s.title} style={{ marginTop: spacing.md }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-              <Ionicons name={s.icon as keyof typeof Ionicons.glyphMap} size={20} color={tint} />
-              <Txt variant="h3">{s.title}</Txt>
+      {/* Paragraphe d'intro */}
+      <Txt variant="body" color={colors.textMuted} style={styles.intro}>
+        Un mélange de tennis et de squash, joué à 4 sur un terrain vitré. Facile à
+        prendre en main, fun dès la première partie — parfait entre amis.
+      </Txt>
+
+      {/* Les 3 règles à connaître */}
+      <Txt variant="label" style={styles.rulesLabel}>
+        3 règles à connaître
+      </Txt>
+      <Card>
+        {RULES.map((rule, i) => (
+          <View key={rule} style={[styles.rule, i > 0 && styles.ruleSpaced]}>
+            <View style={styles.numberBox}>
+              <Txt variant="body" color={colors.signature} style={styles.number}>
+                {i + 1}
+              </Txt>
             </View>
-            {s.points.map((p, i) => (
-              <View key={i} style={styles.bullet}>
-                <View style={[styles.dot, { backgroundColor: tint }]} />
-                <Txt variant="body" style={{ flex: 1 }}>
-                  {p}
-                </Txt>
-              </View>
-            ))}
-          </Card>
-        );
-      })}
-
-      <Card style={{ marginTop: spacing.md, backgroundColor: colors.greenSoft, borderColor: 'transparent' }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-          <Ionicons name="bulb-outline" size={20} color={colors.green} />
-          <Txt variant="h3" color={colors.green}>
-            3 conseils pour débuter
-          </Txt>
-        </View>
-        {padelTips.map((t, i) => (
-          <View key={i} style={styles.bullet}>
-            <Txt variant="body" color={colors.green} style={{ fontWeight: '700' }}>
-              {i + 1}.
-            </Txt>
-            <Txt variant="body" style={{ flex: 1 }}>
-              {t}
+            <Txt variant="body" style={styles.ruleText}>
+              {rule}
             </Txt>
           </View>
         ))}
       </Card>
+
+      {/* CTA principal → écran de réservation */}
+      <View style={styles.cta}>
+        <Button
+          label="Trouver un terrain près de moi"
+          icon="location-outline"
+          pill
+          full
+          onPress={() => router.push('/reserver')}
+        />
+      </View>
     </Screen>
   );
 }
 
 const styles = StyleSheet.create({
-  bullet: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginTop: spacing.sm },
-  dot: { width: 6, height: 6, borderRadius: radius.pill, backgroundColor: colors.signature, marginTop: 8 },
+  hero: {
+    marginTop: spacing.sm,
+    borderRadius: radius.xl,
+    padding: spacing.lg,
+    overflow: 'hidden',
+    ...shadows.e2,
+  },
+  heroBlob: {
+    position: 'absolute',
+    top: -spacing.xl,
+    right: -spacing.lg,
+    width: 96,
+    height: 96,
+    borderRadius: radius.pill,
+    backgroundColor: colors.lime,
+    opacity: 0.18,
+  },
+  heroTitle: { marginTop: spacing.sm },
+  intro: { marginTop: spacing.lg },
+  rulesLabel: { marginTop: spacing.xl, marginBottom: spacing.sm },
+  rule: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.md },
+  ruleSpaced: { marginTop: spacing.md },
+  numberBox: {
+    width: 32,
+    height: 32,
+    borderRadius: radius.sm,
+    backgroundColor: colors.signatureSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  number: { fontWeight: '700' },
+  ruleText: { flex: 1, paddingTop: spacing.xs },
+  cta: { marginTop: spacing.xl },
 });
