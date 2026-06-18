@@ -14,7 +14,7 @@ import { seedCompetitions } from '@/data/competitions';
 import { dayKey } from '@/lib/days';
 import { isBirthdayToday, parseBirthDate, zodiacFor } from '@/lib/zodiac';
 import { useApp } from '@/store/AppContext';
-import { colors, gradients, radius, spacing } from '@/theme';
+import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
 type Action = { icon: keyof typeof Ionicons.glyphMap; label: string; route: string; tint: string; bg: string };
 
@@ -230,6 +230,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   hero: {
+    ...shadows.e2,
     marginTop: spacing.sm,
     marginBottom: spacing.sm,
     padding: spacing.lg,

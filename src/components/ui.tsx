@@ -10,7 +10,7 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { colors, font, radius, shadowCard, spacing } from '@/theme';
+import { colors, font, radius, shadows, spacing } from '@/theme';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -100,7 +100,7 @@ export function Card({
 
 const card = StyleSheet.create({
   base: {
-    ...shadowCard,
+    ...shadows.e1,
     backgroundColor: colors.surface,
     borderRadius: radius.lg,
     borderWidth: 1,
@@ -122,6 +122,7 @@ export function Button({
   full,
   size = 'md',
   disabled,
+  pill,
 }: {
   label: string;
   onPress?: () => void;
@@ -130,8 +131,12 @@ export function Button({
   full?: boolean;
   size?: 'sm' | 'md';
   disabled?: boolean;
+  pill?: boolean;
 }) {
   const tone = btnTones[variant];
+  // Tout CTA pleine largeur est en pill (look premium du handoff) ; surchargeable.
+  const isPill = pill ?? full ?? false;
+  const br = isPill ? radius.pill : size === 'sm' ? radius.sm : radius.md;
   const inner = (
     <>
       {icon ? <Ionicons name={icon} size={size === 'sm' ? 16 : 18} color={tone.fg} /> : null}
@@ -141,15 +146,15 @@ export function Button({
     </>
   );
 
-  // Variante primaire : dégradé or (effet premium).
+  // Variante primaire : dégradé signature (vert profond) + élévation marquée.
   if (variant === 'primary') {
     return (
       <Pressable
         onPress={onPress}
         disabled={disabled}
         style={({ pressed }) => [
-          shadowCard,
-          { borderRadius: size === 'sm' ? radius.sm : radius.md },
+          shadows.e2,
+          { borderRadius: br },
           full && { alignSelf: 'stretch' },
           pressed && { opacity: 0.9, transform: [{ scale: 0.97 }] },
           disabled && { opacity: 0.45 },
@@ -159,7 +164,7 @@ export function Button({
           colors={[colors.gold, colors.goldDark]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[btn.base, size === 'sm' && btn.sm, { borderColor: 'transparent' }]}
+          style={[btn.base, size === 'sm' && btn.sm, { borderColor: 'transparent', borderRadius: br }]}
         >
           {inner}
         </LinearGradient>
@@ -174,7 +179,7 @@ export function Button({
       style={({ pressed }) => [
         btn.base,
         size === 'sm' && btn.sm,
-        { backgroundColor: tone.bg, borderColor: tone.border },
+        { backgroundColor: tone.bg, borderColor: tone.border, borderRadius: br },
         full && { alignSelf: 'stretch' },
         pressed && { opacity: 0.85, transform: [{ scale: 0.97 }] },
         disabled && { opacity: 0.45 },
@@ -287,7 +292,8 @@ const sh = StyleSheet.create({
 });
 
 export function Divider({ style }: { style?: ViewStyle }) {
-  return <View style={[{ height: 1, backgroundColor: colors.border }, style]} />;
+  // Séparateur INTERNE (lignes de listes/tarifs) — plus discret que le contour de carte.
+  return <View style={[{ height: 1, backgroundColor: colors.hairline }, style]} />;
 }
 
 export function IconCircle({

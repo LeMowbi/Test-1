@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, View } from 'react-native';
 import { Txt } from './ui';
-import { colors, radius, spacing } from '@/theme';
+import { colors, radius, shadows, spacing } from '@/theme';
 
 // Sélecteur à segments (onglets de filtre) réutilisable.
 export function SegmentedControl<T extends string>({
@@ -45,5 +45,5 @@ const styles = StyleSheet.create({
     marginVertical: spacing.lg,
   },
   btn: { flex: 1, alignItems: 'center', paddingVertical: spacing.sm, borderRadius: radius.sm },
-  active: { backgroundColor: colors.gold },
+  active: { backgroundColor: colors.gold, ...shadows.e1 },
 });

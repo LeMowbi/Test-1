@@ -36,7 +36,10 @@ export const colors = {
 
   text: '#0C1A16',
   textMuted: '#5C6B62',
-  textFaint: '#97A096',
+  textFaint: '#7C857B', // assombri (handoff v4.6) → ~4,6:1 sur le crème, passe WCAG AA
+
+  hairline: '#ECE7DB', // séparateurs INTERNES (lignes de listes/tarifs) ≠ border de carte
+  scrim: 'rgba(12,26,22,0.55)', // overlay bas de photo + fond des bottom sheets
 
   danger: '#E5484D',
   dangerSoft: 'rgba(229,72,77,0.16)',
@@ -51,7 +54,7 @@ export const colors = {
 
 // Dégradés réutilisables (tokens — pas de hex en dur dans les écrans).
 export const gradients = {
-  heroSoft: ['#DCEFE6', '#F1ECDD', colors.bg] as const, // accueil / onboarding
+  heroSoft: ['#CBE7DB', '#EFE9DA', colors.bg] as const, // accueil / onboarding (un cran plus profond en haut)
   deepGreen: [colors.gold, colors.goldDark] as const, // rappels, boutons signature
 } as const;
 
@@ -60,7 +63,7 @@ export const ACCENTS = ['#1FB57A', '#C2922B', '#3C85D4', '#E0653A', '#7C5CD6', '
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const;
 
-export const radius = { sm: 10, md: 14, lg: 20, xl: 28, pill: 999 } as const;
+export const radius = { xs: 6, sm: 10, md: 14, lg: 20, xl: 28, pill: 999 } as const;
 
 export const font = {
   // Famille signée (titres, chiffres clés, boutons). Corps en système pour lisibilité/perf.
@@ -79,13 +82,17 @@ export const font = {
   },
 } as const;
 
-export const shadowCard = {
-  shadowColor: '#1A2A20',
-  shadowOpacity: 0.08,
-  shadowRadius: 16,
-  shadowOffset: { width: 0, height: 8 },
-  elevation: 3,
+// Échelle d'élévations (handoff v4.6) — remplace l'ombre unique.
+// e1 : cartes au repos · e2 : héros / CTA primaire / cartes mises en avant ·
+// e3 : bottom sheets & modales.
+export const shadows = {
+  e1: { shadowColor: '#1A2A20', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 },
+  e2: { shadowColor: '#1A2A20', shadowOpacity: 0.1, shadowRadius: 24, shadowOffset: { width: 0, height: 10 }, elevation: 5 },
+  e3: { shadowColor: '#0C1A16', shadowOpacity: 0.18, shadowRadius: 40, shadowOffset: { width: 0, height: 20 }, elevation: 12 },
 } as const;
 
-export const theme = { colors, gradients, spacing, radius, font, shadowCard };
+// Conservé pour compatibilité (= e1).
+export const shadowCard = shadows.e1;
+
+export const theme = { colors, gradients, spacing, radius, font, shadows, shadowCard };
 export default theme;

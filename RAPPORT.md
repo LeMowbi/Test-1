@@ -472,3 +472,24 @@ validation et couvrir minuit.
 | 5. Non-régression : tsc 0, lint 0/0, suite node 100 % verte, export OK, reset strict | ✓ (**107/107 tests** ; tsc 0 ; lint 0/0 ; export OK) |
 
 Suite de tests : **95 → 107** (retrait des libellés classement, ajout de 12 cas `validateTiers`).
+
+---
+
+## Patch v4.6 (P1) — Base visuelle du handoff design (tokens + kit, sans logique)
+
+Première tranche du handoff Claude Design : **uniquement la fondation visuelle**, sûre et
+propagée partout par les tokens. Aucune logique métier touchée.
+- **Tokens** : `textFaint` assombri `#7C857B` (WCAG AA sur le crème) · nouveaux `hairline`
+  (séparateurs internes) et `scrim` (fonds de sheets/photos) · `radius.xs = 6` · **échelle
+  d'élévations `shadows.e1/e2/e3`** (remplace l'ombre unique, `shadowCard` = alias e1) ·
+  dégradé héros un cran plus profond.
+- **Kit** : `Card` → e1 · `Button` primaire → e2 + **tout CTA pleine largeur en pill**
+  (prop `pill`, défaut = `full`) · `Divider` → `hairline` · `SegmentedControl` actif → ombre
+  e1 · `BottomSheet` → fond `scrim` + élévation e3 · héros d'accueil → e2.
+- Vérifs : **tsc 0 · lint 0/0 · 107 tests verts · export OK**.
+
+**Reste du handoff (non fait — décisions/品 à cadrer avec le porteur)** : renommage
+`gold`→`signature` (pur refactor, différé car le ton `Tag` « gold » est distinct) ; refonte
+des écrans cœur P2 (PhotoHeader, sticky bar, Stepper) ; et surtout les **fonctionnalités**
+P3–P5 dont plusieurs **ne sont pas du design** et l'une **réintroduit le système Victoire/
+Défaite supprimé en v4** (niveau bidirectionnel par validation de match) — à arbitrer.
