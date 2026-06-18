@@ -145,10 +145,9 @@ const initialState: AppState = {
   blockedSlots: [],
   // Actu d'accueil de démo (modifiable dans l'Espace opérateur).
   operatorNews: {
-    id: 'news-fipgold',
-    title: '🎾 FIP Gold Abidjan',
-    subtitle: "1ᵉʳ tournoi Gold d'Afrique, 23–28 juin chez Padelta",
-    link: 'https://www.padelfip.com',
+    id: 'news-bienvenue',
+    title: 'Bienvenue sur PadelConnect 🎾',
+    subtitle: "Réserve ton terrain en 2 minutes — tous les clubs d'Abidjan.",
   },
   dismissedNewsId: null,
   followed: {},

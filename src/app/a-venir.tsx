@@ -1,9 +1,17 @@
 import { Ionicons } from '@expo/vector-icons';
-import { View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { Pressable, View } from 'react-native';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { colors, spacing } from '@/theme';
+
+const styles_preview = {
+  flexDirection: 'row' as const,
+  alignItems: 'center' as const,
+  gap: spacing.md,
+  paddingVertical: spacing.xs,
+};
 
 type Item = { icon: keyof typeof Ionicons.glyphMap; title: string; text: string; tint: string; bg: string };
 type Group = { title: string; items: Item[] };
@@ -47,6 +55,7 @@ const GROUPS: Group[] = [
 ];
 
 export default function AVenirScreen() {
+  const router = useRouter();
   return (
     <Screen back title="La suite" subtitle="Ce qui arrive avec la version connectée">
       <Reveal>
@@ -58,6 +67,29 @@ export default function AVenirScreen() {
             connectée (comptes + temps réel).
           </Txt>
         </Card>
+
+        {/* Aperçus déjà visibles (maquettes statiques) */}
+        <View style={{ marginTop: spacing.xl }}>
+          <SectionHeader title="Aperçus à voir" />
+          <Card style={{ gap: spacing.sm }}>
+            <Pressable onPress={() => router.push('/notifications')} style={styles_preview}>
+              <IconCircle icon="notifications-outline" color={colors.purple} bg={colors.purpleSoft} size={38} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3" style={{ fontSize: 15 }}>Notifications</Txt>
+                <Txt variant="muted">Aperçu du centre de notifications.</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </Pressable>
+            <Pressable onPress={() => router.push('/parrainage')} style={styles_preview}>
+              <IconCircle icon="gift-outline" color={colors.green} bg={colors.greenSoft} size={38} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3" style={{ fontSize: 15 }}>Parrainage</Txt>
+                <Txt variant="muted">Invite tes amis par WhatsApp (déjà fonctionnel).</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
+            </Pressable>
+          </Card>
+        </View>
 
         {GROUPS.map((g) => (
           <View_section key={g.title} group={g} />

@@ -161,7 +161,7 @@ export const clubs: Club[] = [
     type: 'Couvert',
     courts: 5,
     blurb:
-      "Club indoor à Cocody Danga avec terrains couverts homologués FIP, salle de sport et café. À 5 min du Plateau et de la Riviera.",
+      "Club indoor à Cocody Danga avec terrains couverts homologués, salle de sport et café. À 5 min du Plateau et de la Riviera.",
     amenities: ['Terrains couverts', 'Café La Pausa', 'Salle de sport', 'Vestiaires'],
     priceFrom: 10000,
     // Tarifs réels Padelta : heures creuses, prime time, fin de soirée.
