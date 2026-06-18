@@ -59,6 +59,7 @@ export default function ClubAdmin() {
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
   const [closingId, setClosingId] = useState<string | null>(null);
+  const [planDayKey, setPlanDayKey] = useState<string | null>(null); // jour affiché dans le planning par terrain
   const [selectedCell, setSelectedCell] = useState<{ dateKey: string; time: string; label: string; value: number } | null>(null);
   const [blockingCourt, setBlockingCourt] = useState<string | null>(null);
   const [url, setUrl] = useState('');
@@ -139,23 +140,18 @@ export default function ClubAdmin() {
   const todayKey = dayKey(new Date());
   const closingComp = comps.find((c) => c.id === closingId);
 
-  // Planning de la semaine : jours × créneaux ouverts, colorés selon l'occupation.
+  // Planning par TERRAIN pour un jour donné (maquette Espace Club · planning).
   const week = nextDays(7);
   const planTimes = [...openSlots].sort();
-  const cellInfo = (dKey: string, time: string) => {
-    const booked = clubRes.filter((r) => r.dateKey === dKey && r.time === time).length;
-    const blocked = clubBlocked.filter((b) => b.dateKey === dKey && b.time === time).length;
-    const occupied = booked + blocked;
-    const kind: 'tournoi' | 'complet' | 'horsapp' | 'partiel' | 'libre' = hasCompetition(club.id, dKey, comps)
-      ? 'tournoi'
-      : occupied === 0
-        ? 'libre'
-        : occupied >= courts.length
-          ? 'complet'
-          : booked === 0
-            ? 'horsapp'
-            : 'partiel';
-    return { booked, blocked, occupied, kind };
+  const planDay = week.find((d) => d.key === planDayKey) ?? week[0];
+  const dayTournament = hasCompetition(club.id, planDay.key, comps);
+  // Statut d'UN terrain à un créneau — calculé depuis les données existantes (réservations
+  // app + blocages hors app), aucune logique de disponibilité nouvelle.
+  const courtStatusAt = (court: string, time: string): 'reserved' | 'blocked' | 'tournoi' | 'free' => {
+    if (dayTournament) return 'tournoi';
+    if (clubRes.some((r) => r.dateKey === planDay.key && r.time === time && r.court === court)) return 'reserved';
+    if (clubBlocked.some((b) => b.dateKey === planDay.key && b.time === time && b.court === court)) return 'blocked';
+    return 'free';
   };
 
   // Mini-stats de la semaine : taux d'occupation + créneau le plus demandé.
@@ -368,78 +364,81 @@ export default function ClubAdmin() {
             />
           ) : null}
 
-          {/* Planning de la semaine */}
+          {/* Planning par terrain (jour sélectionné) — maquette Espace Club */}
           <View style={{ marginTop: spacing.xl }}>
-            <SectionHeader title="Planning de la semaine" />
-            <Card>
-              {/* En-tête : jours */}
-              <View style={styles.planRow}>
-                <View style={styles.planTime} />
-                {week.map((d) => {
-                  const dd = new Date(d.value);
-                  return (
-                    <View key={d.key} style={styles.planHead}>
-                      <Txt variant="label" color={colors.textFaint} style={{ fontSize: 9 }}>
-                        {['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'][dd.getDay()]}
-                      </Txt>
-                      <Txt variant="small" color={colors.text} style={{ fontWeight: '700' }}>
-                        {dd.getDate()}
-                      </Txt>
-                    </View>
-                  );
-                })}
-              </View>
-              {planTimes.map((t) => (
-                <View key={t} style={styles.planRow}>
-                  <View style={styles.planTime}>
-                    <Txt variant="small" color={colors.textMuted} style={{ fontSize: 11 }}>
-                      {t}
+            <SectionHeader title="Planning du jour" />
+            {/* Sélecteur de jour */}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.sm }}>
+              {week.map((d) => {
+                const dd = new Date(d.value);
+                const active = d.key === planDay.key;
+                return (
+                  <Pressable key={d.key} onPress={() => setPlanDayKey(d.key)} style={[styles.dayPill, active && styles.dayPillActive]}>
+                    <Txt variant="small" color={active ? colors.onSignature : colors.textFaint} style={{ fontSize: 10, fontWeight: '700' }}>
+                      {['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'][dd.getDay()]}
                     </Txt>
-                  </View>
-                  {week.map((d) => {
-                    const info = cellInfo(d.key, t);
-                    // Restyle « maquette » : RÉSERVÉ (via l'app) = signature plein + ombre ;
-                    // LIBRE = surface + bordure ; BLOQUÉ (hors app) = surfaceAlt + cadenas.
-                    // On réutilise tel quel les statuts calculés par cellInfo (aucune logique modifiée).
-                    const blockedOnly = info.kind === 'horsapp';
-                    const tournoi = info.kind === 'tournoi';
-                    const cellStyle =
-                      tournoi
-                        ? styles.planCellTournoi
-                        : info.kind === 'complet'
-                          ? styles.planCellReserved
-                          : info.kind === 'partiel'
-                            ? styles.planCellPartial
-                            : blockedOnly
-                              ? styles.planCellBlocked
-                              : styles.planCellFree;
-                    const sel = selectedCell?.dateKey === d.key && selectedCell?.time === t;
-                    return (
-                      <Pressable
-                        key={d.key}
-                        onPress={() => setSelectedCell({ dateKey: d.key, time: t, label: `${d.label} · ${t}`, value: d.value })}
-                        style={[styles.planCell, cellStyle, sel && styles.planCellSel]}
-                      >
-                        {info.kind === 'partiel' ? (
-                          <Txt variant="small" color={colors.signature} style={{ fontSize: 10, fontWeight: '800' }}>
-                            {info.occupied}/{courts.length}
-                          </Txt>
-                        ) : null}
-                        {info.kind === 'complet' ? <Ionicons name="checkmark" size={11} color={colors.onSignature} /> : null}
-                        {blockedOnly ? <Ionicons name="lock-closed" size={10} color={colors.textFaint} /> : null}
-                        {tournoi ? <Ionicons name="trophy" size={10} color={colors.onSignature} /> : null}
-                      </Pressable>
-                    );
-                  })}
+                    <Txt variant="h3" color={active ? colors.onSignature : colors.text} style={{ fontSize: 16 }}>
+                      {dd.getDate()}
+                    </Txt>
+                  </Pressable>
+                );
+              })}
+            </ScrollView>
+
+            <Card>
+              {dayTournament ? (
+                <View style={styles.banner}>
+                  <Ionicons name="trophy" size={16} color={colors.purple} />
+                  <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+                    Jour de tournoi — tous les terrains sont indisponibles.
+                  </Txt>
                 </View>
-              ))}
+              ) : null}
+              {/* Grille terrains × créneaux (défilement horizontal) */}
+              <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+                <View>
+                  {/* En-tête : créneaux */}
+                  <View style={styles.gridRow}>
+                    <View style={styles.gridCourtName} />
+                    {planTimes.map((t) => (
+                      <View key={t} style={styles.gridCell}>
+                        <Txt variant="small" color={colors.textFaint} style={{ fontSize: 10 }}>{t}</Txt>
+                      </View>
+                    ))}
+                  </View>
+                  {courts.map((court) => (
+                    <View key={court} style={styles.gridRow}>
+                      <View style={styles.gridCourtName}>
+                        <Txt variant="small" style={{ fontWeight: '700', fontSize: 12 }} numberOfLines={1}>{court}</Txt>
+                      </View>
+                      {planTimes.map((t) => {
+                        const st = courtStatusAt(court, t);
+                        const cellStyle =
+                          st === 'reserved' ? styles.gcReserved : st === 'blocked' ? styles.gcBlocked : st === 'tournoi' ? styles.gcTournoi : styles.gcFree;
+                        return (
+                          <Pressable
+                            key={t}
+                            onPress={() => setSelectedCell({ dateKey: planDay.key, time: t, label: `${planDay.label} · ${t}`, value: planDay.value })}
+                            style={[styles.gridCellBox, cellStyle]}
+                          >
+                            {st === 'reserved' ? <Ionicons name="checkmark" size={12} color={colors.onSignature} /> : null}
+                            {st === 'blocked' ? <Ionicons name="lock-closed" size={11} color={colors.textFaint} /> : null}
+                            {st === 'tournoi' ? <Ionicons name="trophy" size={11} color={colors.onSignature} /> : null}
+                          </Pressable>
+                        );
+                      })}
+                    </View>
+                  ))}
+                </View>
+              </ScrollView>
               <View style={styles.planLegend}>
                 <LegendDot color={colors.signature} label="Réservé" />
                 <LegendDot color={colors.surface} label="Libre" />
                 <LegendDot color={colors.surfaceAlt} label="Bloqué" />
-                <LegendDot color={colors.signatureSoft} label="Partiel" />
-                <LegendDot color={colors.purple} label="Tournoi" />
               </View>
+              <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+                Touche une case pour voir le détail du créneau ou bloquer un terrain.
+              </Txt>
             </Card>
 
             {/* Mini-stats de la semaine */}
@@ -1409,28 +1408,26 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   stats: { flexDirection: 'row', gap: spacing.sm },
-  planRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  planTime: { width: 44, alignItems: 'flex-start' },
-  planHead: { flex: 1, alignItems: 'center', paddingBottom: 2 },
-  planCell: {
-    flex: 1,
-    height: 38,
-    borderRadius: radius.sm,
-    marginHorizontal: 2,
+  // Planning par terrain (maquette) : pastilles de jour + grille terrains × créneaux.
+  dayPill: {
+    minWidth: 50,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
     alignItems: 'center',
-    justifyContent: 'center',
   },
-  // RÉSERVÉ via l'app (créneau complet) — fond signature, contenu blanc, légère ombre.
-  planCellReserved: { backgroundColor: colors.signature, ...shadows.e1 },
-  // Partiellement réservé via l'app — teinte signature douce.
-  planCellPartial: { backgroundColor: colors.signatureSoft, borderWidth: 1, borderColor: colors.border },
-  // LIBRE — surface claire + bordure discrète.
-  planCellFree: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  // BLOQUÉ hors app — fond sourd + cadenas (l'effet hachuré n'est pas faisable simplement en RN).
-  planCellBlocked: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
-  // Jour de tournoi — accent violet de l'univers Tournois.
-  planCellTournoi: { backgroundColor: colors.purple, ...shadows.e1 },
-  planCellSel: { borderWidth: 2, borderColor: colors.text },
+  dayPillActive: { backgroundColor: colors.signature, borderColor: colors.signature, ...shadows.e1 },
+  gridRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 5 },
+  gridCourtName: { width: 70, paddingRight: spacing.sm },
+  gridCell: { width: 50, alignItems: 'center', justifyContent: 'center', marginHorizontal: 2 },
+  gridCellBox: { width: 50, height: 38, borderRadius: radius.sm, marginHorizontal: 2, alignItems: 'center', justifyContent: 'center' },
+  gcReserved: { backgroundColor: colors.signature, ...shadows.e1 },
+  gcFree: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
+  gcBlocked: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
+  gcTournoi: { backgroundColor: colors.purple, ...shadows.e1 },
   teamRow: {
     flexDirection: 'row',
     alignItems: 'center',
