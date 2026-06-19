@@ -133,6 +133,15 @@ export default function CompetitionDetail() {
         </View>
       </View>
 
+      {comp.status === 'pending' ? (
+        <View style={styles.pendingBanner}>
+          <Ionicons name="hourglass-outline" size={16} color={colors.coral} />
+          <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+            En attente de validation par {comp.clubName ?? 'le club hôte'}. Ton tournoi sera visible une fois accepté.
+          </Txt>
+        </View>
+      ) : null}
+
       <Card style={{ marginTop: spacing.md }}>
         <Info icon="calendar-outline" label="Date" value={comp.date} />
         <Info icon="git-network-outline" label="Format" value={comp.format} />
@@ -499,6 +508,15 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginTop: spacing.sm,
     fontSize: 15,
+  },
+  pendingBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.coralSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
   },
   toast: {
     position: 'absolute',

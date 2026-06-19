@@ -173,7 +173,8 @@ type AppContextType = {
   setReserverView: (v: 'Par heure' | 'Par club') => void;
   addReview: (clubId: string, rating: number, text: string) => void;
   addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => void;
-  deleteCompetition: (id: string) => void; // annulation d'un tournoi sans inscrit (créateur)
+  approveCompetition: (id: string) => void; // le club hôte valide un tournoi créé par un joueur
+  deleteCompetition: (id: string) => void; // annulation / refus d'un tournoi (créateur ou club hôte)
   registerCompetition: (id: string, partner: string) => void;
   unregisterCompetition: (id: string) => void;
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy'>) => boolean;
@@ -341,6 +342,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           userReviews: [{ id: uid(), clubId, author: 'Vous', rating, text: text.trim() || 'Bonne expérience.', date: "À l'instant" }, ...s.userReviews],
         })),
       addCompetition: (c) => setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true }, ...s.myCompetitions] })),
+      // Le club hôte valide un tournoi créé par un joueur (« en attente » → visible).
+      approveCompetition: (id) =>
+        setState((s) => ({ ...s, myCompetitions: s.myCompetitions.map((c) => (c.id === id ? { ...c, status: 'approved' } : c)) })),
       deleteCompetition: (id) =>
         setState((s) => {
           const regs = { ...s.compRegistrations };

@@ -77,5 +77,26 @@ check(isFull(16, 16, false) === true, 'Tournoi 16/16 → Complet');
 check(isFull(8, 7, false) === false, 'Tournoi 7/8 → inscription encore possible');
 check(teamCount(8, 9, true) === 8, 'Compteur d’équipes plafonné à la capacité (jamais 9/8)');
 
+// ——— Modération de tournoi (v4.16) : joueur → en attente → validé par le club ———
+// Réplique inline de isTournamentPublic (src/data/competitions.ts), car ce module
+// importe l'alias @/ que node ne résout pas ; la cohérence est vérifiée par tsc.
+type Comp = { status?: 'pending' | 'approved'; createdByMe?: boolean; organizerType?: 'club' | 'joueur'; clubId?: string; id?: string };
+const isPublic = (c: Comp) => c.status !== 'pending';
+check(isPublic({}) === true, 'Seed/club (sans statut) → public');
+check(isPublic({ status: 'approved' }) === true, 'Tournoi validé → public');
+check(isPublic({ status: 'pending' }) === false, 'Tournoi joueur en attente → NON public');
+
+// Liste /competitions : public OU créé par moi (le créateur voit son « en attente »).
+const visibleInList = (c: Comp) => isPublic(c) || !!c.createdByMe;
+check(visibleInList({ status: 'pending', createdByMe: true }) === true, 'Créateur voit son tournoi en attente dans la liste');
+check(visibleInList({ status: 'pending', createdByMe: false }) === false, 'Les autres ne voient pas un tournoi en attente');
+
+// Validation par le club : pending → approved (devient public, sort des demandes).
+const reqs = (list: Comp[], clubId: string) => list.filter((c) => c.clubId === clubId && c.status === 'pending' && c.organizerType === 'joueur');
+let comps2: Comp[] = [{ id: 't0', clubId: 'padelta', status: 'pending', organizerType: 'joueur' }];
+check(reqs(comps2, 'padelta').length === 1, 'Le club voit 1 demande de tournoi');
+comps2 = comps2.map((c) => (c.id === 't0' ? { ...c, status: 'approved' as const } : c));
+check(isPublic(comps2[0]) && reqs(comps2, 'padelta').length === 0, 'Après validation : public + plus dans les demandes');
+
 console.log(failed === 0 ? '\nTOUS LES TESTS AUDIT PASSENT.' : `\n${failed} test(s) audit en échec.`);
 if (failed > 0) process.exitCode = 1;

@@ -4,7 +4,7 @@ import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { Button, Txt } from '@/components/ui';
-import { findClub } from '@/data/clubs';
+import { activeClubs, findClub } from '@/data/clubs';
 import { COMP_FORMATS } from '@/data/competitions';
 import { nextDays, type DayOption } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
@@ -53,36 +53,41 @@ export default function NouvelleCompetition() {
   const asClub = params.as === 'club';
   const { state, addCompetition } = useApp();
   const club = asClub ? findClub(params.clubId, state.customClubs, state.clubInfo) : undefined;
+  // Tournoi créé par un JOUEUR : il choisit le club hôte, qui devra valider.
+  const hosts = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs, state.clubInfo]);
 
   const dates = useMemo(() => nextDays(7), []);
   const [title, setTitle] = useState('');
   const [reward, setReward] = useState('');
   const [fee, setFee] = useState('');
   const [day, setDay] = useState<DayOption | null>(null);
+  const [hostId, setHostId] = useState<string | null>(null);
   const [format, setFormat] = useState(COMP_FORMATS[2]);
   const [level, setLevel] = useState('Tous niveaux');
   const [slots, setSlots] = useState(8);
   // Erreurs par champ — affichées au tap sur « Publier » (aucun tap silencieux).
-  const [errors, setErrors] = useState<{ title?: string; date?: string }>({});
+  const [errors, setErrors] = useState<{ title?: string; date?: string; host?: string }>({});
   const scrollRef = useRef<ScrollView>(null);
   const datePos = useRef(0);
 
   const create = () => {
-    const e: { title?: string; date?: string } = {};
+    const e: { title?: string; date?: string; host?: string } = {};
     if (title.trim().length < 3) e.title = 'Indique un titre (3 lettres minimum).';
     if (!day) e.date = 'Choisis une date.';
+    if (!asClub && !hostId) e.host = 'Choisis le club hôte.';
     setErrors(e);
-    if (e.title || e.date) {
+    if (e.title || e.date || e.host) {
       // Scroll automatique vers le premier champ en erreur.
       scrollRef.current?.scrollTo({ y: e.title ? 0 : Math.max(0, datePos.current - 24), animated: true });
       return;
     }
+    const host = asClub ? club : findClub(hostId ?? undefined, state.customClubs, state.clubInfo);
     addCompetition({
       title: title.trim(),
       organizerType: asClub ? 'club' : 'joueur',
-      organizer: club?.name ?? state.account?.firstName ?? 'Joueur',
-      clubId: club?.id,
-      clubName: club?.name,
+      organizer: asClub ? club?.name ?? 'Club' : state.account?.firstName ?? 'Joueur',
+      clubId: host?.id,
+      clubName: host?.name,
       date: day!.label,
       dateKey: day!.key,
       format,
@@ -92,6 +97,8 @@ export default function NouvelleCompetition() {
       slots,
       registered: 0,
       official: asClub,
+      // Club → publié direct ; joueur → en attente de validation du club hôte.
+      status: asClub ? 'approved' : 'pending',
     });
     router.replace(asClub ? '/club-admin' : '/competitions');
   };
@@ -165,8 +172,34 @@ export default function NouvelleCompetition() {
         Chaque équipe compte 2 joueurs. L'inscription se ferme une fois toutes les places prises.
       </Txt>
 
+      {/* Club hôte — uniquement pour un tournoi créé par un joueur (modération) */}
+      {!asClub ? (
+        <View style={{ marginTop: spacing.lg }}>
+          <Txt variant="label" color={colors.textFaint}>Club hôte</Txt>
+          <View style={styles.wrap}>
+            {hosts.map((h) => (
+              <Chip
+                key={h.id}
+                label={h.name}
+                active={h.id === hostId}
+                onPress={() => {
+                  setHostId(h.id);
+                  if (errors.host) setErrors((cur) => ({ ...cur, host: undefined }));
+                }}
+              />
+            ))}
+          </View>
+          {errors.host ? (
+            <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>{errors.host}</Txt>
+          ) : null}
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+            Ton tournoi sera visible une fois validé par le club hôte.
+          </Txt>
+        </View>
+      ) : null}
+
       <View style={{ marginTop: spacing.xl }}>
-        <Button label="Publier le tournoi" icon="trophy" onPress={create} full />
+        <Button label={asClub ? 'Publier le tournoi' : 'Envoyer pour validation'} icon="trophy" onPress={create} full />
       </View>
     </Screen>
   );

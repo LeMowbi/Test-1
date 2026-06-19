@@ -10,7 +10,7 @@ import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Card, SectionHeader, Txt } from '@/components/ui';
 import { activeClubs } from '@/data/clubs';
-import { seedCompetitions } from '@/data/competitions';
+import { isTournamentPublic, seedCompetitions } from '@/data/competitions';
 import { dayKey } from '@/lib/days';
 import { initials } from '@/lib/format';
 import { isBirthdayToday, parseBirthDate, zodiacFor } from '@/lib/zodiac';
@@ -44,7 +44,9 @@ export default function HomeScreen() {
   );
   const now = Date.now();
   const today = dayKey(new Date());
-  const competitions = [...state.myCompetitions, ...seedCompetitions].filter((c) => c.dateKey >= today).slice(0, 2);
+  const competitions = [...state.myCompetitions, ...seedCompetitions]
+    .filter((c) => isTournamentPublic(c) && c.dateKey >= today)
+    .slice(0, 2);
   const upcoming = [...state.reservations].filter((r) => r.startsAt > now).sort((a, b) => a.startsAt - b.startsAt)[0];
 
   // Clin d'œil anniversaire (ADN de l'app : astro + fun).

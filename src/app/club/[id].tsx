@@ -11,7 +11,7 @@ import { Button, Card, Divider, EmptyState, IconCircle, Tag, Txt } from '@/compo
 import { StickyBar } from '@/components/StickyBar';
 import { clubGallery, defaultCourts, findClub, offersForClub } from '@/data/clubs';
 import { coaches } from '@/data/coaches';
-import { seedCompetitions } from '@/data/competitions';
+import { isTournamentPublic, seedCompetitions } from '@/data/competitions';
 import { ratingFor, reviewsFor } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
@@ -50,7 +50,8 @@ export default function ClubDetail() {
   const offers = offersForClub(club, posts.filter((o) => o.kind !== 'evenement'));
   // Événements du club : publications « événement » + tournois créés par le club (officiels ou non).
   const events = posts.filter((o) => o.kind === 'evenement');
-  const clubComps = [...state.myCompetitions, ...seedCompetitions].filter((c) => c.clubId === club.id);
+  // Tournois publics du club (les tournois joueur « en attente » de validation n'apparaissent pas).
+  const clubComps = [...state.myCompetitions, ...seedCompetitions].filter((c) => c.clubId === club.id && isTournamentPublic(c));
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
   const clubCoaches = [
     ...coaches

@@ -19,7 +19,15 @@ export type Competition = {
   registered: number;
   official?: boolean;
   createdByMe?: boolean;
+  // Modération : un tournoi créé par un JOUEUR reste « pending » jusqu'à validation du
+  // club hôte. Club / seeds → visibles directement (absence de statut = approuvé).
+  status?: 'pending' | 'approved';
 };
+
+// Tournoi visible publiquement (listes, accueil, fiche club) : tout sauf « en attente ».
+export function isTournamentPublic(c: Competition): boolean {
+  return c.status !== 'pending';
+}
 
 // Jours réels (relatifs au lancement) pour que l'affichage ET le blocage des terrains
 // pointent toujours sur le bon jour calendaire.

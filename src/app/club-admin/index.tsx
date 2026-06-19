@@ -11,7 +11,7 @@ import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, Divider, EmptyState, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
 import { SAMPLE_SLOTS, clubsByName, defaultCourts, findClub, manageableClubs, type Club, type PriceTier } from '@/data/clubs';
 import { coaches as allCoaches } from '@/data/coaches';
-import { demoTeams, seedCompetitions, teamCount, type Competition } from '@/data/competitions';
+import { demoTeams, isTournamentPublic, seedCompetitions, teamCount, type Competition } from '@/data/competitions';
 import { canAccessClub } from '@/lib/access';
 import { validateTiers } from '@/lib/pricing';
 import { hasCompetition } from '@/lib/availability';
@@ -50,6 +50,7 @@ export default function ClubAdmin() {
     confirmReservationByClub,
     requestClub,
     closeCompetition,
+    approveCompetition,
     deleteCompetition,
     setClubInfo,
     toggleHideCoach,
@@ -137,6 +138,12 @@ export default function ClubAdmin() {
     ...state.myCompetitions.filter((c) => c.clubId === club.id),
     ...seedCompetitions.filter((c) => c.clubId === club.id),
   ];
+  // Demandes de tournoi : créés par un joueur, en attente de validation de CE club.
+  const tournamentRequests = state.myCompetitions.filter(
+    (c) => c.clubId === club.id && c.status === 'pending' && c.organizerType === 'joueur'
+  );
+  // Tournois publiés du club (hors demandes en attente) — pour la liste « Tournois du club ».
+  const publishedComps = comps.filter(isTournamentPublic);
 
   const todayKey = dayKey(new Date());
   const closingComp = comps.find((c) => c.id === closingId);
@@ -761,6 +768,33 @@ export default function ClubAdmin() {
 
       {!locked && section === 'Tournois' ? (
         <>
+          {/* Demandes de tournoi — créés par des joueurs, à valider avant publication */}
+          {tournamentRequests.length > 0 ? (
+            <View style={{ marginBottom: spacing.xl }}>
+              <SectionHeader title={`Demandes de tournoi · ${tournamentRequests.length}`} />
+              <Txt variant="small" color={colors.textFaint} style={{ marginBottom: spacing.sm }}>
+                Un tournoi créé par un joueur n'est visible qu'après ta validation.
+              </Txt>
+              {tournamentRequests.map((c) => (
+                <Card key={c.id} style={{ marginBottom: spacing.sm }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                    <IconCircle icon="trophy" color={colors.purple} bg={colors.purpleSoft} size={40} />
+                    <View style={{ flex: 1 }}>
+                      <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>{c.title}</Txt>
+                      <Txt variant="muted">par {c.organizer} · {c.date} · {c.slots} équipes</Txt>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
+                    <Button size="sm" label="Refuser" icon="close" variant="danger" onPress={() => deleteCompetition(c.id)} />
+                    <View style={{ flex: 1 }}>
+                      <Button size="sm" label="Valider & publier" icon="checkmark" onPress={() => approveCompetition(c.id)} full />
+                    </View>
+                  </View>
+                </Card>
+              ))}
+            </View>
+          ) : null}
+
           <SectionHeader title="Tournois du club" />
           <Button
             label="Créer un tournoi (club)"
@@ -769,10 +803,10 @@ export default function ClubAdmin() {
             full
           />
           <View style={{ marginTop: spacing.md }}>
-            {comps.length === 0 ? (
+            {publishedComps.length === 0 ? (
               <EmptyState icon="trophy-outline" title="Aucun tournoi" text="Crée le premier tournoi de ton club." />
             ) : (
-              comps.map((c) => {
+              publishedComps.map((c) => {
                 const finished = c.dateKey <= todayKey;
                 const result = state.compResults[c.id];
                 return (

@@ -5,7 +5,7 @@ import { CompetitionCard } from '@/components/CompetitionCard';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, EmptyState, SectionHeader } from '@/components/ui';
-import { seedCompetitions } from '@/data/competitions';
+import { isTournamentPublic, seedCompetitions } from '@/data/competitions';
 import { dayKey } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
 import { spacing } from '@/theme';
@@ -17,11 +17,14 @@ export default function CompetitionsScreen() {
   const { state } = useApp();
   const [tab, setTab] = useState<(typeof TABS)[number]>('Tous');
 
-  const list = [...state.myCompetitions, ...seedCompetitions].filter((c) => {
-    if (tab === 'Par les clubs') return c.organizerType === 'club';
-    if (tab === 'Par les joueurs') return c.organizerType === 'joueur';
-    return true;
-  });
+  const list = [...state.myCompetitions, ...seedCompetitions]
+    // Un tournoi « en attente » n'est visible que par son créateur (sinon masqué jusqu'à validation du club).
+    .filter((c) => isTournamentPublic(c) || c.createdByMe)
+    .filter((c) => {
+      if (tab === 'Par les clubs') return c.organizerType === 'club';
+      if (tab === 'Par les joueurs') return c.organizerType === 'joueur';
+      return true;
+    });
   // À venir d'abord ; les tournois passés restent accessibles (déclaration du résultat).
   const today = dayKey(new Date());
   const upcoming = list.filter((c) => c.dateKey >= today);
