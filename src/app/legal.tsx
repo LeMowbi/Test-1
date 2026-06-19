@@ -13,9 +13,10 @@ export default function Legal() {
           « en l'état » pendant sa phase de prototype.
         </Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
-          Les résultats de matchs sont déclarés par les joueurs eux-mêmes : PadelConnect n'en garantit
-          pas l'exactitude. Les tarifs et disponibilités affichés sont indicatifs et relèvent de la
-          responsabilité de chaque club.
+          Le niveau de jeu évolue uniquement via les tournois officiels : c'est l'organisateur du
+          tournoi qui désigne l'équipe gagnante à la fin (il n'y a pas d'auto-déclaration de match).
+          Les tarifs et disponibilités affichés sont indicatifs et relèvent de la responsabilité de
+          chaque club.
         </Txt>
       </Card>
 

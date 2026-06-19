@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { BarChart } from '@/components/BarChart';
 import { Chip } from '@/components/Chip';
 import { ClubPhoto } from '@/components/ClubPhoto';
 import { Screen } from '@/components/Screen';
@@ -447,6 +448,16 @@ export default function ClubAdmin() {
               <StatTile value={weekRes.length} label="Résas (7 j)" color={colors.blue} bg={colors.blueSoft} />
               <StatTile value={topHour} label="Heure phare" color={colors.purple} bg={colors.purpleSoft} />
             </View>
+
+            {/* Remplissage par créneau sur la semaine (données réelles) */}
+            {weekRes.length > 0 ? (
+              <Card style={{ marginTop: spacing.md }}>
+                <Txt variant="label" color={colors.textFaint} style={{ marginBottom: spacing.md }}>
+                  Remplissage par créneau (7 j)
+                </Txt>
+                <BarChart data={planTimes.map((t) => ({ label: t, value: weekRes.filter((r) => r.time === t).length }))} />
+              </Card>
+            ) : null}
           </View>
 
           {/* À venir — à confirmer */}
