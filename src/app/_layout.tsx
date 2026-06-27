@@ -5,6 +5,7 @@ import {
   useFonts,
 } from '@expo-google-fonts/bricolage-grotesque';
 import { Stack, useRouter, useSegments } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import { View } from 'react-native';
@@ -13,12 +14,22 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { AppProvider, useApp } from '@/store/AppContext';
 import { colors } from '@/theme';
 
+// On garde l'écran de démarrage natif affiché jusqu'à ce que les polices soient
+// prêtes : sinon, sur iPhone/Android, le splash se masque trop tôt et l'utilisateur
+// voit un bref écran crème vide. (No-op sur le web.)
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
 export default function RootLayout() {
   const [fontsLoaded] = useFonts({
     BricolageGrotesque_600SemiBold,
     BricolageGrotesque_700Bold,
     BricolageGrotesque_800ExtraBold,
   });
+
+  // Polices chargées → on masque le splash (la transition se fait sans flash blanc).
+  useEffect(() => {
+    if (fontsLoaded) SplashScreen.hideAsync().catch(() => {});
+  }, [fontsLoaded]);
 
   return (
     <GestureHandlerRootView style={{ flex: 1, backgroundColor: colors.bg }}>

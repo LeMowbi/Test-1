@@ -10,10 +10,12 @@
     "backgroundColor": "#F1F5F3",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "ci.padelco.app"
+      "bundleIdentifier": "ci.padelco.app",
+      "buildNumber": "1"
     },
     "android": {
       "package": "ci.padelco.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#00544D",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -33,6 +35,13 @@
           "backgroundColor": "#F1F5F3",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 120
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "PadelConnect accède à vos photos pour votre photo de profil et, côté gérant, les photos de votre club.",
+          "cameraPermission": false
         }
       ]
     ],
