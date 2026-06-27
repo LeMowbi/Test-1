@@ -8,7 +8,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "padelco",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F1F5F3",
+    "backgroundColor": "#F4F1E8",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ci.padelco.app",
@@ -33,7 +33,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F1F5F3",
+          "backgroundColor": "#F4F1E8",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 120
         }

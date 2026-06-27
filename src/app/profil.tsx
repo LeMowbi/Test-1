@@ -23,8 +23,15 @@ export default function ProfilScreen() {
   const [editing, setEditing] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [photoSheet, setPhotoSheet] = useState(false);
+  // Espaces pro : masqués par défaut (geste discret pour les révéler). Un gérant déjà
+  // déverrouillé garde l'accès à l'Espace Club sans le geste. L'opérateur (PadelConnect)
+  // n'apparaît JAMAIS sans le geste — il n'a pas sa place dans la navigation normale.
+  const [proRevealed, setProRevealed] = useState(false);
 
   if (!account) return null;
+
+  const showClub = proRevealed || state.unlockedClubIds.length > 0 || state.clubMode;
+  const showOperator = proRevealed;
 
   const changePhoto = async () => {
     const uri = await pickImage({ square: true });
@@ -62,7 +69,13 @@ export default function ProfilScreen() {
           {/* Bandeau signature — avatar (anneau dégradé) + identité (maquette Profil) */}
           <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.band}>
             <View style={styles.head}>
-              <Pressable onPress={() => setPhotoSheet(true)} hitSlop={6} accessibilityLabel="Photo de profil">
+              <Pressable
+                onPress={() => setPhotoSheet(true)}
+                onLongPress={() => setProRevealed(true)}
+                delayLongPress={1200}
+                hitSlop={6}
+                accessibilityLabel="Photo de profil"
+              >
                 <Avatar uri={account.photoUri} name={`${account.firstName} ${account.lastName}`} size={76} />
               </Pressable>
               <View style={{ flex: 1 }}>
@@ -209,25 +222,33 @@ export default function ProfilScreen() {
         </Card>
       </View>
 
-      {/* Espaces pro */}
-      <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
-        <Card onPress={() => router.push('/club-admin')} style={styles.cta}>
-          <IconCircle icon="business" />
-          <View style={{ flex: 1 }}>
-            <Txt variant="h3">Tu gères un club ?</Txt>
-            <Txt variant="muted">Espace Club : réservations, page, créneaux, tournois.</Txt>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </Card>
-        <Card onPress={() => router.push('/operateur')} style={styles.cta}>
-          <IconCircle icon="stats-chart" color={colors.green} bg={colors.greenSoft} />
-          <View style={{ flex: 1 }}>
-            <Txt variant="h3">Espace opérateur (PadelConnect)</Txt>
-            <Txt variant="muted">Décomptes, commissions, nouveaux clubs.</Txt>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </Card>
-      </View>
+      {/* Espaces pro — non affichés dans la navigation normale (cf. handoff sécurité).
+          Révélés par appui long sur l'avatar ; l'Espace Club reste visible pour un gérant
+          déjà déverrouillé. Les vrais accès restent protégés (code club, gating serveur §B). */}
+      {showClub || showOperator ? (
+        <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+          {showClub ? (
+            <Card onPress={() => router.push('/club-admin')} style={styles.cta}>
+              <IconCircle icon="business" />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3">Tu gères un club ?</Txt>
+                <Txt variant="muted">Espace Club : réservations, page, créneaux, tournois.</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </Card>
+          ) : null}
+          {showOperator ? (
+            <Card onPress={() => router.push('/operateur')} style={styles.cta}>
+              <IconCircle icon="stats-chart" color={colors.green} bg={colors.greenSoft} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3">Espace opérateur (PadelConnect)</Txt>
+                <Txt variant="muted">Décomptes, commissions, nouveaux clubs.</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </Card>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* La suite — fonctions qui arrivent avec la version connectée (serveur) */}
       <View style={{ marginTop: spacing.xl }}>
