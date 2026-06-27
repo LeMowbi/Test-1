@@ -47,9 +47,7 @@ export default function Operateur() {
   const totalCount = rows.reduce((s, r) => s + r.count, 0);
   const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
   const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
-  const totalDue = rows
-    .filter((r) => state.operatorPayments[`${r.clubId}:${week}`] !== 'paid')
-    .reduce((s, r) => s + r.commission, 0);
+  const totalDue = rows.filter((r) => state.operatorPayments[`${r.clubId}:${week}`] !== 'paid').reduce((s, r) => s + r.commission, 0);
 
   // Relance : la SEMAINE PRÉCÉDENTE contient-elle des parties jouées non payées ?
   const prevWeek = addWeeks(thisWeek, -1);
@@ -71,15 +69,16 @@ export default function Operateur() {
   const resPrevWeek = state.reservations.filter((r) => r.createdAt >= twoWeeksAgo && r.createdAt < weekAgo).length;
   const activeClubsCount = activeClubs(state.customClubs, state.clubInfo).length;
 
-  const statusOf = (clubId: string): 'tofacture' | 'sent' | 'paid' =>
-    state.operatorPayments[`${clubId}:${week}`] ?? 'tofacture';
+  const statusOf = (clubId: string): 'tofacture' | 'sent' | 'paid' => state.operatorPayments[`${clubId}:${week}`] ?? 'tofacture';
 
   // Message Wave formaté, prêt à envoyer au club.
   const sendHistory = (row: (typeof rows)[number]) => {
     const lines = row.items
       .sort((a, b) => a.startsAt - b.startsAt)
       // Date ABSOLUE dérivée de dateKey (jamais le libellé relatif « Sem. dernière »).
-      .map((r) => `• ${dateKeyLabel(r.dateKey)} · ${r.time} · ${r.court}${r.bookedBy ? ` · ${r.bookedBy.name}` : ''} · ${fcfa(r.price ?? 0)}`)
+      .map(
+        (r) => `• ${dateKeyLabel(r.dateKey)} · ${r.time} · ${r.court}${r.bookedBy ? ` · ${r.bookedBy.name}` : ''} · ${fcfa(r.price ?? 0)}`,
+      )
       .join('\n');
     const message =
       `*PadelConnect — Décompte semaine ${weekLabel(week)}*\n${row.clubName}\n\n` +
@@ -126,7 +125,9 @@ export default function Operateur() {
 
       {/* Hero — commission cumulée depuis le lancement (chiffre vitrine) */}
       <Card style={styles.hero}>
-        <Txt variant="label" color={colors.textFaint}>Commission PadelConnect — cumulée</Txt>
+        <Txt variant="label" color={colors.textFaint}>
+          Commission PadelConnect — cumulée
+        </Txt>
         <Txt style={styles.heroValue}>{fcfa(allTimeCommission)}</Txt>
         <Txt variant="small" color={colors.textMuted}>
           {allTimePlayed} partie{allTimePlayed > 1 ? 's' : ''} jouée{allTimePlayed > 1 ? 's' : ''} · 10 % réglés par Wave (hors app)
@@ -136,7 +137,12 @@ export default function Operateur() {
       {/* Santé plateforme */}
       <View style={styles.health}>
         <StatTile value={`${activeClubsCount}`} label="Clubs actifs" color={colors.blue} bg={colors.blueSoft} />
-        <StatTile value={`${resThisWeek} ${resThisWeek >= resPrevWeek ? '▲' : '▼'}`} label="Résas / 7 j" color={colors.green} bg={colors.greenSoft} />
+        <StatTile
+          value={`${resThisWeek} ${resThisWeek >= resPrevWeek ? '▲' : '▼'}`}
+          label="Résas / 7 j"
+          color={colors.green}
+          bg={colors.greenSoft}
+        />
         <StatTile value={fcfa(totalCommission)} label="Commission semaine" color={colors.amber} bg={colors.amberSoft} />
       </View>
 
@@ -176,7 +182,8 @@ export default function Operateur() {
         </View>
         {weekUpcoming > 0 ? (
           <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-            + {weekUpcoming} réservation{weekUpcoming > 1 ? 's' : ''} à venir cette semaine (à titre indicatif — facturée{weekUpcoming > 1 ? 's' : ''} une fois jouée{weekUpcoming > 1 ? 's' : ''}).
+            + {weekUpcoming} réservation{weekUpcoming > 1 ? 's' : ''} à venir cette semaine (à titre indicatif — facturée
+            {weekUpcoming > 1 ? 's' : ''} une fois jouée{weekUpcoming > 1 ? 's' : ''}).
           </Txt>
         ) : null}
       </Card>
@@ -203,7 +210,9 @@ export default function Operateur() {
                     </Txt>
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 4 }}>
-                    <Txt variant="price" style={{ fontSize: 15 }}>{fcfa(r.commission)}</Txt>
+                    <Txt variant="price" style={{ fontSize: 15 }}>
+                      {fcfa(r.commission)}
+                    </Txt>
                     <Tag
                       label={st === 'paid' ? 'Payé ✓' : st === 'sent' ? 'Décompte envoyé' : 'À facturer'}
                       tone={st === 'paid' ? 'green' : st === 'sent' ? 'blue' : 'coral'}
@@ -213,12 +222,30 @@ export default function Operateur() {
                 <Divider style={{ marginVertical: spacing.md }} />
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                   <View style={{ flex: 1 }}>
-                    <Button size="sm" label="Envoyer le décompte" icon="logo-whatsapp" variant="secondary" onPress={() => sendHistory(r)} full />
+                    <Button
+                      size="sm"
+                      label="Envoyer le décompte"
+                      icon="logo-whatsapp"
+                      variant="secondary"
+                      onPress={() => sendHistory(r)}
+                      full
+                    />
                   </View>
                   {st === 'paid' ? (
-                    <Button size="sm" label="Annuler" icon="arrow-undo" variant="ghost" onPress={() => setPaymentStatus(r.clubId, week, 'sent')} />
+                    <Button
+                      size="sm"
+                      label="Annuler"
+                      icon="arrow-undo"
+                      variant="ghost"
+                      onPress={() => setPaymentStatus(r.clubId, week, 'sent')}
+                    />
                   ) : (
-                    <Button size="sm" label="Marquer payé" icon="checkmark-circle" onPress={() => setPaymentStatus(r.clubId, week, 'paid')} />
+                    <Button
+                      size="sm"
+                      label="Marquer payé"
+                      icon="checkmark-circle"
+                      onPress={() => setPaymentStatus(r.clubId, week, 'paid')}
+                    />
                   )}
                 </View>
               </Card>
@@ -284,13 +311,17 @@ export default function Operateur() {
                 {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                   <View style={{ flex: 1 }}>
-                    <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
+                    <Txt variant="body" style={{ fontWeight: '600' }}>
+                      {c.name}
+                    </Txt>
                     {on && exp ? (
                       <Txt variant="small" color={colors.amber}>
                         Actif jusqu'au {new Date(exp).toLocaleDateString('fr-FR')}
                       </Txt>
                     ) : (
-                      <Txt variant="small" color={colors.textFaint}>Non sponsorisé</Txt>
+                      <Txt variant="small" color={colors.textFaint}>
+                        Non sponsorisé
+                      </Txt>
                     )}
                   </View>
                   {on ? (
@@ -313,14 +344,16 @@ export default function Operateur() {
         <SectionHeader title="Codes d'accès Espace Club" />
         <Card>
           <Txt variant="muted" style={{ marginBottom: spacing.sm }}>
-            Chaque club entre son code à 4 chiffres pour accéder à son Espace Club. (Visibles ici en
-            mode démo ; les vrais comptes gérants arriveront avec la version serveur.)
+            Chaque club entre son code à 4 chiffres pour accéder à son Espace Club. (Visibles ici en mode démo ; les vrais comptes gérants
+            arriveront avec la version serveur.)
           </Txt>
           {activeClubs(state.customClubs, state.clubInfo).map((c, i) => (
             <View key={c.id}>
               {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
+                <Txt variant="body" style={{ fontWeight: '600' }}>
+                  {c.name}
+                </Txt>
                 <Txt variant="price" style={{ fontSize: 16, letterSpacing: 4 }}>
                   {state.clubCodes[c.id] ?? '—'}
                 </Txt>
@@ -356,13 +389,41 @@ function NewsEditor({
   return (
     <Card>
       <Txt variant="muted" style={{ marginBottom: spacing.sm }}>
-        S'affiche en bandeau en haut de l'accueil joueur. Publier une nouvelle actu la fait réapparaître même chez ceux qui l'avaient fermée.
+        S'affiche en bandeau en haut de l'accueil joueur. Publier une nouvelle actu la fait réapparaître même chez ceux qui l'avaient
+        fermée.
       </Txt>
-      <TextInput value={title} onChangeText={setTitle} placeholder="Titre (obligatoire)" placeholderTextColor={colors.textFaint} style={styles.newsInput} />
-      <TextInput value={subtitle} onChangeText={setSubtitle} placeholder="Sous-titre (optionnel)" placeholderTextColor={colors.textFaint} style={styles.newsInput} />
-      <TextInput value={link} onChangeText={setLink} placeholder="Lien (optionnel — https://…)" placeholderTextColor={colors.textFaint} autoCapitalize="none" keyboardType="url" style={styles.newsInput} />
+      <TextInput
+        value={title}
+        onChangeText={setTitle}
+        placeholder="Titre (obligatoire)"
+        placeholderTextColor={colors.textFaint}
+        style={styles.newsInput}
+      />
+      <TextInput
+        value={subtitle}
+        onChangeText={setSubtitle}
+        placeholder="Sous-titre (optionnel)"
+        placeholderTextColor={colors.textFaint}
+        style={styles.newsInput}
+      />
+      <TextInput
+        value={link}
+        onChangeText={setLink}
+        placeholder="Lien (optionnel — https://…)"
+        placeholderTextColor={colors.textFaint}
+        autoCapitalize="none"
+        keyboardType="url"
+        style={styles.newsInput}
+      />
       <View style={{ marginTop: spacing.md }}>
-        <Button size="sm" label={saved ? 'Publiée ✓' : 'Publier l’actu'} icon={saved ? 'checkmark' : 'megaphone'} onPress={publish} disabled={title.trim().length < 3} full />
+        <Button
+          size="sm"
+          label={saved ? 'Publiée ✓' : 'Publier l’actu'}
+          icon={saved ? 'checkmark' : 'megaphone'}
+          onPress={publish}
+          disabled={title.trim().length < 3}
+          full
+        />
       </View>
     </Card>
   );
@@ -371,7 +432,13 @@ function NewsEditor({
 const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
   hero: { ...shadows.e2, marginBottom: spacing.md, alignItems: 'flex-start', gap: 2 },
-  heroValue: { fontSize: font.size.display, fontFamily: font.family.heavy, fontWeight: font.weight.heavy, color: colors.amber, letterSpacing: -0.5 },
+  heroValue: {
+    fontSize: font.size.display,
+    fontFamily: font.family.heavy,
+    fontWeight: font.weight.heavy,
+    color: colors.amber,
+    letterSpacing: -0.5,
+  },
   health: { flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.md },
   weekNav: {
     flexDirection: 'row',

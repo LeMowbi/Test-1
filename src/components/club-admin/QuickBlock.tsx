@@ -37,15 +37,30 @@ export function QuickBlock({
   const [error, setError] = useState<string | null>(null);
 
   const tsOf = (t: string) => slotTimestamp(day.value, t);
-  const reset = () => { setTime(null); setCourt(null); setError(null); setConfirmUnblock(null); };
+  const reset = () => {
+    setTime(null);
+    setCourt(null);
+    setError(null);
+    setConfirmUnblock(null);
+  };
   const tournamentDay = dayHasTournament(day.key);
 
   return (
     <Card style={{ marginTop: spacing.sm, borderColor: colors.coral }}>
-      <Txt variant="label" color={colors.textFaint}>Jour</Txt>
+      <Txt variant="label" color={colors.textFaint}>
+        Jour
+      </Txt>
       <View style={styles.wrap}>
         {days.map((d) => (
-          <Chip key={d.key} label={d.label} active={d.key === day.key} onPress={() => { setDay(d); reset(); }} />
+          <Chip
+            key={d.key}
+            label={d.label}
+            active={d.key === day.key}
+            onPress={() => {
+              setDay(d);
+              reset();
+            }}
+          />
         ))}
       </View>
 
@@ -58,17 +73,34 @@ export function QuickBlock({
         </View>
       ) : (
         <>
-          <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>Heure</Txt>
+          <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>
+            Heure
+          </Txt>
           <View style={styles.wrap}>
             {[...times].sort().map((t) => {
               const past = tsOf(t) <= Date.now();
-              return <Chip key={t} label={past ? `${t} · passé` : t} active={t === time} disabled={past} onPress={() => { setTime(t); setCourt(null); setError(null); setConfirmUnblock(null); }} />;
+              return (
+                <Chip
+                  key={t}
+                  label={past ? `${t} · passé` : t}
+                  active={t === time}
+                  disabled={past}
+                  onPress={() => {
+                    setTime(t);
+                    setCourt(null);
+                    setError(null);
+                    setConfirmUnblock(null);
+                  }}
+                />
+              );
             })}
           </View>
 
           {time ? (
             <>
-              <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>Terrain</Txt>
+              <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>
+                Terrain
+              </Txt>
               <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
                 {courts.map((c) => {
                   const st = courtStatus(day.key, time, c);
@@ -95,14 +127,26 @@ export function QuickBlock({
                       style={[styles.courtRow, court === c && styles.courtRowSel, st.state === 'reserved' && { opacity: 0.6 }]}
                     >
                       <Ionicons
-                        name={st.state === 'reserved' ? 'person' : st.state === 'blocked' ? 'lock-closed' : court === c ? 'radio-button-on' : 'radio-button-off'}
+                        name={
+                          st.state === 'reserved'
+                            ? 'person'
+                            : st.state === 'blocked'
+                              ? 'lock-closed'
+                              : court === c
+                                ? 'radio-button-on'
+                                : 'radio-button-off'
+                        }
                         size={16}
                         color={tone}
                       />
                       <Txt variant="small" color={tone} style={{ flex: 1, fontWeight: '600' }}>
                         {label}
                       </Txt>
-                      {st.state === 'blocked' ? <Txt variant="small" color={colors.coral}>Débloquer ?</Txt> : null}
+                      {st.state === 'blocked' ? (
+                        <Txt variant="small" color={colors.coral}>
+                          Débloquer ?
+                        </Txt>
+                      ) : null}
                     </Pressable>
                   );
                 })}
@@ -118,7 +162,16 @@ export function QuickBlock({
               </Txt>
               <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
                 <View style={{ flex: 1 }}>
-                  <Button size="sm" label="Débloquer" icon="lock-open" onPress={() => { onUnblock(day.key, time, confirmUnblock); setConfirmUnblock(null); }} full />
+                  <Button
+                    size="sm"
+                    label="Débloquer"
+                    icon="lock-open"
+                    onPress={() => {
+                      onUnblock(day.key, time, confirmUnblock);
+                      setConfirmUnblock(null);
+                    }}
+                    full
+                  />
                 </View>
                 <Button size="sm" label="Annuler" variant="ghost" onPress={() => setConfirmUnblock(null)} />
               </View>
@@ -128,7 +181,9 @@ export function QuickBlock({
           {/* Motif de blocage */}
           {time && court ? (
             <>
-              <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>Motif</Txt>
+              <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>
+                Motif
+              </Txt>
               <View style={styles.wrap}>
                 {BLOCK_REASONS.map((reason) => (
                   <Chip
@@ -172,7 +227,14 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginTop: spacing.md,
   },
-  courtRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: spacing.md, borderRadius: radius.sm, backgroundColor: colors.surfaceAlt },
+  courtRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: spacing.md,
+    borderRadius: radius.sm,
+    backgroundColor: colors.surfaceAlt,
+  },
   courtRowSel: { backgroundColor: colors.signatureSoft, borderWidth: 1, borderColor: colors.signature },
   confirmBox: {
     marginTop: spacing.md,

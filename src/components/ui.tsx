@@ -1,31 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import {
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-  type StyleProp,
-  type TextStyle,
-  type ViewStyle,
-} from 'react-native';
+import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { colors, font, radius, shadows, spacing } from '@/theme';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
 
 /* ---------------------------------- Texte --------------------------------- */
 
-type TxtVariant =
-  | 'display'
-  | 'h1'
-  | 'h2'
-  | 'h3'
-  | 'body'
-  | 'small'
-  | 'muted'
-  | 'label'
-  | 'price';
+type TxtVariant = 'display' | 'h1' | 'h2' | 'h3' | 'body' | 'small' | 'muted' | 'label' | 'price';
 
 export function Txt({
   variant = 'body',
@@ -41,10 +24,7 @@ export function Txt({
   numberOfLines?: number;
 }) {
   return (
-    <Text
-      numberOfLines={numberOfLines}
-      style={[txt[variant], color ? { color } : null, style]}
-    >
+    <Text numberOfLines={numberOfLines} style={[txt[variant], color ? { color } : null, style]}>
       {children}
     </Text>
   );
@@ -76,21 +56,10 @@ const txt = StyleSheet.create({
 
 /* ---------------------------------- Carte --------------------------------- */
 
-export function Card({
-  children,
-  style,
-  onPress,
-}: {
-  children: React.ReactNode;
-  style?: StyleProp<ViewStyle>;
-  onPress?: () => void;
-}) {
+export function Card({ children, style, onPress }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
   if (onPress) {
     return (
-      <Pressable
-        onPress={onPress}
-        style={({ pressed }) => [card.base, pressed && card.pressed, style]}
-      >
+      <Pressable onPress={onPress} style={({ pressed }) => [card.base, pressed && card.pressed, style]}>
         {children}
       </Pressable>
     );
@@ -140,9 +109,7 @@ export function Button({
   const inner = (
     <>
       {icon ? <Ionicons name={icon} size={size === 'sm' ? 16 : 18} color={tone.fg} /> : null}
-      <Text style={[btn.label, size === 'sm' && { fontSize: font.size.sm }, { color: tone.fg }]}>
-        {label}
-      </Text>
+      <Text style={[btn.label, size === 'sm' && { fontSize: font.size.sm }, { color: tone.fg }]}>{label}</Text>
     </>
   );
 
@@ -216,15 +183,7 @@ const btn = StyleSheet.create({
 
 type TagTone = 'signature' | 'green' | 'neutral' | 'danger' | 'blue' | 'coral' | 'purple' | 'amber';
 
-export function Tag({
-  label,
-  tone = 'neutral',
-  icon,
-}: {
-  label: string;
-  tone?: TagTone;
-  icon?: IconName;
-}) {
+export function Tag({ label, tone = 'neutral', icon }: { label: string; tone?: TagTone; icon?: IconName }) {
   const t = tagTones[tone];
   return (
     <View style={[tag.base, { backgroundColor: t.bg }]}>
@@ -260,15 +219,7 @@ const tag = StyleSheet.create({
 
 /* ----------------------------- Section / divers --------------------------- */
 
-export function SectionHeader({
-  title,
-  actionLabel,
-  onAction,
-}: {
-  title: string;
-  actionLabel?: string;
-  onAction?: () => void;
-}) {
+export function SectionHeader({ title, actionLabel, onAction }: { title: string; actionLabel?: string; onAction?: () => void }) {
   return (
     <View style={sh.row}>
       <Txt variant="h3">{title}</Txt>

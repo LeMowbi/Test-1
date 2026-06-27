@@ -18,12 +18,7 @@ export function SegmentedControl<T extends string>({
         const active = opt === value;
         return (
           <Pressable key={opt} onPress={() => onChange(opt)} style={[styles.btn, active && styles.active]}>
-            <Txt
-              variant="small"
-              color={active ? colors.onSignature : colors.textMuted}
-              numberOfLines={1}
-              style={{ fontWeight: '600' }}
-            >
+            <Txt variant="small" color={active ? colors.onSignature : colors.textMuted} numberOfLines={1} style={{ fontWeight: '600' }}>
               {opt}
             </Txt>
           </Pressable>

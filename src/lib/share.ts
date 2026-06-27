@@ -26,8 +26,7 @@ async function shareMessage(message: string): Promise<ShareResult> {
 
 // Partage la fiche d'un club.
 export function shareClub(club: { name: string; area: string }): Promise<ShareResult> {
-  const message =
-    `Découvre ${club.name} (${club.area}) sur PadelConnect — réserve ton terrain en quelques secondes 🎾\n${APP_URL}`;
+  const message = `Découvre ${club.name} (${club.area}) sur PadelConnect — réserve ton terrain en quelques secondes 🎾\n${APP_URL}`;
   return shareMessage(message);
 }
 

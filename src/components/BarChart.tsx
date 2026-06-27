@@ -24,7 +24,7 @@ export function BarChart({
               {d.value}
             </Txt>
             <View style={[styles.track, { height }]}>
-              <View style={[styles.fill, { height: (`${Math.max(pct, 4)}%` as `${number}%`), backgroundColor: color }]} />
+              <View style={[styles.fill, { height: `${Math.max(pct, 4)}%` as `${number}%`, backgroundColor: color }]} />
             </View>
             <Txt variant="small" color={colors.textFaint} style={{ fontSize: 9 }} numberOfLines={1}>
               {d.label}

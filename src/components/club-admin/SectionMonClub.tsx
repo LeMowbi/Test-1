@@ -13,10 +13,7 @@ import { pickImage } from '@/lib/pickImage';
 import { colors, radius, spacing } from '@/theme';
 
 // Sessions de 1h30 — la grille complète que le club peut ouvrir/fermer.
-const ALL_TIMES = [
-  '06:00', '07:30', '09:00', '10:30', '12:00', '13:30',
-  '15:00', '16:30', '18:00', '19:30', '21:00', '22:30',
-];
+const ALL_TIMES = ['06:00', '07:30', '09:00', '10:30', '12:00', '13:30', '15:00', '16:30', '18:00', '19:30', '21:00', '22:30'];
 
 export function SectionMonClub({ club }: { club: Club }) {
   const {
@@ -64,7 +61,10 @@ export function SectionMonClub({ club }: { club: Club }) {
   };
   const removeCourt = (n: string) => {
     if (courts.length <= 1) return; // garder au moins un terrain
-    setClubCourts(club.id, courts.filter((c) => c !== n));
+    setClubCourts(
+      club.id,
+      courts.filter((c) => c !== n),
+    );
   };
 
   const shareBoost = () =>
@@ -108,7 +108,9 @@ export function SectionMonClub({ club }: { club: Club }) {
             <IconCircle icon="megaphone" color={colors.coral} bg={colors.coralSoft} />
             <View style={{ flex: 1 }}>
               <Txt variant="h3">Mettre {club.name} en avant</Txt>
-              <Txt variant="muted">Apparais en tête de liste avec un badge « Sponsorisé ». Paiement par Wave auprès de PadelConnect, qui active le boost.</Txt>
+              <Txt variant="muted">
+                Apparais en tête de liste avec un badge « Sponsorisé ». Paiement par Wave auprès de PadelConnect, qui active le boost.
+              </Txt>
             </View>
             {boosted ? <Tag label="Actif" tone="amber" icon="megaphone" /> : null}
           </View>
@@ -140,7 +142,14 @@ export function SectionMonClub({ club }: { club: Club }) {
             </Pressable>
           </ScrollView>
           <View style={styles.inlineRow}>
-            <TextInput value={url} onChangeText={setUrl} placeholder="…ou coller un lien d'image (https://)" placeholderTextColor={colors.textFaint} autoCapitalize="none" style={styles.input} />
+            <TextInput
+              value={url}
+              onChangeText={setUrl}
+              placeholder="…ou coller un lien d'image (https://)"
+              placeholderTextColor={colors.textFaint}
+              autoCapitalize="none"
+              style={styles.input}
+            />
             <Button size="sm" label="Ajouter" icon="add" onPress={addPhotoFromUrl} />
           </View>
         </Card>
@@ -151,8 +160,8 @@ export function SectionMonClub({ club }: { club: Club }) {
         <SectionHeader title="Offres, actus & événements" />
         <Card>
           <Txt variant="muted">
-            Publie ce que tu veux : promotions, infos du club, soirées, animations… Les événements
-            s'affichent dans la section « Événements & tournois » de ta page.
+            Publie ce que tu veux : promotions, infos du club, soirées, animations… Les événements s'affichent dans la section « Événements
+            & tournois » de ta page.
           </Txt>
           <View style={[styles.wrap, { marginTop: spacing.md }]}>
             <Chip label="Offre" active={offerKind === 'offre'} onPress={() => setOfferKind('offre')} />
@@ -166,13 +175,21 @@ export function SectionMonClub({ club }: { club: Club }) {
             placeholderTextColor={colors.textFaint}
             style={styles.input}
           />
-          <TextInput value={offerDetail} onChangeText={setOfferDetail} placeholder="Détail (optionnel)" placeholderTextColor={colors.textFaint} style={styles.input} />
+          <TextInput
+            value={offerDetail}
+            onChangeText={setOfferDetail}
+            placeholder="Détail (optionnel)"
+            placeholderTextColor={colors.textFaint}
+            style={styles.input}
+          />
           <View style={{ marginTop: spacing.sm }}>
             <Button size="sm" label="Publier" icon="add" onPress={submitOffer} />
           </View>
           <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
             {offers.length === 0 ? (
-              <Txt variant="small" color={colors.textFaint}>Aucune publication — les offres par défaut sont affichées aux joueurs.</Txt>
+              <Txt variant="small" color={colors.textFaint}>
+                Aucune publication — les offres par défaut sont affichées aux joueurs.
+              </Txt>
             ) : (
               offers.map((o) => (
                 <View key={o.id} style={styles.listRow}>
@@ -181,7 +198,9 @@ export function SectionMonClub({ club }: { club: Club }) {
                     tone={o.kind === 'actu' ? 'green' : o.kind === 'evenement' ? 'purple' : 'signature'}
                   />
                   <View style={{ flex: 1 }}>
-                    <Txt variant="body" style={{ fontWeight: '600' }}>{o.title}</Txt>
+                    <Txt variant="body" style={{ fontWeight: '600' }}>
+                      {o.title}
+                    </Txt>
                     {o.detail ? <Txt variant="muted">{o.detail}</Txt> : null}
                   </View>
                   <Pressable onPress={() => removeClubOffer(club.id, o.id)} hitSlop={8}>
@@ -199,9 +218,28 @@ export function SectionMonClub({ club }: { club: Club }) {
         <SectionHeader title="Coachs du club" />
         <Card>
           <Txt variant="muted">Ajoute les coachs de ton club.</Txt>
-          <TextInput value={coachName} onChangeText={setCoachName} placeholder="Nom du coach" placeholderTextColor={colors.textFaint} style={styles.input} />
-          <TextInput value={coachSpec} onChangeText={setCoachSpec} placeholder="Spécialité (ex. Initiation, Compétition)" placeholderTextColor={colors.textFaint} style={styles.input} />
-          <TextInput value={coachPhone} onChangeText={setCoachPhone} placeholder="Téléphone (+225…)" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
+          <TextInput
+            value={coachName}
+            onChangeText={setCoachName}
+            placeholder="Nom du coach"
+            placeholderTextColor={colors.textFaint}
+            style={styles.input}
+          />
+          <TextInput
+            value={coachSpec}
+            onChangeText={setCoachSpec}
+            placeholder="Spécialité (ex. Initiation, Compétition)"
+            placeholderTextColor={colors.textFaint}
+            style={styles.input}
+          />
+          <TextInput
+            value={coachPhone}
+            onChangeText={setCoachPhone}
+            placeholder="Téléphone (+225…)"
+            placeholderTextColor={colors.textFaint}
+            keyboardType="phone-pad"
+            style={styles.input}
+          />
           <View style={{ marginTop: spacing.sm }}>
             <Button size="sm" label="Ajouter le coach" icon="add" onPress={submitCoach} />
           </View>
@@ -210,8 +248,13 @@ export function SectionMonClub({ club }: { club: Club }) {
               <View key={c.id} style={styles.listRow}>
                 <IconCircle icon="person" color={colors.blue} bg={colors.blueSoft} size={36} />
                 <View style={{ flex: 1 }}>
-                  <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
-                  <Txt variant="muted">{c.specialty}{c.phone ? ` · ${c.phone}` : ''}</Txt>
+                  <Txt variant="body" style={{ fontWeight: '600' }}>
+                    {c.name}
+                  </Txt>
+                  <Txt variant="muted">
+                    {c.specialty}
+                    {c.phone ? ` · ${c.phone}` : ''}
+                  </Txt>
                 </View>
                 <Pressable onPress={() => removeClubCoach(club.id, c.id)} hitSlop={8}>
                   <Ionicons name="trash-outline" size={18} color={colors.danger} />
@@ -223,10 +266,20 @@ export function SectionMonClub({ club }: { club: Club }) {
               const hidden = state.hiddenCoachIds.includes(c.id);
               return (
                 <View key={c.id} style={styles.listRow}>
-                  <IconCircle icon="person" color={hidden ? colors.textFaint : colors.blue} bg={hidden ? colors.surfaceAlt : colors.blueSoft} size={36} />
+                  <IconCircle
+                    icon="person"
+                    color={hidden ? colors.textFaint : colors.blue}
+                    bg={hidden ? colors.surfaceAlt : colors.blueSoft}
+                    size={36}
+                  />
                   <View style={{ flex: 1 }}>
-                    <Txt variant="body" style={{ fontWeight: '600', ...(hidden ? { color: colors.textFaint } : null) }}>{c.name}</Txt>
-                    <Txt variant="muted">{c.level}{hidden ? ' · retiré de ta page' : ''}</Txt>
+                    <Txt variant="body" style={{ fontWeight: '600', ...(hidden ? { color: colors.textFaint } : null) }}>
+                      {c.name}
+                    </Txt>
+                    <Txt variant="muted">
+                      {c.level}
+                      {hidden ? ' · retiré de ta page' : ''}
+                    </Txt>
                   </View>
                   <Button
                     size="sm"
@@ -250,7 +303,9 @@ export function SectionMonClub({ club }: { club: Club }) {
             {courts.map((c) => (
               <View key={c} style={styles.listRow}>
                 <IconCircle icon="tennisball" color={colors.green} bg={colors.greenSoft} size={36} />
-                <Txt variant="body" style={{ flex: 1, fontWeight: '600' }}>{c}</Txt>
+                <Txt variant="body" style={{ flex: 1, fontWeight: '600' }}>
+                  {c}
+                </Txt>
                 {courts.length > 1 ? (
                   <Pressable onPress={() => removeCourt(c)} hitSlop={8}>
                     <Ionicons name="trash-outline" size={18} color={colors.danger} />
@@ -260,7 +315,13 @@ export function SectionMonClub({ club }: { club: Club }) {
             ))}
           </View>
           <View style={styles.inlineRow}>
-            <TextInput value={courtName} onChangeText={setCourtName} placeholder="Nom du terrain (ex. Terrain 4, Central…)" placeholderTextColor={colors.textFaint} style={styles.input} />
+            <TextInput
+              value={courtName}
+              onChangeText={setCourtName}
+              placeholder="Nom du terrain (ex. Terrain 4, Central…)"
+              placeholderTextColor={colors.textFaint}
+              style={styles.input}
+            />
             <Button size="sm" label="Ajouter" icon="add" onPress={addCourt} />
           </View>
         </Card>
@@ -285,7 +346,11 @@ export function SectionMonClub({ club }: { club: Club }) {
       <Card style={{ marginTop: spacing.xl, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
         <IconCircle icon="cash" color={colors.purple} bg={colors.purpleSoft} size={40} />
         <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-          Tarif affiché aux joueurs : <Txt variant="small" style={{ fontWeight: '700' }}>dès {fcfa(club.priceFrom)} la session (1h30)</Txt> — le règlement se fait directement au club.
+          Tarif affiché aux joueurs :{' '}
+          <Txt variant="small" style={{ fontWeight: '700' }}>
+            dès {fcfa(club.priceFrom)} la session (1h30)
+          </Txt>{' '}
+          — le règlement se fait directement au club.
         </Txt>
       </Card>
     </>

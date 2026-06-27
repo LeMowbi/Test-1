@@ -28,17 +28,17 @@ export default function ReserverScreen() {
 
   const days = useMemo(() => nextDays(7), []);
   // Le soir, quand tous les créneaux du jour sont passés, on ouvre directement sur Demain.
-  const todayOver = useMemo(
-    () => !SAMPLE_SLOTS.some((t) => slotTimestamp(days[0].value, t) > Date.now()),
-    [days]
-  );
+  const todayOver = useMemo(() => !SAMPLE_SLOTS.some((t) => slotTimestamp(days[0].value, t) > Date.now()), [days]);
   const [day, setDay] = useState(todayOver ? days[1] : days[0]);
   const [slot, setSlot] = useState<string | null>(null); // créneau choisi (vue « Par heure » guidée)
   // La dernière vue utilisée est mémorisée (l'écran rouvre comme tu l'avais laissé).
   const view = state.reserverView;
   const setView = setReserverView;
   const [sheet, setSheet] = useState<{ club: Club; time: string } | null>(null);
-  const pickDay = (d: DayOption) => { setDay(d); setSlot(null); };
+  const pickDay = (d: DayOption) => {
+    setDay(d);
+    setSlot(null);
+  };
 
   const visibleClubs = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs, state.clubInfo]);
   const ctx: AvailCtx = {
@@ -76,170 +76,189 @@ export default function ReserverScreen() {
   return (
     <Screen back title="Réserver" subtitle="Sessions de 1h30 — on te montre les terrains libres">
       <Reveal>
-      {/* Jour — pastilles (maquette) : jour abrégé + numéro, signature si actif */}
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.sm }}>
-        {days.map((d, i) => {
-          const dd = new Date(d.value);
-          const active = d.key === day.key;
-          return (
-            <Pressable key={d.key} onPress={() => pickDay(d)} style={[styles.dayPill, active && styles.dayPillActive]}>
-              <Txt variant="small" color={active ? colors.onSignature : colors.textFaint} style={{ fontSize: 10, fontWeight: '700' }}>
-                {i === 0 ? 'AUJ.' : DOW[dd.getDay()]}
-              </Txt>
-              <Txt variant="h3" color={active ? colors.onSignature : colors.text} style={{ fontSize: 18 }}>
-                {dd.getDate()}
-              </Txt>
-            </Pressable>
-          );
-        })}
-      </ScrollView>
+        {/* Jour — pastilles (maquette) : jour abrégé + numéro, signature si actif */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: spacing.sm, paddingVertical: spacing.sm }}
+        >
+          {days.map((d, i) => {
+            const dd = new Date(d.value);
+            const active = d.key === day.key;
+            return (
+              <Pressable key={d.key} onPress={() => pickDay(d)} style={[styles.dayPill, active && styles.dayPillActive]}>
+                <Txt variant="small" color={active ? colors.onSignature : colors.textFaint} style={{ fontSize: 10, fontWeight: '700' }}>
+                  {i === 0 ? 'AUJ.' : DOW[dd.getDay()]}
+                </Txt>
+                <Txt variant="h3" color={active ? colors.onSignature : colors.text} style={{ fontSize: 18 }}>
+                  {dd.getDate()}
+                </Txt>
+              </Pressable>
+            );
+          })}
+        </ScrollView>
 
-      {todayOver && day.key === days[1].key ? (
-        <View style={styles.autoHint}>
-          <Ionicons name="moon-outline" size={13} color={colors.textFaint} />
-          <Txt variant="small" color={colors.textFaint}>
-            Plus de créneaux aujourd'hui — voici demain.
+        {todayOver && day.key === days[1].key ? (
+          <View style={styles.autoHint}>
+            <Ionicons name="moon-outline" size={13} color={colors.textFaint} />
+            <Txt variant="small" color={colors.textFaint}>
+              Plus de créneaux aujourd'hui — voici demain.
+            </Txt>
+          </View>
+        ) : null}
+
+        <SegmentedControl options={VIEWS} value={view} onChange={setView} />
+
+        <View style={styles.legend}>
+          <Ionicons name="hand-left-outline" size={15} color={colors.textFaint} />
+          <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
+            {view === 'Par heure' ? 'Choisis un créneau, puis le club où réserver.' : 'Touche une heure libre pour réserver dans ce club.'}
           </Txt>
         </View>
-      ) : null}
 
-      <SegmentedControl options={VIEWS} value={view} onChange={setView} />
+        {view === 'Par heure' ? (
+          rows.length === 0 ? (
+            <View>
+              <EmptyState
+                icon="time-outline"
+                title={isToday ? 'Plus de créneaux aujourd’hui' : 'Plus de créneaux'}
+                text={isToday ? 'La journée est terminée.' : 'Aucun horaire à venir ce jour. Choisis un autre jour.'}
+              />
+              {isToday ? <Button label="Voir demain" icon="arrow-forward" onPress={goTomorrow} /> : null}
+            </View>
+          ) : (
+            <>
+              {/* Grille de créneaux (maquette) : on choisit d'abord l'heure */}
+              <Txt variant="label" color={colors.textFaint} style={{ marginBottom: spacing.sm }}>
+                Choisis un créneau · 1h30
+              </Txt>
+              <View style={styles.slotGrid}>
+                {rows.map((row) => {
+                  const sel = slot === row.time;
+                  const none = row.clubs.length === 0;
+                  return (
+                    <Pressable
+                      key={row.time}
+                      disabled={none}
+                      onPress={() => setSlot(row.time)}
+                      style={[styles.slotTile, sel ? styles.slotTileSel : none ? styles.slotTileOff : styles.slotTileFree]}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                        <Txt variant="h3" color={sel ? colors.onSignature : colors.text} style={{ fontSize: 18 }}>
+                          {row.time}
+                        </Txt>
+                        {PRIME_TIMES.has(row.time) && !sel ? <Ionicons name="flame" size={12} color={colors.coral} /> : null}
+                      </View>
+                      <Txt
+                        variant="small"
+                        color={sel ? colors.onSignature : none ? colors.textFaint : colors.green}
+                        style={{ fontWeight: '700', fontSize: 11 }}
+                      >
+                        {none
+                          ? 'Complet'
+                          : `${row.clubs.length} club${row.clubs.length > 1 ? 's' : ''} libre${row.clubs.length > 1 ? 's' : ''}`}
+                      </Txt>
+                    </Pressable>
+                  );
+                })}
+              </View>
 
-      <View style={styles.legend}>
-        <Ionicons name="hand-left-outline" size={15} color={colors.textFaint} />
-        <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
-          {view === 'Par heure'
-            ? 'Choisis un créneau, puis le club où réserver.'
-            : 'Touche une heure libre pour réserver dans ce club.'}
-        </Txt>
-      </View>
-
-      {view === 'Par heure' ? (
-        rows.length === 0 ? (
+              {/* Clubs disponibles pour le créneau choisi */}
+              {selectedRow ? (
+                <View style={{ marginTop: spacing.lg }}>
+                  <View style={styles.infoPill}>
+                    <Ionicons name="business-outline" size={15} color={colors.blue} />
+                    <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+                      {selectedRow.clubs.length} club{selectedRow.clubs.length > 1 ? 's ont' : ' a'} ce créneau libre · {slot}
+                    </Txt>
+                  </View>
+                  {selectedRow.clubs.map(({ club, free }) => (
+                    <Pressable key={club.id} onPress={() => open(club, selectedRow.time)} style={styles.clubMini}>
+                      <View style={{ flex: 1 }}>
+                        <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
+                          {club.name}
+                        </Txt>
+                        <Txt variant="small" color={colors.textMuted} numberOfLines={1}>
+                          {club.area}
+                        </Txt>
+                      </View>
+                      <View style={{ alignItems: 'flex-end', gap: 3 }}>
+                        <View style={styles.freeDot}>
+                          <Txt variant="small" color={colors.green} style={{ fontWeight: '700' }}>
+                            {free} libre{free > 1 ? 's' : ''}
+                          </Txt>
+                        </View>
+                        <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
+                          {fcfa(priceForSlot(club, selectedRow.time))}
+                        </Txt>
+                        <Txt variant="small" color={colors.textFaint} style={{ fontSize: 11 }}>
+                          ~{perPlayer(priceForSlot(club, selectedRow.time))}/joueur
+                        </Txt>
+                      </View>
+                      <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                    </Pressable>
+                  ))}
+                </View>
+              ) : (
+                <View style={[styles.infoPill, { marginTop: spacing.lg }]}>
+                  <Ionicons name="hand-left-outline" size={15} color={colors.textFaint} />
+                  <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                    Choisis un créneau ci-dessus pour voir les clubs libres.
+                  </Txt>
+                </View>
+              )}
+            </>
+          )
+        ) : noSlotsByClub ? (
           <View>
             <EmptyState
               icon="time-outline"
-              title={isToday ? 'Plus de créneaux aujourd’hui' : 'Plus de créneaux'}
-              text={isToday ? 'La journée est terminée.' : 'Aucun horaire à venir ce jour. Choisis un autre jour.'}
+              title={isToday ? 'Plus de créneaux aujourd’hui' : 'Aucun créneau libre'}
+              text={isToday ? 'La journée est terminée.' : 'Choisis un autre jour.'}
             />
             {isToday ? <Button label="Voir demain" icon="arrow-forward" onPress={goTomorrow} /> : null}
           </View>
         ) : (
-          <>
-            {/* Grille de créneaux (maquette) : on choisit d'abord l'heure */}
-            <Txt variant="label" color={colors.textFaint} style={{ marginBottom: spacing.sm }}>
-              Choisis un créneau · 1h30
-            </Txt>
-            <View style={styles.slotGrid}>
-              {rows.map((row) => {
-                const sel = slot === row.time;
-                const none = row.clubs.length === 0;
-                return (
-                  <Pressable
-                    key={row.time}
-                    disabled={none}
-                    onPress={() => setSlot(row.time)}
-                    style={[styles.slotTile, sel ? styles.slotTileSel : none ? styles.slotTileOff : styles.slotTileFree]}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Txt variant="h3" color={sel ? colors.onSignature : colors.text} style={{ fontSize: 18 }}>
-                        {row.time}
-                      </Txt>
-                      {PRIME_TIMES.has(row.time) && !sel ? <Ionicons name="flame" size={12} color={colors.coral} /> : null}
-                    </View>
-                    <Txt variant="small" color={sel ? colors.onSignature : none ? colors.textFaint : colors.green} style={{ fontWeight: '700', fontSize: 11 }}>
-                      {none ? 'Complet' : `${row.clubs.length} club${row.clubs.length > 1 ? 's' : ''} libre${row.clubs.length > 1 ? 's' : ''}`}
+          byClub
+            .filter((b) => b.slots.length > 0)
+            .map(({ club, slots }) => (
+              <Card key={club.id} style={{ marginBottom: spacing.md }}>
+                <View style={styles.clubHead}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="h3">{club.name}</Txt>
+                    <Txt variant="small" color={colors.textMuted}>
+                      {club.area}
                     </Txt>
-                  </Pressable>
-                );
-              })}
-            </View>
-
-            {/* Clubs disponibles pour le créneau choisi */}
-            {selectedRow ? (
-              <View style={{ marginTop: spacing.lg }}>
-                <View style={styles.infoPill}>
-                  <Ionicons name="business-outline" size={15} color={colors.blue} />
-                  <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-                    {selectedRow.clubs.length} club{selectedRow.clubs.length > 1 ? 's ont' : ' a'} ce créneau libre · {slot}
+                  </View>
+                  <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
+                    dès {fcfa(minPrice(club))}
                   </Txt>
                 </View>
-                {selectedRow.clubs.map(({ club, free }) => (
-                  <Pressable key={club.id} onPress={() => open(club, selectedRow.time)} style={styles.clubMini}>
-                    <View style={{ flex: 1 }}>
-                      <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
-                        {club.name}
-                      </Txt>
-                      <Txt variant="small" color={colors.textMuted} numberOfLines={1}>
-                        {club.area}
-                      </Txt>
-                    </View>
-                    <View style={{ alignItems: 'flex-end', gap: 3 }}>
-                      <View style={styles.freeDot}>
-                        <Txt variant="small" color={colors.green} style={{ fontWeight: '700' }}>
-                          {free} libre{free > 1 ? 's' : ''}
-                        </Txt>
-                      </View>
-                      <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
-                        {fcfa(priceForSlot(club, selectedRow.time))}
-                      </Txt>
-                      <Txt variant="small" color={colors.textFaint} style={{ fontSize: 11 }}>
-                        ~{perPlayer(priceForSlot(club, selectedRow.time))}/joueur
-                      </Txt>
-                    </View>
-                    <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                  </Pressable>
-                ))}
-              </View>
-            ) : (
-              <View style={[styles.infoPill, { marginTop: spacing.lg }]}>
-                <Ionicons name="hand-left-outline" size={15} color={colors.textFaint} />
-                <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-                  Choisis un créneau ci-dessus pour voir les clubs libres.
-                </Txt>
-              </View>
-            )}
-          </>
-        )
-      ) : noSlotsByClub ? (
-        <View>
-          <EmptyState
-            icon="time-outline"
-            title={isToday ? 'Plus de créneaux aujourd’hui' : 'Aucun créneau libre'}
-            text={isToday ? 'La journée est terminée.' : 'Choisis un autre jour.'}
+                <View style={styles.slotWrap}>
+                  {slots.map((s) => (
+                    <Chip
+                      key={s.time}
+                      label={`${s.time} · ${fcfa(priceForSlot(club, s.time))}`}
+                      icon={PRIME_TIMES.has(s.time) ? 'flame' : undefined}
+                      onPress={() => open(club, s.time)}
+                    />
+                  ))}
+                </View>
+              </Card>
+            ))
+        )}
+
+        <View style={{ marginTop: spacing.lg }}>
+          <Button
+            label="Parcourir les clubs (carte, photos, avis)"
+            icon="business-outline"
+            variant="secondary"
+            onPress={() => router.push('/clubs')}
+            full
           />
-          {isToday ? <Button label="Voir demain" icon="arrow-forward" onPress={goTomorrow} /> : null}
         </View>
-      ) : (
-        byClub
-          .filter((b) => b.slots.length > 0)
-          .map(({ club, slots }) => (
-          <Card key={club.id} style={{ marginBottom: spacing.md }}>
-            <View style={styles.clubHead}>
-              <View style={{ flex: 1 }}>
-                <Txt variant="h3">{club.name}</Txt>
-                <Txt variant="small" color={colors.textMuted}>
-                  {club.area}
-                </Txt>
-              </View>
-              <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
-                dès {fcfa(minPrice(club))}
-              </Txt>
-            </View>
-            <View style={styles.slotWrap}>
-              {slots.map((s) => (
-                <Chip key={s.time} label={`${s.time} · ${fcfa(priceForSlot(club, s.time))}`} icon={PRIME_TIMES.has(s.time) ? 'flame' : undefined} onPress={() => open(club, s.time)} />
-              ))}
-            </View>
-          </Card>
-        ))
-      )}
 
-      <View style={{ marginTop: spacing.lg }}>
-        <Button label="Parcourir les clubs (carte, photos, avis)" icon="business-outline" variant="secondary" onPress={() => router.push('/clubs')} full />
-      </View>
-
-      {sheet ? <BookingSheet club={sheet.club} day={day} time={sheet.time} onClose={() => setSheet(null)} /> : null}
+        {sheet ? <BookingSheet club={sheet.club} day={day} time={sheet.time} onClose={() => setSheet(null)} /> : null}
       </Reveal>
     </Screen>
   );

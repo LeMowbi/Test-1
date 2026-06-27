@@ -22,9 +22,7 @@ export function RatingStars({ value, size = 16, onChange }: Props) {
           else if (value >= i - 0.5) name = 'star-half';
           else name = 'star-outline';
         }
-        const icon = (
-          <Ionicons name={name} size={size} color={colors.signature} />
-        );
+        const icon = <Ionicons name={name} size={size} color={colors.signature} />;
         return onChange ? (
           <Pressable key={i} onPress={() => onChange(i)} hitSlop={6}>
             {icon}

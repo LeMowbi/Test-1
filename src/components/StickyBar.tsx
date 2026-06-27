@@ -23,9 +23,13 @@ export function StickyBar({
   return (
     <View style={[styles.bar, { paddingBottom: spacing.md + insets.bottom }]}>
       <View style={{ flex: 1 }}>
-        <Txt variant="price" numberOfLines={1}>{label}</Txt>
+        <Txt variant="price" numberOfLines={1}>
+          {label}
+        </Txt>
         {hint ? (
-          <Txt variant="small" color={colors.textFaint} numberOfLines={1}>{hint}</Txt>
+          <Txt variant="small" color={colors.textFaint} numberOfLines={1}>
+            {hint}
+          </Txt>
         ) : null}
       </View>
       <Button label={cta} icon="arrow-forward" onPress={onPress} disabled={disabled} pill />

@@ -85,7 +85,7 @@ export default function NouvelleCompetition() {
     addCompetition({
       title: title.trim(),
       organizerType: asClub ? 'club' : 'joueur',
-      organizer: asClub ? club?.name ?? 'Club' : state.account?.firstName ?? 'Joueur',
+      organizer: asClub ? (club?.name ?? 'Club') : (state.account?.firstName ?? 'Joueur'),
       clubId: host?.id,
       clubName: host?.name,
       date: day!.label,
@@ -104,7 +104,12 @@ export default function NouvelleCompetition() {
   };
 
   return (
-    <Screen back title="Créer un tournoi" subtitle={asClub ? `Pour ${club?.name ?? 'votre club'}` : 'En tant que joueur'} scrollRef={scrollRef}>
+    <Screen
+      back
+      title="Créer un tournoi"
+      subtitle={asClub ? `Pour ${club?.name ?? 'votre club'}` : 'En tant que joueur'}
+      scrollRef={scrollRef}
+    >
       <Field
         label="Titre"
         value={title}
@@ -175,7 +180,9 @@ export default function NouvelleCompetition() {
       {/* Club hôte — uniquement pour un tournoi créé par un joueur (modération) */}
       {!asClub ? (
         <View style={{ marginTop: spacing.lg }}>
-          <Txt variant="label" color={colors.textFaint}>Club hôte</Txt>
+          <Txt variant="label" color={colors.textFaint}>
+            Club hôte
+          </Txt>
           <View style={styles.wrap}>
             {hosts.map((h) => (
               <Chip
@@ -190,7 +197,9 @@ export default function NouvelleCompetition() {
             ))}
           </View>
           {errors.host ? (
-            <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>{errors.host}</Txt>
+            <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>
+              {errors.host}
+            </Txt>
           ) : null}
           <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
             Ton tournoi sera visible une fois validé par le club hôte.

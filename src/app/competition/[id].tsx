@@ -161,7 +161,7 @@ export default function CompetitionDetail() {
           </Txt>
         </View>
         <View style={styles.barTrack}>
-          <View style={[styles.barFill, { width: (`${pct}%` as `${number}%`) }]} />
+          <View style={[styles.barFill, { width: `${pct}%` as `${number}%` }]} />
         </View>
         <Txt variant="small" color={full ? colors.danger : colors.textMuted} style={{ marginTop: spacing.sm }}>
           {registered
@@ -292,7 +292,11 @@ export default function CompetitionDetail() {
                   const sel = winnerName === t;
                   return (
                     <Pressable key={t} onPress={() => setWinnerName(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
-                      <Ionicons name={sel ? 'radio-button-on' : 'radio-button-off'} size={18} color={sel ? colors.signature : colors.textMuted} />
+                      <Ionicons
+                        name={sel ? 'radio-button-on' : 'radio-button-off'}
+                        size={18}
+                        color={sel ? colors.signature : colors.textMuted}
+                      />
                       <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
                         {t}
                       </Txt>
@@ -320,24 +324,36 @@ export default function CompetitionDetail() {
             <>
               <Txt variant="h3">Fin de tableau ?</Txt>
               <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
-                Facultatif. {comp.official ? "L’équipe désignée perd −0.25 de niveau. " : ''}Tu peux passer.
+                Facultatif. {comp.official ? 'L’équipe désignée perd −0.25 de niveau. ' : ''}Tu peux passer.
               </Txt>
               <View style={{ marginTop: spacing.sm, gap: 6 }}>
-                {teamList.filter((t) => t !== winnerName).map((t) => {
-                  const sel = loserName === t;
-                  return (
-                    <Pressable key={t} onPress={() => setLoserName(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
-                      <Ionicons name={sel ? 'radio-button-on' : 'radio-button-off'} size={18} color={sel ? colors.coral : colors.textMuted} />
-                      <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
-                        {t}
-                      </Txt>
-                      {registered && t === myTeam ? <Tag label="Ton équipe" tone="blue" /> : null}
-                    </Pressable>
-                  );
-                })}
+                {teamList
+                  .filter((t) => t !== winnerName)
+                  .map((t) => {
+                    const sel = loserName === t;
+                    return (
+                      <Pressable key={t} onPress={() => setLoserName(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
+                        <Ionicons
+                          name={sel ? 'radio-button-on' : 'radio-button-off'}
+                          size={18}
+                          color={sel ? colors.coral : colors.textMuted}
+                        />
+                        <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
+                          {t}
+                        </Txt>
+                        {registered && t === myTeam ? <Tag label="Ton équipe" tone="blue" /> : null}
+                      </Pressable>
+                    );
+                  })}
               </View>
               <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-                <Button label={loserName ? `Clôturer (fin de tableau : ${loserName})` : 'Clôturer'} icon="flag" onPress={() => doClose(loserName || undefined)} disabled={!loserName} full />
+                <Button
+                  label={loserName ? `Clôturer (fin de tableau : ${loserName})` : 'Clôturer'}
+                  icon="flag"
+                  onPress={() => doClose(loserName || undefined)}
+                  disabled={!loserName}
+                  full
+                />
                 <Button label="Passer (pas de fin de tableau)" variant="ghost" onPress={() => doClose(undefined)} full />
               </View>
             </>

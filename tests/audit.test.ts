@@ -45,7 +45,13 @@ check(padelta.count === 2 && padelta.revenue === 40000, 'Padelta : 2 jouées, vo
 check(padelta.commission === 4000, 'Commission Padelta : 4 000 (10 % du volume réel)');
 check(district.count === 1 && district.commission === 1400, 'District : dimanche 23:59 compté dans la semaine, commission 1 400');
 check(!rows.some((r) => r.clubId === 'padelta' && r.count > 2), 'Lundi 00:00 suivant exclu ; résa à venir exclue');
-check(weeklyRows(resas.filter((r) => r.id !== 'r1'), WEEK).find((r) => r.clubId === 'padelta')!.revenue === 10000, 'Résa annulée (retirée du store) → exclue du volume');
+check(
+  weeklyRows(
+    resas.filter((r) => r.id !== 'r1'),
+    WEEK,
+  ).find((r) => r.clubId === 'padelta')!.revenue === 10000,
+  'Résa annulée (retirée du store) → exclue du volume',
+);
 check(Math.round(12345 * COMMISSION_RATE) === 1235, 'Arrondi commission : 12 345 → 1 235 (Math.round, au plus proche)');
 
 // Garde-fou : annulation interdite à MOINS de 5h du début (miroir de reservations.tsx).
@@ -61,9 +67,18 @@ type Slot = { clubId: string; dateKey: string; time: string; court: string };
 const taken = (list: Slot[], r: Slot) =>
   list.some((x) => x.clubId === r.clubId && x.dateKey === r.dateKey && x.time === r.time && x.court === r.court);
 const existing: Slot[] = [{ clubId: 'padelta', dateKey: '2026-06-13', time: '18:00', court: 'Terrain 1' }];
-check(taken(existing, { clubId: 'padelta', dateKey: '2026-06-13', time: '18:00', court: 'Terrain 1' }), 'Même terrain, même créneau → refusé');
-check(!taken(existing, { clubId: 'padelta', dateKey: '2026-06-13', time: '18:00', court: 'Terrain 2' }), 'Autre terrain, même créneau → accepté');
-check(!taken(existing, { clubId: 'padelta', dateKey: '2026-06-14', time: '18:00', court: 'Terrain 1' }), 'Même terrain, autre jour → accepté');
+check(
+  taken(existing, { clubId: 'padelta', dateKey: '2026-06-13', time: '18:00', court: 'Terrain 1' }),
+  'Même terrain, même créneau → refusé',
+);
+check(
+  !taken(existing, { clubId: 'padelta', dateKey: '2026-06-13', time: '18:00', court: 'Terrain 2' }),
+  'Autre terrain, même créneau → accepté',
+);
+check(
+  !taken(existing, { clubId: 'padelta', dateKey: '2026-06-14', time: '18:00', court: 'Terrain 1' }),
+  'Même terrain, autre jour → accepté',
+);
 
 // Garde-fou : blocage hors app refusé sur un créneau déjà réservé ou déjà bloqué (même clé).
 check(taken(existing, existing[0]), 'Blocage par-dessus une résa app → refusé (même clé de créneau)');
@@ -92,7 +107,8 @@ check(visibleInList({ status: 'pending', createdByMe: true }) === true, 'Créate
 check(visibleInList({ status: 'pending', createdByMe: false }) === false, 'Les autres ne voient pas un tournoi en attente');
 
 // Validation par le club : pending → approved (devient public, sort des demandes).
-const reqs = (list: Comp[], clubId: string) => list.filter((c) => c.clubId === clubId && c.status === 'pending' && c.organizerType === 'joueur');
+const reqs = (list: Comp[], clubId: string) =>
+  list.filter((c) => c.clubId === clubId && c.status === 'pending' && c.organizerType === 'joueur');
 let comps2: Comp[] = [{ id: 't0', clubId: 'padelta', status: 'pending', organizerType: 'joueur' }];
 check(reqs(comps2, 'padelta').length === 1, 'Le club voit 1 demande de tournoi');
 comps2 = comps2.map((c) => (c.id === 't0' ? { ...c, status: 'approved' as const } : c));

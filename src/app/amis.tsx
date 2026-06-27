@@ -54,13 +54,7 @@ export default function AmisScreen() {
                 text="Ajoute tes partenaires ci-dessous : tu pourras les inviter en réservant."
               />
               <View style={{ alignItems: 'center', marginTop: spacing.md }}>
-                <Button
-                  label="Inviter des amis"
-                  icon="gift-outline"
-                  variant="secondary"
-                  onPress={() => router.push('/parrainage')}
-                  pill
-                />
+                <Button label="Inviter des amis" icon="gift-outline" variant="secondary" onPress={() => router.push('/parrainage')} pill />
               </View>
             </>
           ) : (
@@ -80,12 +74,7 @@ export default function AmisScreen() {
                         </Txt>
                       </View>
                     </Pressable>
-                    <Button
-                      size="sm"
-                      label="Retirer"
-                      variant="ghost"
-                      onPress={() => setRemoveId(removeId === f.id ? null : f.id)}
-                    />
+                    <Button size="sm" label="Retirer" variant="ghost" onPress={() => setRemoveId(removeId === f.id ? null : f.id)} />
                   </View>
                   {removeId === f.id ? (
                     // Confirmation légère, en place — pas de suppression au premier tap.
@@ -161,10 +150,7 @@ export default function AmisScreen() {
                 <View key={id}>
                   {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
                   <View style={styles.row}>
-                    <Pressable
-                      onPress={() => setOpenPlayer({ id, name: info.name, level: info.level })}
-                      style={styles.rowTap}
-                    >
+                    <Pressable onPress={() => setOpenPlayer({ id, name: info.name, level: info.level })} style={styles.rowTap}>
                       <Avatar name={info.name} size={44} />
                       <View style={styles.rowInfo}>
                         <Txt variant="body" style={styles.rowName}>

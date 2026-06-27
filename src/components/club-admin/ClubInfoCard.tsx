@@ -67,8 +67,20 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
 
   return (
     <Card>
-      <TextInput value={name} onChangeText={setName} placeholder="Nom du club" placeholderTextColor={colors.textFaint} style={styles.input} />
-      <TextInput value={area} onChangeText={setArea} placeholder="Quartier / commune" placeholderTextColor={colors.textFaint} style={styles.input} />
+      <TextInput
+        value={name}
+        onChangeText={setName}
+        placeholder="Nom du club"
+        placeholderTextColor={colors.textFaint}
+        style={styles.input}
+      />
+      <TextInput
+        value={area}
+        onChangeText={setArea}
+        placeholder="Quartier / commune"
+        placeholderTextColor={colors.textFaint}
+        style={styles.input}
+      />
       <TextInput
         value={blurb}
         onChangeText={setBlurb}
@@ -97,17 +109,43 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
       </Txt>
       {tiers.map((t, i) => (
         <View key={i} style={{ marginTop: spacing.sm }}>
-          <TextInput value={t.label} onChangeText={(v) => setTier(i, { label: v })} placeholder="Nom de la plage (ex. Journée — optionnel)" placeholderTextColor={colors.textFaint} style={[styles.input, { marginTop: 0 }]} />
+          <TextInput
+            value={t.label}
+            onChangeText={(v) => setTier(i, { label: v })}
+            placeholder="Nom de la plage (ex. Journée — optionnel)"
+            placeholderTextColor={colors.textFaint}
+            style={[styles.input, { marginTop: 0 }]}
+          />
           <View style={[styles.tierRow, { marginTop: spacing.xs }]}>
-            <TextInput value={t.start} onChangeText={(v) => setTier(i, { start: v })} placeholder="07:00" placeholderTextColor={colors.textFaint} style={[styles.input, styles.tierCell, { marginTop: 0 }]} />
+            <TextInput
+              value={t.start}
+              onChangeText={(v) => setTier(i, { start: v })}
+              placeholder="07:00"
+              placeholderTextColor={colors.textFaint}
+              style={[styles.input, styles.tierCell, { marginTop: 0 }]}
+            />
             <Txt variant="muted">→</Txt>
-            <TextInput value={t.end} onChangeText={(v) => setTier(i, { end: v })} placeholder="16:00" placeholderTextColor={colors.textFaint} style={[styles.input, styles.tierCell, { marginTop: 0 }]} />
-            <TextInput value={t.price} onChangeText={(v) => setTier(i, { price: v })} placeholder="FCFA" placeholderTextColor={colors.textFaint} keyboardType="numeric" style={[styles.input, styles.tierPrice, { marginTop: 0 }]} />
+            <TextInput
+              value={t.end}
+              onChangeText={(v) => setTier(i, { end: v })}
+              placeholder="16:00"
+              placeholderTextColor={colors.textFaint}
+              style={[styles.input, styles.tierCell, { marginTop: 0 }]}
+            />
+            <TextInput
+              value={t.price}
+              onChangeText={(v) => setTier(i, { price: v })}
+              placeholder="FCFA"
+              placeholderTextColor={colors.textFaint}
+              keyboardType="numeric"
+              style={[styles.input, styles.tierPrice, { marginTop: 0 }]}
+            />
           </View>
         </View>
       ))}
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
-        Si tu définis des plages, elles doivent couvrir 07:00 → 24:00 sans trou. Nomme-les (Journée, Soirée…) pour les afficher en onglets sur ta page.
+        Si tu définis des plages, elles doivent couvrir 07:00 → 24:00 sans trou. Nomme-les (Journée, Soirée…) pour les afficher en onglets
+        sur ta page.
       </Txt>
       {tierError ? (
         <View style={styles.tierErrorBox}>

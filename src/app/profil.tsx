@@ -88,7 +88,8 @@ export default function ProfilScreen() {
                   </Txt>
                 ) : (
                   <Txt variant="small" color={colors.onPhoto} style={{ marginTop: 2 }}>
-                    {g ? `${g} · ` : ''}{account.phone}
+                    {g ? `${g} · ` : ''}
+                    {account.phone}
                   </Txt>
                 )}
               </View>
@@ -105,7 +106,9 @@ export default function ProfilScreen() {
         <SectionHeader title="Mon niveau" />
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-            <Txt variant="label" color={colors.textFaint}>Niveau de jeu</Txt>
+            <Txt variant="label" color={colors.textFaint}>
+              Niveau de jeu
+            </Txt>
             <Txt variant="display" color={colors.signature} style={{ fontSize: 28 }}>
               {level.toFixed(2)}
             </Txt>
@@ -114,8 +117,12 @@ export default function ProfilScreen() {
             <View style={[styles.gaugeFill, { width: lvlPct }]} />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-            <Txt variant="small" color={colors.textFaint}>{lvlLow.toFixed(1)}</Txt>
-            <Txt variant="small" color={colors.textFaint}>{lvlHigh.toFixed(1)}</Txt>
+            <Txt variant="small" color={colors.textFaint}>
+              {lvlLow.toFixed(1)}
+            </Txt>
+            <Txt variant="small" color={colors.textFaint}>
+              {lvlHigh.toFixed(1)}
+            </Txt>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm }}>
             <Ionicons name="swap-vertical" size={14} color={colors.textMuted} />
@@ -344,10 +351,37 @@ function EditAccount({ onDone }: { onDone: () => void }) {
           )}
         </Pressable>
       </View>
-      <TextInput value={firstName} onChangeText={setFirstName} placeholder="Prénom" placeholderTextColor={colors.textFaint} style={styles.input} />
-      <TextInput value={lastName} onChangeText={setLastName} placeholder="Nom" placeholderTextColor={colors.textFaint} style={styles.input} />
-      <TextInput value={phone} onChangeText={setPhone} placeholder="Téléphone" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
-      <TextInput value={birth} onChangeText={(t) => setBirth(maskBirthDate(t, birth))} placeholder="Date de naissance (JJ/MM/AAAA)" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" maxLength={10} style={styles.input} />
+      <TextInput
+        value={firstName}
+        onChangeText={setFirstName}
+        placeholder="Prénom"
+        placeholderTextColor={colors.textFaint}
+        style={styles.input}
+      />
+      <TextInput
+        value={lastName}
+        onChangeText={setLastName}
+        placeholder="Nom"
+        placeholderTextColor={colors.textFaint}
+        style={styles.input}
+      />
+      <TextInput
+        value={phone}
+        onChangeText={setPhone}
+        placeholder="Téléphone"
+        placeholderTextColor={colors.textFaint}
+        keyboardType="phone-pad"
+        style={styles.input}
+      />
+      <TextInput
+        value={birth}
+        onChangeText={(t) => setBirth(maskBirthDate(t, birth))}
+        placeholder="Date de naissance (JJ/MM/AAAA)"
+        placeholderTextColor={colors.textFaint}
+        keyboardType="phone-pad"
+        maxLength={10}
+        style={styles.input}
+      />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md }}>
         {GENDERS.map((gd) => (
           <Chip key={gd.id} label={gd.label} active={gender === gd.id} onPress={() => setGender(gd.id)} />
@@ -366,7 +400,14 @@ function EditAccount({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   band: { borderRadius: radius.xl, padding: spacing.lg, marginTop: spacing.sm },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  editBtn: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: colors.onPhotoSoft, alignItems: 'center', justifyContent: 'center' },
+  editBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: colors.onPhotoSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   gaugeTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   gaugeFill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.signature },
   avatar: {

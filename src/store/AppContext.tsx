@@ -47,7 +47,14 @@ export function isPlayed(r: Reservation, now = Date.now()): boolean {
 }
 
 // Palmarès du joueur : une entrée par tournoi joué (vainqueur, dernière place, ou participant).
-export type OfficialResult = { id: string; compId?: string; title: string; result: 'win' | 'played' | 'last'; at: number; levelAfter: number };
+export type OfficialResult = {
+  id: string;
+  compId?: string;
+  title: string;
+  result: 'win' | 'played' | 'last';
+  at: number;
+  levelAfter: number;
+};
 
 // Résultat d'un tournoi clôturé par son ORGANISATEUR (club ou créateur du défi).
 // `loser` = équipe classée dernière (désignation facultative → malus de niveau).
@@ -131,7 +138,7 @@ const initialState: AppState = {
   clubCoaches: {},
   clubInfo: {},
   // Codes de démo : un code à 4 chiffres par club de base (visibles dans l'Espace opérateur).
-  clubCodes: Object.fromEntries(clubs.map((c, i) => [c.id, String(((i + 1) * 1234) % 9000 + 1000)])),
+  clubCodes: Object.fromEntries(clubs.map((c, i) => [c.id, String((((i + 1) * 1234) % 9000) + 1000)])),
   unlockedClubIds: [],
   hiddenCoachIds: [],
   boostedClubIds: [],
@@ -167,7 +174,7 @@ type AppContextType = {
     winnerName: string,
     winnerIsMe: boolean,
     loserName?: string,
-    loserIsMe?: boolean
+    loserIsMe?: boolean,
   ) => void;
   setRemindersOn: (on: boolean) => void;
   setReserverView: (v: 'Par heure' | 'Par club') => void;
@@ -194,7 +201,14 @@ type AppContextType = {
   toggleBoostClub: (clubId: string) => void;
   setBoost: (clubId: string, days: number) => void; // days > 0 active (avec expiration), 0 désactive
   setPaymentStatus: (clubId: string, monthKey: string, status: 'tofacture' | 'sent' | 'paid') => void;
-  requestClub: (input: { name: string; area: string; type: Club['type']; courts: number; priceFrom: number; contactPhone?: string }) => void;
+  requestClub: (input: {
+    name: string;
+    area: string;
+    type: Club['type'];
+    courts: number;
+    priceFrom: number;
+    contactPhone?: string;
+  }) => void;
   approveClub: (id: string) => void;
   rejectClub: (id: string) => void;
   unlockClub: (clubId: string, code: string) => boolean;
@@ -284,8 +298,37 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             level: 3.5,
             favoriteClubIds: ['padelta'],
             reservations: [
-              { id: uid(), clubId: 'district-club', clubName: 'District Club', court: 'Terrain 1', date: demain.label, dateKey: demain.key, time: '18:00', startsAt: demain.value + 18 * 3600000, price: priceForSlot(findSeed('district-club'), '18:00'), players: 4, invited: [], bookedBy: { name: 'Invité Démo', phone: '+225 07 00 00 00 00' }, createdAt: now },
-              { id: uid(), clubId: 'padel-zone-4', clubName: 'Padel Zone 4', court: 'Terrain 2', date: 'Sem. dernière', dateKey: dayKey(lastWeek), time: '18:00', startsAt: now - 3 * 86400000, price: priceForSlot(findSeed('padel-zone-4'), '18:00'), players: 4, invited: [], bookedBy: { name: 'Invité Démo', phone: '+225 07 00 00 00 00' }, clubConfirmed: true, createdAt: now - 3 * 86400000 },
+              {
+                id: uid(),
+                clubId: 'district-club',
+                clubName: 'District Club',
+                court: 'Terrain 1',
+                date: demain.label,
+                dateKey: demain.key,
+                time: '18:00',
+                startsAt: demain.value + 18 * 3600000,
+                price: priceForSlot(findSeed('district-club'), '18:00'),
+                players: 4,
+                invited: [],
+                bookedBy: { name: 'Invité Démo', phone: '+225 07 00 00 00 00' },
+                createdAt: now,
+              },
+              {
+                id: uid(),
+                clubId: 'padel-zone-4',
+                clubName: 'Padel Zone 4',
+                court: 'Terrain 2',
+                date: 'Sem. dernière',
+                dateKey: dayKey(lastWeek),
+                time: '18:00',
+                startsAt: now - 3 * 86400000,
+                price: priceForSlot(findSeed('padel-zone-4'), '18:00'),
+                players: 4,
+                invited: [],
+                bookedBy: { name: 'Invité Démo', phone: '+225 07 00 00 00 00' },
+                clubConfirmed: true,
+                createdAt: now - 3 * 86400000,
+              },
             ],
             // L'utilisateur démo est inscrit aux 2 tournois terminés : un à clôturer (le
             // gérant désignera le vainqueur) + un déjà clôturé (il a participé, pas gagné).
@@ -295,7 +338,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             },
             compResults: { [DEMO_CLOSED_COMP]: { winner: 'Awa & Yann', closedAt: now - 6 * 86400000 } },
             officialResults: [
-              { id: uid(), compId: DEMO_CLOSED_COMP, title: 'Americano officiel — Padel Zone 4', result: 'played', at: now - 6 * 86400000, levelAfter: 3.5 },
+              {
+                id: uid(),
+                compId: DEMO_CLOSED_COMP,
+                title: 'Americano officiel — Padel Zone 4',
+                result: 'played',
+                at: now - 6 * 86400000,
+                levelAfter: 3.5,
+              },
             ],
           };
         }),
@@ -339,7 +389,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addReview: (clubId, rating, text) =>
         setState((s) => ({
           ...s,
-          userReviews: [{ id: uid(), clubId, author: 'Vous', rating, text: text.trim() || 'Bonne expérience.', date: "À l'instant" }, ...s.userReviews],
+          userReviews: [
+            { id: uid(), clubId, author: 'Vous', rating, text: text.trim() || 'Bonne expérience.', date: "À l'instant" },
+            ...s.userReviews,
+          ],
         })),
       addCompetition: (c) => setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true }, ...s.myCompetitions] })),
       // Le club hôte valide un tournoi créé par un joueur (« en attente » → visible).
@@ -355,7 +408,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) =>
           s.compRegistrations[id]
             ? s
-            : { ...s, compRegistrations: { ...s.compRegistrations, [id]: { partner: partner.trim() || 'Partenaire', at: Date.now() } } }
+            : { ...s, compRegistrations: { ...s.compRegistrations, [id]: { partner: partner.trim() || 'Partenaire', at: Date.now() } } },
         ),
       unregisterCompetition: (id) =>
         setState((s) => {
@@ -373,9 +426,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => {
           if (s.reservations.some(taken)) return s;
           // Identité du réservant (nom + numéro) : c'est ce que le club reçoit.
-          const bookedBy = s.account
-            ? { name: `${s.account.firstName} ${s.account.lastName}`.trim(), phone: s.account.phone }
-            : undefined;
+          const bookedBy = s.account ? { name: `${s.account.firstName} ${s.account.lastName}`.trim(), phone: s.account.phone } : undefined;
           return { ...s, reservations: [{ ...r, bookedBy, id: uid(), createdAt: Date.now() }, ...s.reservations] };
         });
         return true;
@@ -396,7 +447,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       toggleFavorite: (clubId) =>
         setState((s) => ({
           ...s,
-          favoriteClubIds: s.favoriteClubIds.includes(clubId) ? s.favoriteClubIds.filter((x) => x !== clubId) : [...s.favoriteClubIds, clubId],
+          favoriteClubIds: s.favoriteClubIds.includes(clubId)
+            ? s.favoriteClubIds.filter((x) => x !== clubId)
+            : [...s.favoriteClubIds, clubId],
         })),
       addClubPhoto: (clubId, uri) =>
         setState((s) => {
@@ -420,7 +473,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const n = name.trim();
           if (!n) return s;
           const existing = s.clubCoaches[clubId] ?? [];
-          return { ...s, clubCoaches: { ...s.clubCoaches, [clubId]: [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach', phone: phone.trim() || undefined }, ...existing] } };
+          return {
+            ...s,
+            clubCoaches: {
+              ...s.clubCoaches,
+              [clubId]: [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach', phone: phone.trim() || undefined }, ...existing],
+            },
+          };
         }),
       removeClubCoach: (clubId, id) =>
         setState((s) => ({ ...s, clubCoaches: { ...s.clubCoaches, [clubId]: (s.clubCoaches[clubId] ?? []).filter((c) => c.id !== id) } })),
@@ -436,8 +495,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
         return true;
       },
-      setClubCode: (clubId, code) =>
-        setState((s) => ({ ...s, clubCodes: { ...s.clubCodes, [clubId]: code } })),
+      setClubCode: (clubId, code) => setState((s) => ({ ...s, clubCodes: { ...s.clubCodes, [clubId]: code } })),
       toggleHideCoach: (coachId) =>
         setState((s) => ({
           ...s,
@@ -512,10 +570,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         })),
       setClubMode: (on) => setState((s) => ({ ...s, clubMode: on })),
       setManagedClub: (id) => setState((s) => ({ ...s, managedClubId: id })),
-      setClubSlots: (clubId, slots) =>
-        setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: [...slots].sort() } })),
-      setClubCourts: (clubId, courts) =>
-        setState((s) => ({ ...s, clubCourts: { ...s.clubCourts, [clubId]: courts } })),
+      setClubSlots: (clubId, slots) => setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: [...slots].sort() } })),
+      setClubCourts: (clubId, courts) => setState((s) => ({ ...s, clubCourts: { ...s.clubCourts, [clubId]: courts } })),
       // Fermer un créneau hors app. Garde-fous : jamais dans le passé, jamais par-dessus
       // une réservation PadelConnect, jamais en double.
       blockSlot: (b, startsAt) => {
@@ -531,12 +587,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({
           ...s,
           blockedSlots: s.blockedSlots.filter(
-            (x) => !(x.clubId === clubId && x.dateKey === dateKey && x.time === time && x.court === court)
+            (x) => !(x.clubId === clubId && x.dateKey === dateKey && x.time === time && x.court === court),
           ),
         })),
       // L'opérateur publie/met à jour l'actu d'accueil (nouvel id → réapparaît même si fermée).
       setOperatorNews: (news) =>
-        setState((s) => ({ ...s, operatorNews: { id: uid(), title: news.title.trim(), subtitle: news.subtitle?.trim() || undefined, link: news.link?.trim() || undefined } })),
+        setState((s) => ({
+          ...s,
+          operatorNews: {
+            id: uid(),
+            title: news.title.trim(),
+            subtitle: news.subtitle?.trim() || undefined,
+            link: news.link?.trim() || undefined,
+          },
+        })),
       dismissNews: (id) => setState((s) => ({ ...s, dismissedNewsId: id })),
       toggleFollow: (id, info) =>
         setState((s) => {
@@ -554,7 +618,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState(initialState);
       },
     }),
-    [state, hydrated, stats]
+    [state, hydrated, stats],
   );
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;

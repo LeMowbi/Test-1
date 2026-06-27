@@ -110,7 +110,11 @@ export function SectionReservations({
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Planning du jour" />
         {/* Sélecteur de jour */}
-        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.sm }}>
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: spacing.sm, paddingBottom: spacing.sm }}
+        >
           {week.map((d) => {
             const dd = new Date(d.value);
             const active = d.key === planDay.key;
@@ -144,23 +148,35 @@ export function SectionReservations({
                 <View style={styles.gridCourtName} />
                 {planTimes.map((t) => (
                   <View key={t} style={styles.gridCell}>
-                    <Txt variant="small" color={colors.textFaint} style={{ fontSize: 10 }}>{t}</Txt>
+                    <Txt variant="small" color={colors.textFaint} style={{ fontSize: 10 }}>
+                      {t}
+                    </Txt>
                   </View>
                 ))}
               </View>
               {courts.map((court) => (
                 <View key={court} style={styles.gridRow}>
                   <View style={styles.gridCourtName}>
-                    <Txt variant="small" style={{ fontWeight: '700', fontSize: 12 }} numberOfLines={1}>{court}</Txt>
+                    <Txt variant="small" style={{ fontWeight: '700', fontSize: 12 }} numberOfLines={1}>
+                      {court}
+                    </Txt>
                   </View>
                   {planTimes.map((t) => {
                     const st = courtStatusAt(court, t);
                     const cellStyle =
-                      st === 'reserved' ? styles.gcReserved : st === 'blocked' ? styles.gcBlocked : st === 'tournoi' ? styles.gcTournoi : styles.gcFree;
+                      st === 'reserved'
+                        ? styles.gcReserved
+                        : st === 'blocked'
+                          ? styles.gcBlocked
+                          : st === 'tournoi'
+                            ? styles.gcTournoi
+                            : styles.gcFree;
                     return (
                       <Pressable
                         key={t}
-                        onPress={() => onSelectCell({ dateKey: planDay.key, time: t, label: `${planDay.label} · ${t}`, value: planDay.value })}
+                        onPress={() =>
+                          onSelectCell({ dateKey: planDay.key, time: t, label: `${planDay.label} · ${t}`, value: planDay.value })
+                        }
                         style={[styles.gridCellBox, cellStyle]}
                       >
                         {st === 'reserved' ? <Ionicons name="checkmark" size={12} color={colors.onSignature} /> : null}
@@ -219,10 +235,13 @@ export function SectionReservations({
                   <Txt variant="h3" style={{ fontSize: 15 }}>
                     {r.date} · {r.time}
                   </Txt>
-                  <Txt variant="muted">{r.court} · {r.players} joueur{r.players > 1 ? 's' : ''}</Txt>
+                  <Txt variant="muted">
+                    {r.court} · {r.players} joueur{r.players > 1 ? 's' : ''}
+                  </Txt>
                   {r.bookedBy ? (
                     <Txt variant="small" color={colors.textMuted}>
-                      Réservé par {r.bookedBy.name}{r.bookedBy.phone ? ` · ${r.bookedBy.phone}` : ''}
+                      Réservé par {r.bookedBy.name}
+                      {r.bookedBy.phone ? ` · ${r.bookedBy.phone}` : ''}
                     </Txt>
                   ) : null}
                 </View>
@@ -248,7 +267,7 @@ export function SectionReservations({
                     onPress={() =>
                       openWhatsApp(
                         r.bookedBy!.phone,
-                        `Bonjour ${r.bookedBy!.name}, votre réservation du ${r.date} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`
+                        `Bonjour ${r.bookedBy!.name}, votre réservation du ${r.date} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`,
                       )
                     }
                   />
@@ -296,8 +315,7 @@ export function SectionReservations({
           ))
         )}
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-          La commission PadelConnect se calcule sur cet historique — décompte transmis chaque fin de
-          semaine, règlement par Wave.
+          La commission PadelConnect se calcule sur cet historique — décompte transmis chaque fin de semaine, règlement par Wave.
         </Txt>
       </View>
     </>

@@ -43,7 +43,14 @@ export function ClosePanel({
               <Button size="sm" label="Le garder" variant="secondary" onPress={() => setConfirmDelete(false)} full />
             </>
           ) : (
-            <Button size="sm" label="Annuler ce tournoi" icon="trash-outline" variant="danger" onPress={() => setConfirmDelete(true)} full />
+            <Button
+              size="sm"
+              label="Annuler ce tournoi"
+              icon="trash-outline"
+              variant="danger"
+              onPress={() => setConfirmDelete(true)}
+              full
+            />
           )
         ) : (
           <Button size="sm" label="Fermer" variant="secondary" onPress={onCancel} full />
@@ -70,7 +77,11 @@ export function ClosePanel({
               const sel = selected === t;
               return (
                 <Pressable key={t} onPress={() => setSelected(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
-                  <Ionicons name={sel ? 'radio-button-on' : 'radio-button-off'} size={18} color={sel ? colors.signature : colors.textMuted} />
+                  <Ionicons
+                    name={sel ? 'radio-button-on' : 'radio-button-off'}
+                    size={18}
+                    color={sel ? colors.signature : colors.textMuted}
+                  />
                   <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
                     {t}
                   </Txt>
@@ -92,18 +103,20 @@ export function ClosePanel({
             Fin de tableau ? (facultatif)
           </Txt>
           <View style={{ marginTop: spacing.sm, gap: 6 }}>
-            {teams.filter((t) => t !== selected).map((t) => {
-              const sel = loser === t;
-              return (
-                <Pressable key={t} onPress={() => setLoser(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
-                  <Ionicons name={sel ? 'radio-button-on' : 'radio-button-off'} size={18} color={sel ? colors.coral : colors.textMuted} />
-                  <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
-                    {t}
-                  </Txt>
-                  {myTeam === t ? <Tag label="Ton équipe" tone="blue" /> : null}
-                </Pressable>
-              );
-            })}
+            {teams
+              .filter((t) => t !== selected)
+              .map((t) => {
+                const sel = loser === t;
+                return (
+                  <Pressable key={t} onPress={() => setLoser(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
+                    <Ionicons name={sel ? 'radio-button-on' : 'radio-button-off'} size={18} color={sel ? colors.coral : colors.textMuted} />
+                    <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
+                      {t}
+                    </Txt>
+                    {myTeam === t ? <Tag label="Ton équipe" tone="blue" /> : null}
+                  </Pressable>
+                );
+              })}
           </View>
           <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
             <Button
@@ -114,7 +127,13 @@ export function ClosePanel({
               disabled={!loser}
               full
             />
-            <Button size="sm" label="Passer (pas de fin de tableau)" variant="ghost" onPress={() => onClose(selected!, selected === myTeam)} full />
+            <Button
+              size="sm"
+              label="Passer (pas de fin de tableau)"
+              variant="ghost"
+              onPress={() => onClose(selected!, selected === myTeam)}
+              full
+            />
           </View>
         </>
       )}

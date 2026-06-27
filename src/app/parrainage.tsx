@@ -13,10 +13,7 @@ const APP_URL = 'https://lemowbi.github.io/PadelConnect/';
 // d'amis ayant rejoint, lui, se synchronisera avec la version connectée (§B serveur).
 export default function ParrainageScreen() {
   const invite = () =>
-    openWhatsApp(
-      '',
-      `Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes.\n${APP_URL}`
-    );
+    openWhatsApp('', `Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes.\n${APP_URL}`);
 
   return (
     <Screen back title="Parrainage" subtitle="Invite tes amis à jouer">

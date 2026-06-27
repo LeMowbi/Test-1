@@ -27,17 +27,8 @@ const CLUB_TYPES: Club['type'][] = ['Couvert', 'Extérieur', 'Mixte'];
 
 export default function ClubAdmin() {
   const router = useRouter();
-  const {
-    state,
-    setClubMode,
-    setManagedClub,
-    requestClub,
-    closeCompetition,
-    deleteCompetition,
-    unlockClub,
-    blockSlot,
-    unblockSlot,
-  } = useApp();
+  const { state, setClubMode, setManagedClub, requestClub, closeCompetition, deleteCompetition, unlockClub, blockSlot, unblockSlot } =
+    useApp();
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -61,10 +52,7 @@ export default function ClubAdmin() {
   // branchement unique pour la vérification serveur de l'app finale.
   const locked = !canAccessClub(club.id, state.unlockedClubIds);
 
-  const comps = [
-    ...state.myCompetitions.filter((c) => c.clubId === club.id),
-    ...seedCompetitions.filter((c) => c.clubId === club.id),
-  ];
+  const comps = [...state.myCompetitions.filter((c) => c.clubId === club.id), ...seedCompetitions.filter((c) => c.clubId === club.id)];
   const closingComp = comps.find((c) => c.id === closingId);
 
   // Données du bottom sheet de détail créneau.
@@ -73,7 +61,9 @@ export default function ClubAdmin() {
   const clubBlocked = state.blockedSlots.filter((b) => b.clubId === club.id);
   const courts = state.clubCourts[club.id] ?? [];
   const cellRes = selectedCell
-    ? clubRes.filter((r) => r.dateKey === selectedCell.dateKey && r.time === selectedCell.time).sort((a, b) => a.court.localeCompare(b.court))
+    ? clubRes
+        .filter((r) => r.dateKey === selectedCell.dateKey && r.time === selectedCell.time)
+        .sort((a, b) => a.court.localeCompare(b.court))
     : [];
 
   const signupReady = ncName.trim().length >= 2 && ncArea.trim().length >= 2 && Number(ncPrice) > 0;
@@ -102,7 +92,12 @@ export default function ClubAdmin() {
           <Txt variant="h3">Compte club (démo)</Txt>
           <Txt variant="muted">Active le mode gérant pour gérer ton club.</Txt>
         </View>
-        <Switch value={state.clubMode} onValueChange={setClubMode} trackColor={{ true: colors.signature, false: colors.border }} thumbColor={colors.white} />
+        <Switch
+          value={state.clubMode}
+          onValueChange={setClubMode}
+          trackColor={{ true: colors.signature, false: colors.border }}
+          thumbColor={colors.white}
+        />
       </Card>
     </>
   );
@@ -166,8 +161,20 @@ export default function ClubAdmin() {
             <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
               Ta demande passe par PadelConnect : tu prépares ta page tout de suite, elle devient visible des joueurs dès l'activation.
             </Txt>
-            <TextInput value={ncName} onChangeText={setNcName} placeholder="Nom du club" placeholderTextColor={colors.textFaint} style={styles.input} />
-            <TextInput value={ncArea} onChangeText={setNcArea} placeholder="Quartier / commune (ex. Cocody)" placeholderTextColor={colors.textFaint} style={styles.input} />
+            <TextInput
+              value={ncName}
+              onChangeText={setNcName}
+              placeholder="Nom du club"
+              placeholderTextColor={colors.textFaint}
+              style={styles.input}
+            />
+            <TextInput
+              value={ncArea}
+              onChangeText={setNcArea}
+              placeholder="Quartier / commune (ex. Cocody)"
+              placeholderTextColor={colors.textFaint}
+              style={styles.input}
+            />
             <View style={[styles.wrap, { marginTop: spacing.md }]}>
               {CLUB_TYPES.map((t) => (
                 <Chip key={t} label={t} active={ncType === t} onPress={() => setNcType(t)} />
@@ -186,7 +193,14 @@ export default function ClubAdmin() {
               keyboardType="numeric"
               style={styles.input}
             />
-            <TextInput value={ncPhone} onChangeText={setNcPhone} placeholder="Téléphone du club (optionnel)" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
+            <TextInput
+              value={ncPhone}
+              onChangeText={setNcPhone}
+              placeholder="Téléphone du club (optionnel)"
+              placeholderTextColor={colors.textFaint}
+              keyboardType="phone-pad"
+              style={styles.input}
+            />
             <View style={{ marginTop: spacing.md }}>
               <Button label="Envoyer la demande à PadelConnect" icon="paper-plane" onPress={submitSignup} disabled={!signupReady} full />
             </View>
@@ -197,8 +211,11 @@ export default function ClubAdmin() {
           <View style={styles.pendingBanner}>
             <Ionicons name="hourglass-outline" size={16} color={colors.blue} />
             <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-              {club.name} est <Txt variant="small" style={{ fontWeight: '700' }}>en attente d'activation</Txt> par PadelConnect.
-              Prépare ta page (photos, terrains, créneaux) : les joueurs la verront dès l'activation.
+              {club.name} est{' '}
+              <Txt variant="small" style={{ fontWeight: '700' }}>
+                en attente d'activation
+              </Txt>{' '}
+              par PadelConnect. Prépare ta page (photos, terrains, créneaux) : les joueurs la verront dès l'activation.
             </Txt>
           </View>
         ) : null}
@@ -210,24 +227,21 @@ export default function ClubAdmin() {
         <SegmentedControl options={SECTIONS} value={section} onChange={setSection} />
       )}
 
-      {!locked && section === 'Réservations' ? (
-        <SectionReservations club={club} comps={comps} onSelectCell={setSelectedCell} />
-      ) : null}
+      {!locked && section === 'Réservations' ? <SectionReservations club={club} comps={comps} onSelectCell={setSelectedCell} /> : null}
 
-      {!locked && section === 'Mon club' ? (
-        <SectionMonClub club={club} />
-      ) : null}
+      {!locked && section === 'Mon club' ? <SectionMonClub club={club} /> : null}
 
-      {!locked && section === 'Tournois' ? (
-        <SectionTournois club={club} comps={comps} onCloseComp={setClosingId} />
-      ) : null}
+      {!locked && section === 'Tournois' ? <SectionTournois club={club} comps={comps} onCloseComp={setClosingId} /> : null}
 
       {/* Détail d'un créneau (bottom sheet) — état de chaque terrain + Bloquer / Débloquer */}
       <BottomSheet
         visible={!!selectedCell}
         title={selectedCell?.label ?? ''}
         subtitle="Touche « Bloquer » pour fermer un terrain (résa hors app)."
-        onClose={() => { setSelectedCell(null); setBlockingCourt(null); }}
+        onClose={() => {
+          setSelectedCell(null);
+          setBlockingCourt(null);
+        }}
       >
         {selectedCell ? (
           hasCompetition(club.id, selectedCell.dateKey, comps) ? (
@@ -276,9 +290,17 @@ export default function ClubAdmin() {
                             Libre
                           </Txt>
                           {!isPast ? (
-                            <Button size="sm" label="Bloquer" icon="lock-closed" variant="ghost" onPress={() => setBlockingCourt(isBlocking ? null : c)} />
+                            <Button
+                              size="sm"
+                              label="Bloquer"
+                              icon="lock-closed"
+                              variant="ghost"
+                              onPress={() => setBlockingCourt(isBlocking ? null : c)}
+                            />
                           ) : (
-                            <Txt variant="small" color={colors.textFaint}>passé</Txt>
+                            <Txt variant="small" color={colors.textFaint}>
+                              passé
+                            </Txt>
                           )}
                         </>
                       )}
@@ -290,7 +312,10 @@ export default function ClubAdmin() {
                             key={reason}
                             label={reason}
                             onPress={() => {
-                              blockSlot({ clubId: club.id, dateKey: selectedCell.dateKey, time: selectedCell.time, court: c, reason }, cellTs);
+                              blockSlot(
+                                { clubId: club.id, dateKey: selectedCell.dateKey, time: selectedCell.time, court: c, reason },
+                                cellTs,
+                              );
                               setBlockingCourt(null);
                             }}
                           />
@@ -309,16 +334,15 @@ export default function ClubAdmin() {
       </BottomSheet>
 
       {/* Clôture d'un tournoi (bottom sheet) — désignation du vainqueur par l'organisateur */}
-      <BottomSheet
-        visible={!!closingComp}
-        title="Clôturer le tournoi"
-        subtitle={closingComp?.title}
-        onClose={() => setClosingId(null)}
-      >
+      <BottomSheet visible={!!closingComp} title="Clôturer le tournoi" subtitle={closingComp?.title} onClose={() => setClosingId(null)}>
         {closingComp ? (
           <ClosePanel
             comp={closingComp}
-            myTeam={state.compRegistrations[closingComp.id] ? `${state.account?.firstName ?? 'Toi'} & ${state.compRegistrations[closingComp.id].partner}` : undefined}
+            myTeam={
+              state.compRegistrations[closingComp.id]
+                ? `${state.account?.firstName ?? 'Toi'} & ${state.compRegistrations[closingComp.id].partner}`
+                : undefined
+            }
             onClose={(winner, isMe, loser, loserIsMe) => {
               closeCompetition(closingComp, winner, isMe, loser, loserIsMe);
               setClosingId(null);

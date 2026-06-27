@@ -44,7 +44,8 @@ export default function Onboarding() {
     if (firstName.trim().length < 2) e.firstName = 'Indique ton prénom (2 lettres minimum).';
     if (lastName.trim().length < 1) e.lastName = 'Indique ton nom.';
     if (phone.replace(/\D/g, '').length < 8) e.phone = 'Numéro invalide — au moins 8 chiffres.';
-    if (!birthDate) e.birth = birth.trim().length > 0 ? 'Date invalide — vérifie le jour, le mois et l’année.' : 'Indique ta date de naissance.';
+    if (!birthDate)
+      e.birth = birth.trim().length > 0 ? 'Date invalide — vérifie le jour, le mois et l’année.' : 'Indique ta date de naissance.';
     if (!gender) e.gender = 'Choisis une option.';
     return e;
   };
@@ -58,7 +59,14 @@ export default function Onboarding() {
       scrollRef.current?.scrollTo({ y: Math.max(0, (positions.current[first] ?? 0) - 24), animated: true });
       return;
     }
-    setAccount({ firstName: firstName.trim(), lastName: lastName.trim(), phone: phone.trim(), photoUri, birthDate: birth.trim(), gender: gender! });
+    setAccount({
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      phone: phone.trim(),
+      photoUri,
+      birthDate: birth.trim(),
+      gender: gender!,
+    });
     setLevel(lvl);
     router.replace('/');
   };
@@ -73,12 +81,7 @@ export default function Onboarding() {
   return (
     <View style={styles.root}>
       <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
-        <LinearGradient
-          colors={gradients.deepGreen}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.hero}
-        >
+        <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
           <Logo size={40} />
           <Txt variant="display" color={colors.onSignature} style={styles.heroTitle}>
             Réserve ton terrain à Abidjan
@@ -102,38 +105,58 @@ export default function Onboarding() {
           <Field
             label="Prénom"
             value={firstName}
-            onChangeText={(t) => { setFirstName(t); clearError('firstName'); }}
+            onChangeText={(t) => {
+              setFirstName(t);
+              clearError('firstName');
+            }}
             placeholder="Ex. Moustapha"
             error={errors.firstName}
-            onLayout={(y) => { positions.current.firstName = y; }}
+            onLayout={(y) => {
+              positions.current.firstName = y;
+            }}
             autoFocus
           />
           <Field
             label="Nom"
             value={lastName}
-            onChangeText={(t) => { setLastName(t); clearError('lastName'); }}
+            onChangeText={(t) => {
+              setLastName(t);
+              clearError('lastName');
+            }}
             placeholder="Ex. Bitar"
             error={errors.lastName}
-            onLayout={(y) => { positions.current.lastName = y; }}
+            onLayout={(y) => {
+              positions.current.lastName = y;
+            }}
           />
           <Field
             label="Numéro de téléphone"
             value={phone}
-            onChangeText={(t) => { setPhone(t); clearError('phone'); }}
+            onChangeText={(t) => {
+              setPhone(t);
+              clearError('phone');
+            }}
             placeholder="+225 07 00 00 00 00"
             keyboardType="phone-pad"
             error={errors.phone}
-            onLayout={(y) => { positions.current.phone = y; }}
+            onLayout={(y) => {
+              positions.current.phone = y;
+            }}
           />
           <Field
             label="Date de naissance"
             value={birth}
-            onChangeText={(t) => { setBirth(maskBirthDate(t, birth)); clearError('birth'); }}
+            onChangeText={(t) => {
+              setBirth(maskBirthDate(t, birth));
+              clearError('birth');
+            }}
             placeholder="JJ/MM/AAAA"
             keyboardType="phone-pad"
             maxLength={10}
             error={errors.birth}
-            onLayout={(y) => { positions.current.birth = y; }}
+            onLayout={(y) => {
+              positions.current.birth = y;
+            }}
           />
 
           {/* Petit clin d'œil astro dès que la date est valide ✨ */}
@@ -155,13 +178,26 @@ export default function Onboarding() {
             </Txt>
           ) : null}
 
-          <View onLayout={(e) => { positions.current.gender = e.nativeEvent.layout.y; }}>
+          <View
+            onLayout={(e) => {
+              positions.current.gender = e.nativeEvent.layout.y;
+            }}
+          >
             <Txt variant="label" style={styles.fieldLabel}>
               Sexe
             </Txt>
             <View style={styles.genderRow}>
               {GENDERS.map((g) => (
-                <Chip key={g.id} label={g.label} active={gender === g.id} onPress={() => { setGender(g.id); clearError('gender'); }} size="lg" />
+                <Chip
+                  key={g.id}
+                  label={g.label}
+                  active={gender === g.id}
+                  onPress={() => {
+                    setGender(g.id);
+                    clearError('gender');
+                  }}
+                  size="lg"
+                />
               ))}
             </View>
             {errors.gender ? (
@@ -188,7 +224,11 @@ export default function Onboarding() {
 
           <Pressable onPress={() => router.push('/legal')} style={{ marginTop: spacing.lg }}>
             <Txt variant="small" color={colors.textFaint} style={{ textAlign: 'center' }}>
-              En continuant, tu acceptes nos <Txt variant="small" color={colors.signature}>CGU & confidentialité</Txt>.
+              En continuant, tu acceptes nos{' '}
+              <Txt variant="small" color={colors.signature}>
+                CGU & confidentialité
+              </Txt>
+              .
             </Txt>
           </Pressable>
         </View>

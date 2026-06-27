@@ -65,7 +65,7 @@ export default function CoachsScreen() {
     .sort((a, b) => b.levelValue - a.levelValue)
     .filter((c) => inRange(c.levelValue, tab));
   const clubCoaches = Object.entries(state.clubCoaches).flatMap(([clubId, l]) =>
-    l.map((c) => ({ ...c, clubName: findClub(clubId, state.customClubs, state.clubInfo)?.name ?? 'Club' }))
+    l.map((c) => ({ ...c, clubName: findClub(clubId, state.customClubs, state.clubInfo)?.name ?? 'Club' })),
   );
 
   return (

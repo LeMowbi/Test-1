@@ -43,7 +43,7 @@ export default function ReservationsScreen() {
     const share = r.price ? `\nPrévois ${perPlayer(r.price)} chacun.` : '';
     openWhatsApp(
       '',
-      `On joue au padel ! 🎾\n${r.clubName} — ${r.date} à ${r.time} (session 1h30)\n${r.court}${who}${share}\nRéservé via PadelConnect.`
+      `On joue au padel ! 🎾\n${r.clubName} — ${r.date} à ${r.time} (session 1h30)\n${r.court}${who}${share}\nRéservé via PadelConnect.`,
     );
   };
 
@@ -243,7 +243,9 @@ export default function ReservationsScreen() {
       <BottomSheet
         visible={cancelTarget !== null}
         title="Annuler cette réservation ?"
-        subtitle={cancelTarget ? `${cancelTarget.clubName} — ${cancelTarget.date} à ${cancelTarget.time} · ${cancelTarget.court}` : undefined}
+        subtitle={
+          cancelTarget ? `${cancelTarget.clubName} — ${cancelTarget.date} à ${cancelTarget.time} · ${cancelTarget.court}` : undefined
+        }
         onClose={() => setCancelTarget(null)}
       >
         <Txt variant="body" color={colors.textMuted}>
@@ -279,7 +281,16 @@ const styles = StyleSheet.create({
   },
   dateDay: { lineHeight: 24 },
   dateMonth: { fontSize: 9, letterSpacing: 0.5, opacity: 0.85 },
-  compRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: 0, borderWidth: 0, shadowOpacity: 0, elevation: 0, backgroundColor: 'transparent' },
+  compRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+    backgroundColor: 'transparent',
+  },
   participants: {
     flexDirection: 'row',
     alignItems: 'center',

@@ -22,34 +22,112 @@ const GROUPS: Group[] = [
   {
     title: 'Confiance & qualité',
     items: [
-      { icon: 'shield-checkmark-outline', title: 'Avis vérifiés', text: 'Noter un club seulement après une partie réellement jouée.', tint: colors.green, bg: colors.greenSoft },
-      { icon: 'ribbon-outline', title: 'Score de fiabilité', text: 'Présences/annulations, visible par le club uniquement — jamais public.', tint: colors.blue, bg: colors.blueSoft },
-      { icon: 'flag-outline', title: 'Signalement & litiges', text: 'Remontée discrète à l’opérateur en cas de souci.', tint: colors.coral, bg: colors.coralSoft },
+      {
+        icon: 'shield-checkmark-outline',
+        title: 'Avis vérifiés',
+        text: 'Noter un club seulement après une partie réellement jouée.',
+        tint: colors.green,
+        bg: colors.greenSoft,
+      },
+      {
+        icon: 'ribbon-outline',
+        title: 'Score de fiabilité',
+        text: 'Présences/annulations, visible par le club uniquement — jamais public.',
+        tint: colors.blue,
+        bg: colors.blueSoft,
+      },
+      {
+        icon: 'flag-outline',
+        title: 'Signalement & litiges',
+        text: 'Remontée discrète à l’opérateur en cas de souci.',
+        tint: colors.coral,
+        bg: colors.coralSoft,
+      },
     ],
   },
   {
     title: 'Rester connecté',
     items: [
-      { icon: 'notifications-outline', title: 'Notifications', text: 'Réservation confirmée, place libérée, rappel de match, résultat de tournoi.', tint: colors.purple, bg: colors.purpleSoft },
-      { icon: 'time-outline', title: 'Rappel + itinéraire', text: 'Rappel la veille et 2 h avant, avec l’itinéraire vers le club.', tint: colors.blue, bg: colors.blueSoft },
-      { icon: 'logo-whatsapp', title: 'Parrainage', text: 'Invite tes amis par WhatsApp et suis combien t’ont rejoint.', tint: colors.green, bg: colors.greenSoft },
-      { icon: 'hand-left-outline', title: 'Anti no-show (doux)', text: 'Après 2 absences, une simple confirmation de présence — sans blâme.', tint: colors.coral, bg: colors.coralSoft },
+      {
+        icon: 'notifications-outline',
+        title: 'Notifications',
+        text: 'Réservation confirmée, place libérée, rappel de match, résultat de tournoi.',
+        tint: colors.purple,
+        bg: colors.purpleSoft,
+      },
+      {
+        icon: 'time-outline',
+        title: 'Rappel + itinéraire',
+        text: 'Rappel la veille et 2 h avant, avec l’itinéraire vers le club.',
+        tint: colors.blue,
+        bg: colors.blueSoft,
+      },
+      {
+        icon: 'logo-whatsapp',
+        title: 'Parrainage',
+        text: 'Invite tes amis par WhatsApp et suis combien t’ont rejoint.',
+        tint: colors.green,
+        bg: colors.greenSoft,
+      },
+      {
+        icon: 'hand-left-outline',
+        title: 'Anti no-show (doux)',
+        text: 'Après 2 absences, une simple confirmation de présence — sans blâme.',
+        tint: colors.coral,
+        bg: colors.coralSoft,
+      },
     ],
   },
   {
     title: 'Pour les clubs',
     items: [
-      { icon: 'pricetags-outline', title: 'Heures creuses dynamiques', text: 'Remise automatique sur un créneau vide à l’approche de l’heure.', tint: colors.amber, bg: colors.amberSoft },
-      { icon: 'bar-chart-outline', title: 'Statistiques avancées', text: 'Taux de remplissage par plage, créneau le plus demandé, KPI de la semaine.', tint: colors.purple, bg: colors.purpleSoft },
-      { icon: 'document-text-outline', title: 'Décompte exportable', text: 'Décompte hebdomadaire en PDF / partage WhatsApp pour le règlement.', tint: colors.blue, bg: colors.blueSoft },
+      {
+        icon: 'pricetags-outline',
+        title: 'Heures creuses dynamiques',
+        text: 'Remise automatique sur un créneau vide à l’approche de l’heure.',
+        tint: colors.amber,
+        bg: colors.amberSoft,
+      },
+      {
+        icon: 'bar-chart-outline',
+        title: 'Statistiques avancées',
+        text: 'Taux de remplissage par plage, créneau le plus demandé, KPI de la semaine.',
+        tint: colors.purple,
+        bg: colors.purpleSoft,
+      },
+      {
+        icon: 'document-text-outline',
+        title: 'Décompte exportable',
+        text: 'Décompte hebdomadaire en PDF / partage WhatsApp pour le règlement.',
+        tint: colors.blue,
+        bg: colors.blueSoft,
+      },
     ],
   },
   {
     title: 'Compte & sécurité',
     items: [
-      { icon: 'phone-portrait-outline', title: 'Connexion par SMS', text: 'Inscription au numéro (+225), code reçu par SMS — sans e-mail.', tint: colors.green, bg: colors.greenSoft },
-      { icon: 'lock-closed-outline', title: 'Comptes pro sécurisés', text: 'Un compte par club et l’espace opérateur, droits vérifiés côté serveur.', tint: colors.signature, bg: colors.signatureSoft },
-      { icon: 'cloud-offline-outline', title: 'Mode hors-ligne', text: 'Consulter les clubs et créneaux même sans réseau, synchro au retour.', tint: colors.coral, bg: colors.coralSoft },
+      {
+        icon: 'phone-portrait-outline',
+        title: 'Connexion par SMS',
+        text: 'Inscription au numéro (+225), code reçu par SMS — sans e-mail.',
+        tint: colors.green,
+        bg: colors.greenSoft,
+      },
+      {
+        icon: 'lock-closed-outline',
+        title: 'Comptes pro sécurisés',
+        text: 'Un compte par club et l’espace opérateur, droits vérifiés côté serveur.',
+        tint: colors.signature,
+        bg: colors.signatureSoft,
+      },
+      {
+        icon: 'cloud-offline-outline',
+        title: 'Mode hors-ligne',
+        text: 'Consulter les clubs et créneaux même sans réseau, synchro au retour.',
+        tint: colors.coral,
+        bg: colors.coralSoft,
+      },
     ],
   },
 ];
@@ -62,9 +140,8 @@ export default function AVenirScreen() {
         <Card style={{ marginTop: spacing.sm, flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
           <IconCircle icon="rocket-outline" color={colors.signature} bg={colors.signatureSoft} />
           <Txt variant="muted" style={{ flex: 1 }}>
-            Le prototype actuel montre déjà tout le parcours (réserver, tournois, Espace Club,
-            opérateur). Ces fonctions-ci demandent un serveur : elles arriveront avec la version
-            connectée (comptes + temps réel).
+            Le prototype actuel montre déjà tout le parcours (réserver, tournois, Espace Club, opérateur). Ces fonctions-ci demandent un
+            serveur : elles arriveront avec la version connectée (comptes + temps réel).
           </Txt>
         </Card>
 
@@ -75,7 +152,9 @@ export default function AVenirScreen() {
             <Pressable onPress={() => router.push('/notifications')} style={styles_preview}>
               <IconCircle icon="notifications-outline" color={colors.purple} bg={colors.purpleSoft} size={38} />
               <View style={{ flex: 1 }}>
-                <Txt variant="h3" style={{ fontSize: 15 }}>Notifications</Txt>
+                <Txt variant="h3" style={{ fontSize: 15 }}>
+                  Notifications
+                </Txt>
                 <Txt variant="muted">Aperçu du centre de notifications.</Txt>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -83,7 +162,9 @@ export default function AVenirScreen() {
             <Pressable onPress={() => router.push('/parrainage')} style={styles_preview}>
               <IconCircle icon="gift-outline" color={colors.green} bg={colors.greenSoft} size={38} />
               <View style={{ flex: 1 }}>
-                <Txt variant="h3" style={{ fontSize: 15 }}>Parrainage</Txt>
+                <Txt variant="h3" style={{ fontSize: 15 }}>
+                  Parrainage
+                </Txt>
                 <Txt variant="muted">Invite tes amis par WhatsApp (déjà fonctionnel).</Txt>
               </View>
               <Ionicons name="chevron-forward" size={18} color={colors.textMuted} />
@@ -113,10 +194,14 @@ function View_section({ group }: { group: Group }) {
             <IconCircle icon={it.icon} color={it.tint} bg={it.bg} size={40} />
             <View style={{ flex: 1 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, flexWrap: 'wrap' }}>
-                <Txt variant="h3" style={{ fontSize: 15 }}>{it.title}</Txt>
+                <Txt variant="h3" style={{ fontSize: 15 }}>
+                  {it.title}
+                </Txt>
                 <Tag label="Bientôt" tone="neutral" icon="hourglass-outline" />
               </View>
-              <Txt variant="muted" style={{ marginTop: 2 }}>{it.text}</Txt>
+              <Txt variant="muted" style={{ marginTop: 2 }}>
+                {it.text}
+              </Txt>
             </View>
           </View>
         ))}
@@ -124,4 +209,3 @@ function View_section({ group }: { group: Group }) {
     </View>
   );
 }
-

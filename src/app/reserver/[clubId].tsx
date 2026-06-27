@@ -78,7 +78,18 @@ export default function ReserverScreen() {
       ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false })),
       ...extraNames.map((n, i) => ({ id: `x-${Date.now()}-${i}`, name: n, confirmed: false })),
     ];
-    const ok = addReservation({ clubId: club.id, clubName: club.name, court, date: day.label, dateKey: day.key, time: slot, startsAt, price: priceForSlot(club, slot), players: 1 + invited.length, invited });
+    const ok = addReservation({
+      clubId: club.id,
+      clubName: club.name,
+      court,
+      date: day.label,
+      dateKey: day.key,
+      time: slot,
+      startsAt,
+      price: priceForSlot(club, slot),
+      players: 1 + invited.length,
+      invited,
+    });
     if (ok) setDone(true);
     else setCourt(null); // terrain pris entre-temps
   };
@@ -112,21 +123,29 @@ export default function ReserverScreen() {
                 icon="logo-whatsapp"
                 variant="secondary"
                 onPress={() => {
-                  const invitedNames = [
-                    ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => f.name),
-                    ...extraNames,
-                  ];
+                  const invitedNames = [...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => f.name), ...extraNames];
                   const who = invitedNames.length ? `\nÉquipe : ${invitedNames.join(', ')}` : '';
                   const share = slotPrice ? `\nPrévois ${perPlayer(slotPrice)} chacun.` : '';
                   openWhatsApp(
                     '',
-                    `On joue au padel ! 🎾\n${club.name} — ${day!.label} à ${slot!} (session 1h30)\n${court!}${who}${share}\nRéservé via PadelConnect.`
+                    `On joue au padel ! 🎾\n${club.name} — ${day!.label} à ${slot!} (session 1h30)\n${court!}${who}${share}\nRéservé via PadelConnect.`,
                   );
                 }}
                 full
               />
             ) : null}
-            <Button label="Réserver un autre créneau" variant="ghost" onPress={() => { setDone(false); setSlot(null); setCourt(null); setFriendIds([]); setExtraNames([]); }} full />
+            <Button
+              label="Réserver un autre créneau"
+              variant="ghost"
+              onPress={() => {
+                setDone(false);
+                setSlot(null);
+                setCourt(null);
+                setFriendIds([]);
+                setExtraNames([]);
+              }}
+              full
+            />
           </View>
         </Card>
       </Screen>
@@ -153,104 +172,149 @@ export default function ReserverScreen() {
       }
     >
       <Reveal>
-      <Stepper steps={['Jour', 'Créneau', 'Terrain', 'Confirmer']} current={step} />
-      <Label text="Jour" />
-      <View style={styles.wrap}>
-        {dates.map((d) => (
-          <Chip key={d.key} label={d.label} active={d.key === day?.key} onPress={() => { setDay(d); setSlot(null); setCourt(null); }} size="lg" />
-        ))}
-      </View>
-
-      {compToday ? (
-        <View style={styles.banner}>
-          <Ionicons name="trophy" size={16} color={colors.signature} />
-          <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-            Un tournoi a lieu ce jour à {club.name} — le terrain n'est pas réservable.
-          </Txt>
+        <Stepper steps={['Jour', 'Créneau', 'Terrain', 'Confirmer']} current={step} />
+        <Label text="Jour" />
+        <View style={styles.wrap}>
+          {dates.map((d) => (
+            <Chip
+              key={d.key}
+              label={d.label}
+              active={d.key === day?.key}
+              onPress={() => {
+                setDay(d);
+                setSlot(null);
+                setCourt(null);
+              }}
+              size="lg"
+            />
+          ))}
         </View>
-      ) : null}
 
-      <Label text={day ? 'Créneau' : 'Créneau (choisis d’abord un jour)'} />
-      {SLOT_PERIODS.map((period) => {
-        const periodSlots = openSlots.filter((s) => periodOf(s) === period.id);
-        if (periodSlots.length === 0) return null;
-        return (
-          <View key={period.id}>
-            <View style={styles.periodHeader}>
-              <Ionicons name={period.icon} size={15} color={period.color} />
-              <Txt variant="label" color={colors.textMuted}>
-                {period.label}
-                {hasTiers && periodSlots[0] ? ` · ${fcfa(priceForSlot(club, periodSlots[0]))}` : ''}
-              </Txt>
+        {compToday ? (
+          <View style={styles.banner}>
+            <Ionicons name="trophy" size={16} color={colors.signature} />
+            <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+              Un tournoi a lieu ce jour à {club.name} — le terrain n'est pas réservable.
+            </Txt>
+          </View>
+        ) : null}
+
+        <Label text={day ? 'Créneau' : 'Créneau (choisis d’abord un jour)'} />
+        {SLOT_PERIODS.map((period) => {
+          const periodSlots = openSlots.filter((s) => periodOf(s) === period.id);
+          if (periodSlots.length === 0) return null;
+          return (
+            <View key={period.id}>
+              <View style={styles.periodHeader}>
+                <Ionicons name={period.icon} size={15} color={period.color} />
+                <Txt variant="label" color={colors.textMuted}>
+                  {period.label}
+                  {hasTiers && periodSlots[0] ? ` · ${fcfa(priceForSlot(club, periodSlots[0]))}` : ''}
+                </Txt>
+              </View>
+              <View style={styles.wrap}>
+                {periodSlots.map((s) => {
+                  const slotTs = slotTimestamp(day?.value ?? 0, s);
+                  const isPast = !!day && slotTs <= Date.now();
+                  const noCourt = !!day && freeCourts(club, day.key, s, ctx).length === 0;
+                  const blocked = !day || compToday || isPast || noCourt;
+                  // Avec des plages tarifaires, on montre le prix de chaque créneau.
+                  const label = isPast
+                    ? `${s} · passé`
+                    : noCourt
+                      ? `${s} · complet`
+                      : hasTiers
+                        ? `${s} · ${fcfa(priceForSlot(club, s))}`
+                        : s;
+                  return (
+                    <Chip
+                      key={s}
+                      label={label}
+                      active={s === slot}
+                      disabled={blocked}
+                      onPress={() => {
+                        setSlot(s);
+                        setCourt(null);
+                      }}
+                      size="lg"
+                    />
+                  );
+                })}
+              </View>
             </View>
+          );
+        })}
+        {openSlots.length === 0 ? (
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+            Aucun créneau ouvert par le club pour le moment.
+          </Txt>
+        ) : null}
+
+        {day && slot ? (
+          <>
+            <Label text="Terrain" />
             <View style={styles.wrap}>
-              {periodSlots.map((s) => {
-                const slotTs = slotTimestamp(day?.value ?? 0, s);
-                const isPast = !!day && slotTs <= Date.now();
-                const noCourt = !!day && freeCourts(club, day.key, s, ctx).length === 0;
-                const blocked = !day || compToday || isPast || noCourt;
-                // Avec des plages tarifaires, on montre le prix de chaque créneau.
-                const label = isPast ? `${s} · passé` : noCourt ? `${s} · complet` : hasTiers ? `${s} · ${fcfa(priceForSlot(club, s))}` : s;
-                return <Chip key={s} label={label} active={s === slot} disabled={blocked} onPress={() => { setSlot(s); setCourt(null); }} size="lg" />;
+              {allCourts.map((c) => {
+                const isFree = free.includes(c);
+                return (
+                  <Chip
+                    key={c}
+                    label={isFree ? c : `${c} · pris`}
+                    active={c === court}
+                    disabled={!isFree}
+                    onPress={() => setCourt(c)}
+                    size="lg"
+                  />
+                );
               })}
             </View>
-          </View>
-        );
-      })}
-      {openSlots.length === 0 ? (
-        <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-          Aucun créneau ouvert par le club pour le moment.
-        </Txt>
-      ) : null}
+          </>
+        ) : null}
 
-      {day && slot ? (
-        <>
-          <Label text="Terrain" />
-          <View style={styles.wrap}>
-            {allCourts.map((c) => {
-              const isFree = free.includes(c);
-              return <Chip key={c} label={isFree ? c : `${c} · pris`} active={c === court} disabled={!isFree} onPress={() => setCourt(c)} size="lg" />;
-            })}
-          </View>
-        </>
-      ) : null}
-
-      <Label text={`Avec qui ? (toi + ${participantCount}/3 — optionnel)`} />
-      <View style={styles.wrap}>
-        {state.friends.map((f) => (
-          <Chip key={f.id} label={f.name} icon={friendIds.includes(f.id) ? 'checkmark' : 'person-add'} active={friendIds.includes(f.id)} onPress={() => toggleFriend(f.id)} />
-        ))}
-        {extraNames.map((n) => (
-          <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
-        ))}
-      </View>
-      {participantCount < 3 ? (
-        <View style={styles.extraRow}>
-          <TextInput
-            value={extraName}
-            onChangeText={setExtraName}
-            placeholder="Ou un autre nom…"
-            placeholderTextColor={colors.textFaint}
-            style={styles.extraInput}
-            onSubmitEditing={addExtra}
-          />
-          <Button size="sm" label="Ajouter" icon="add" variant="secondary" onPress={addExtra} disabled={extraName.trim().length < 2} />
+        <Label text={`Avec qui ? (toi + ${participantCount}/3 — optionnel)`} />
+        <View style={styles.wrap}>
+          {state.friends.map((f) => (
+            <Chip
+              key={f.id}
+              label={f.name}
+              icon={friendIds.includes(f.id) ? 'checkmark' : 'person-add'}
+              active={friendIds.includes(f.id)}
+              onPress={() => toggleFriend(f.id)}
+            />
+          ))}
+          {extraNames.map((n) => (
+            <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
+          ))}
         </View>
-      ) : null}
+        {participantCount < 3 ? (
+          <View style={styles.extraRow}>
+            <TextInput
+              value={extraName}
+              onChangeText={setExtraName}
+              placeholder="Ou un autre nom…"
+              placeholderTextColor={colors.textFaint}
+              style={styles.extraInput}
+              onSubmitEditing={addExtra}
+            />
+            <Button size="sm" label="Ajouter" icon="add" variant="secondary" onPress={addExtra} disabled={extraName.trim().length < 2} />
+          </View>
+        ) : null}
 
-      <Card style={styles.priceRow}>
-        <View>
-          <Txt variant="muted">Tarif (session 1h30)</Txt>
-          <Txt variant="small" color={colors.textFaint}>soit ~{perPlayer(slotPrice)} / joueur à 4</Txt>
+        <Card style={styles.priceRow}>
+          <View>
+            <Txt variant="muted">Tarif (session 1h30)</Txt>
+            <Txt variant="small" color={colors.textFaint}>
+              soit ~{perPlayer(slotPrice)} / joueur à 4
+            </Txt>
+          </View>
+          <Txt variant="price">{slot ? fcfa(slotPrice) : `dès ${fcfa(slotPrice)}`}</Txt>
+        </Card>
+
+        <View style={{ marginTop: spacing.lg }}>
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+            Session de 1h30, sans paiement en ligne. Le tarif se règle directement au club. Annulation jusqu'à 5h avant.
+          </Txt>
         </View>
-        <Txt variant="price">{slot ? fcfa(slotPrice) : `dès ${fcfa(slotPrice)}`}</Txt>
-      </Card>
-
-      <View style={{ marginTop: spacing.lg }}>
-        <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-          Session de 1h30, sans paiement en ligne. Le tarif se règle directement au club. Annulation jusqu'à 5h avant.
-        </Txt>
-      </View>
       </Reveal>
     </Screen>
   );

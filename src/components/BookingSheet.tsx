@@ -31,7 +31,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
   const free = useMemo(
     () => freeCourts(club, day.key, time, ctx),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [club.id, day.key, time, state.reservations, state.clubCourts]
+    [club.id, day.key, time, state.reservations, state.clubCourts],
   );
 
   const price = priceForSlot(club, time);
@@ -99,7 +99,15 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                 </Txt>
               </View>
               <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
-                <Button label="Voir mes réservations" icon="calendar" onPress={() => { onClose(); router.push('/reservations'); }} full />
+                <Button
+                  label="Voir mes réservations"
+                  icon="calendar"
+                  onPress={() => {
+                    onClose();
+                    router.push('/reservations');
+                  }}
+                  full
+                />
                 <Button label="Terminé" variant="ghost" onPress={onClose} full />
               </View>
             </View>
@@ -155,7 +163,14 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                     style={styles.extraInput}
                     onSubmitEditing={addExtra}
                   />
-                  <Button size="sm" label="Ajouter" icon="add" variant="secondary" onPress={addExtra} disabled={extraName.trim().length < 2} />
+                  <Button
+                    size="sm"
+                    label="Ajouter"
+                    icon="add"
+                    variant="secondary"
+                    onPress={addExtra}
+                    disabled={extraName.trim().length < 2}
+                  />
                 </View>
               ) : null}
 
@@ -191,7 +206,14 @@ const styles = StyleSheet.create({
     paddingBottom: spacing.xxl,
     ...shadows.e3,
   },
-  handle: { alignSelf: 'center', width: 40, height: 4, borderRadius: radius.pill, backgroundColor: colors.border, marginBottom: spacing.md },
+  handle: {
+    alignSelf: 'center',
+    width: 40,
+    height: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.border,
+    marginBottom: spacing.md,
+  },
   head: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm },
   closeBtn: {
     width: 34,

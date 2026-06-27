@@ -7,21 +7,13 @@ import { dayKey } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
 import { colors, spacing } from '@/theme';
 
-export function SectionTournois({
-  club,
-  comps,
-  onCloseComp,
-}: {
-  club: Club;
-  comps: Competition[];
-  onCloseComp: (id: string) => void;
-}) {
+export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comps: Competition[]; onCloseComp: (id: string) => void }) {
   const router = useRouter();
   const { state, approveCompetition, deleteCompetition } = useApp();
 
   // Demandes de tournoi : créés par un joueur, en attente de validation de CE club.
   const tournamentRequests = state.myCompetitions.filter(
-    (c) => c.clubId === club.id && c.status === 'pending' && c.organizerType === 'joueur'
+    (c) => c.clubId === club.id && c.status === 'pending' && c.organizerType === 'joueur',
   );
   // Tournois publiés du club (hors demandes en attente) — pour la liste « Tournois du club ».
   const publishedComps = comps.filter(isTournamentPublic);
@@ -41,8 +33,12 @@ export function SectionTournois({
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                 <IconCircle icon="trophy" color={colors.purple} bg={colors.purpleSoft} size={40} />
                 <View style={{ flex: 1 }}>
-                  <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>{c.title}</Txt>
-                  <Txt variant="muted">par {c.organizer} · {c.date} · {c.slots} équipes</Txt>
+                  <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
+                    {c.title}
+                  </Txt>
+                  <Txt variant="muted">
+                    par {c.organizer} · {c.date} · {c.slots} équipes
+                  </Txt>
                 </View>
               </View>
               <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
@@ -112,8 +108,8 @@ export function SectionTournois({
         )}
       </View>
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-        Un tournoi bloque automatiquement tes terrains ce jour-là. Une fois la date passée,
-        clôture-le en désignant l'équipe vainqueure : les joueurs inscrits sont mis à jour.
+        Un tournoi bloque automatiquement tes terrains ce jour-là. Une fois la date passée, clôture-le en désignant l'équipe vainqueure :
+        les joueurs inscrits sont mis à jour.
       </Txt>
     </>
   );

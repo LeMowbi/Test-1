@@ -18,7 +18,14 @@ export function ContactButtons({
   return (
     <View style={[styles.row, style]}>
       <View style={{ flex: 1 }}>
-        <Button size={size} label="Appeler" icon="call" variant={primaryCall ? 'primary' : 'secondary'} onPress={() => callNumber(phone)} full />
+        <Button
+          size={size}
+          label="Appeler"
+          icon="call"
+          variant={primaryCall ? 'primary' : 'secondary'}
+          onPress={() => callNumber(phone)}
+          full
+        />
       </View>
       <View style={{ flex: 1 }}>
         <Button size={size} label="WhatsApp" icon="logo-whatsapp" variant="secondary" onPress={() => openWhatsApp(phone)} full />

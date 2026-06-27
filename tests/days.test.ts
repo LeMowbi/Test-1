@@ -15,8 +15,7 @@ const check = (cond: boolean, msg: string) => {
   if (!cond) failed++;
 };
 
-const dayDiff = (a: string, b: string) =>
-  (new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime()) / 86400000;
+const dayDiff = (a: string, b: string) => (new Date(`${b}T00:00:00`).getTime() - new Date(`${a}T00:00:00`).getTime()) / 86400000;
 
 function isConsecutive(keys: string[]): boolean {
   for (let i = 1; i < keys.length; i++) if (dayDiff(keys[i - 1], keys[i]) !== 1) return false;
@@ -27,11 +26,11 @@ function isConsecutive(keys: string[]): boolean {
 //    différents + bascules de mois et d'année).
 const starts = [
   new Date(2026, 5, 11, 23, 40), // jeudi (scénario de l'audit)
-  new Date(2026, 5, 12, 9, 0),   // vendredi (date « réelle » du test)
+  new Date(2026, 5, 12, 9, 0), // vendredi (date « réelle » du test)
   new Date(2026, 5, 30, 23, 40), // 30 juin → bascule de mois
   new Date(2026, 1, 26, 23, 59), // février
-  new Date(2026, 11, 29, 23, 40),// 29 déc → bascule d'année
-  new Date(2026, 2, 1, 0, 1),    // 1er mars
+  new Date(2026, 11, 29, 23, 40), // 29 déc → bascule d'année
+  new Date(2026, 2, 1, 0, 1), // 1er mars
   new Date(2026, 9, 31, 23, 40), // 31 oct
 ];
 for (const s of starts) {
@@ -46,14 +45,20 @@ check(jeudi[2].label === 'Samedi 13' && jeudi[2].key === '2026-06-13', 'Jeudi 11
 // 3) Vendredi 12 juin : le samedi 13 n'a PAS disparu — c'est le chip « Demain 13 » (J+1).
 const vendredi = nextDays(7, new Date(2026, 5, 12, 9, 0));
 check(vendredi[1].label === 'Demain 13' && vendredi[1].key === '2026-06-13', 'Vendredi 12 → samedi 13 présent comme « Demain 13 » (J+1)');
-check(vendredi.some((d) => d.key === '2026-06-13'), 'Vendredi 12 → 2026-06-13 bien dans la liste (non manquant)');
+check(
+  vendredi.some((d) => d.key === '2026-06-13'),
+  'Vendredi 12 → 2026-06-13 bien dans la liste (non manquant)',
+);
 
 // 4) v4.4.2 : les libellés relatifs portent le NUMÉRO du jour (anti-ambiguïté le soir).
 check(vendredi[0].label === "Aujourd'hui 12", "Vendredi 12 → chip 0 = « Aujourd'hui 12 »");
 check(jeudi[0].label === "Aujourd'hui 11" && jeudi[1].label === 'Demain 12', "Jeudi 11 → « Aujourd'hui 11 » · « Demain 12 »");
 // Fin de mois : le numéro suit le calendrier (30 juin → « Demain 1 »).
 const finJuin = nextDays(7, new Date(2026, 5, 30, 23, 40));
-check(finJuin[0].label === "Aujourd'hui 30" && finJuin[1].label === 'Demain 1', "30 juin → « Aujourd'hui 30 » · « Demain 1 » (bascule de mois)");
+check(
+  finJuin[0].label === "Aujourd'hui 30" && finJuin[1].label === 'Demain 1',
+  "30 juin → « Aujourd'hui 30 » · « Demain 1 » (bascule de mois)",
+);
 
 // 5) dateKey en heure LOCALE : une résa à 23h ne glisse JAMAIS au lendemain
 //    (piège UTC classique — getFullYear/getMonth/getDate sont locaux).
