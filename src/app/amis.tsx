@@ -1,3 +1,4 @@
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
@@ -13,6 +14,7 @@ const TABS = ['Amis', 'Suivis'] as const;
 type Tab = (typeof TABS)[number];
 
 export default function AmisScreen() {
+  const router = useRouter();
   const { state, addFriend, removeFriend, toggleFollow } = useApp();
   const [tab, setTab] = useState<Tab>('Amis');
   const [name, setName] = useState('');
@@ -45,11 +47,22 @@ export default function AmisScreen() {
       {tab === 'Amis' ? (
         <>
           {state.friends.length === 0 ? (
-            <EmptyState
-              icon="people-outline"
-              title="Aucun ami pour l'instant"
-              text="Ajoute tes partenaires ci-dessous : tu pourras les inviter en réservant."
-            />
+            <>
+              <EmptyState
+                icon="people-outline"
+                title="Aucun ami pour l'instant"
+                text="Ajoute tes partenaires ci-dessous : tu pourras les inviter en réservant."
+              />
+              <View style={{ alignItems: 'center', marginTop: spacing.md }}>
+                <Button
+                  label="Inviter des amis"
+                  icon="gift-outline"
+                  variant="secondary"
+                  onPress={() => router.push('/parrainage')}
+                  pill
+                />
+              </View>
+            </>
           ) : (
             <Card>
               {state.friends.map((f, i) => (
@@ -139,8 +152,8 @@ export default function AmisScreen() {
           {followed.length === 0 ? (
             <EmptyState
               icon="star-outline"
-              title="Aucun joueur suivi"
-              text="Ouvre la fiche d'un joueur puis « Suivre » : il apparaîtra ici."
+              title="Aucun joueur suivi pour l'instant"
+              text={"Depuis la fiche d'un tournoi, tape sur une équipe ou un joueur, puis « Suivre » — il apparaîtra ici avec son niveau."}
             />
           ) : (
             <Card>

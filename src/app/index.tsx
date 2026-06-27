@@ -155,8 +155,9 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
 
-        {/* Prochain match */}
-        {upcoming && state.remindersOn ? (
+        {/* Prochain match — toujours affiché si une réservation à venir existe.
+            remindersOn ne pilote QUE le bandeau/rappel, pas la présence de cette carte. */}
+        {upcoming ? (
           <View style={styles.section}>
             <SectionHeader title="Ton prochain match" />
             <Card onPress={() => go('/reservations')}>

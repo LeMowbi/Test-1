@@ -21,7 +21,7 @@ export default function Onboarding() {
   const { setAccount, setLevel, loadDemo } = useApp();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
-  const [phone, setPhone] = useState('');
+  const [phone, setPhone] = useState('+225 ');
   const [birth, setBirth] = useState('');
   const [gender, setGender] = useState<Gender | null>(null);
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
@@ -106,6 +106,7 @@ export default function Onboarding() {
             placeholder="Ex. Moustapha"
             error={errors.firstName}
             onLayout={(y) => { positions.current.firstName = y; }}
+            autoFocus
           />
           <Field
             label="Nom"
@@ -205,6 +206,7 @@ function Field({
   maxLength,
   error,
   onLayout,
+  autoFocus,
 }: {
   label: string;
   value: string;
@@ -214,6 +216,7 @@ function Field({
   maxLength?: number;
   error?: string;
   onLayout?: (y: number) => void;
+  autoFocus?: boolean;
 }) {
   return (
     <View onLayout={(e) => onLayout?.(e.nativeEvent.layout.y)}>
@@ -227,6 +230,7 @@ function Field({
         placeholderTextColor={colors.textFaint}
         keyboardType={keyboardType ?? 'default'}
         maxLength={maxLength}
+        autoFocus={autoFocus}
         style={[styles.input, error ? { borderColor: colors.danger } : null]}
       />
       {error ? (

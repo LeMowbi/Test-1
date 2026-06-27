@@ -221,7 +221,7 @@ export default function CompetitionDetail() {
             </View>
             {mine ? (
               <Tag
-                label={mine.result === 'win' ? 'Vainqueur !' : mine.result === 'last' ? 'Dernière place' : 'Participé'}
+                label={mine.result === 'win' ? 'Vainqueur !' : mine.result === 'last' ? 'Fin de tableau' : 'Participé'}
                 tone={mine.result === 'win' ? 'amber' : mine.result === 'last' ? 'coral' : 'blue'}
                 icon={mine.result === 'win' ? 'trophy' : mine.result === 'last' ? 'arrow-down' : 'checkmark'}
               />
@@ -229,7 +229,7 @@ export default function CompetitionDetail() {
           </View>
           {result.loser ? (
             <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
-              Dernière place : {result.loser}
+              Fin de tableau : {result.loser}
             </Txt>
           ) : null}
           {mine?.result === 'win' && comp.official ? (
@@ -239,7 +239,7 @@ export default function CompetitionDetail() {
           ) : null}
           {mine?.result === 'last' && comp.official ? (
             <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
-              Dernière place : ton niveau passe à {mine.levelAfter.toFixed(2)} (−0.25).
+              Fin de tableau : ton niveau passe à {mine.levelAfter.toFixed(2)} (−0.25).
             </Txt>
           ) : null}
         </Card>
@@ -317,9 +317,9 @@ export default function CompetitionDetail() {
             </>
           ) : (
             <>
-              <Txt variant="h3">Équipe classée dernière ?</Txt>
+              <Txt variant="h3">Fin de tableau ?</Txt>
               <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
-                Facultatif. {comp.official ? 'L’équipe désignée perd −0.25 de niveau. ' : ''}Tu peux passer.
+                Facultatif. {comp.official ? "L’équipe désignée perd −0.25 de niveau. " : ''}Tu peux passer.
               </Txt>
               <View style={{ marginTop: spacing.sm, gap: 6 }}>
                 {teamList.filter((t) => t !== winnerName).map((t) => {
@@ -336,8 +336,8 @@ export default function CompetitionDetail() {
                 })}
               </View>
               <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-                <Button label={loserName ? `Clôturer (dernière : ${loserName})` : 'Clôturer'} icon="flag" onPress={() => doClose(loserName || undefined)} disabled={!loserName} full />
-                <Button label="Passer (pas de dernière place)" variant="ghost" onPress={() => doClose(undefined)} full />
+                <Button label={loserName ? `Clôturer (fin de tableau : ${loserName})` : 'Clôturer'} icon="flag" onPress={() => doClose(loserName || undefined)} disabled={!loserName} full />
+                <Button label="Passer (pas de fin de tableau)" variant="ghost" onPress={() => doClose(undefined)} full />
               </View>
             </>
           )}

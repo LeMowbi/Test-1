@@ -10,6 +10,7 @@ import { Stepper } from '@/components/Stepper';
 import { Button, Card, EmptyState, Txt, type IconName } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
+import { openWhatsApp } from '@/lib/contact';
 import { courtsFor, freeCourts, hasCompetition, openSlotsFor, type AvailCtx } from '@/lib/availability';
 import { nextDays, slotTimestamp, type DayOption } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
@@ -105,6 +106,26 @@ export default function ReserverScreen() {
           </View>
           <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
             <Button label="Voir mes réservations" icon="calendar" onPress={() => router.push('/reservations')} full />
+            {participantCount > 0 ? (
+              <Button
+                label="Prévenir mes partenaires"
+                icon="logo-whatsapp"
+                variant="secondary"
+                onPress={() => {
+                  const invitedNames = [
+                    ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => f.name),
+                    ...extraNames,
+                  ];
+                  const who = invitedNames.length ? `\nÉquipe : ${invitedNames.join(', ')}` : '';
+                  const share = slotPrice ? `\nPrévois ${perPlayer(slotPrice)} chacun.` : '';
+                  openWhatsApp(
+                    '',
+                    `On joue au padel ! 🎾\n${club.name} — ${day!.label} à ${slot!} (session 1h30)\n${court!}${who}${share}\nRéservé via PadelConnect.`
+                  );
+                }}
+                full
+              />
+            ) : null}
             <Button label="Réserver un autre créneau" variant="ghost" onPress={() => { setDone(false); setSlot(null); setCourt(null); setFriendIds([]); setExtraNames([]); }} full />
           </View>
         </Card>

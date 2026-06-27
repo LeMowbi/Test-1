@@ -130,7 +130,7 @@ export default function ProfilScreen() {
                 {officialResults.slice(0, 3).map((o) => (
                   <View key={o.id} style={styles.row}>
                     <Tag
-                      label={o.result === 'win' ? 'Vainqueur' : o.result === 'last' ? 'Dernière place' : 'Participant'}
+                      label={o.result === 'win' ? 'Vainqueur' : o.result === 'last' ? 'Fin de tableau' : 'Participant'}
                       tone={o.result === 'win' ? 'amber' : o.result === 'last' ? 'coral' : 'blue'}
                     />
                     <Txt variant="muted" style={{ flex: 1 }}>

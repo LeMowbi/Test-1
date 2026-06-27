@@ -1158,7 +1158,7 @@ function ClosePanel({
     <View style={{ marginTop: spacing.sm }}>
       {comp.official ? (
         <Txt variant="small" color={colors.amber} style={{ fontWeight: '600' }}>
-          Tournoi officiel — vainqueur +0.50, dernière place −0.25 de niveau.
+          Tournoi officiel — vainqueur +0.50, fin de tableau −0.25 de niveau.
         </Txt>
       ) : null}
 
@@ -1191,7 +1191,7 @@ function ClosePanel({
       ) : (
         <>
           <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-            Équipe classée dernière ? (facultatif)
+            Fin de tableau ? (facultatif)
           </Txt>
           <View style={{ marginTop: spacing.sm, gap: 6 }}>
             {teams.filter((t) => t !== selected).map((t) => {
@@ -1210,13 +1210,13 @@ function ClosePanel({
           <View style={{ gap: spacing.sm, marginTop: spacing.md }}>
             <Button
               size="sm"
-              label={loser ? `Clôturer (dernière : ${loser})` : 'Clôturer'}
+              label={loser ? `Clôturer (fin de tableau : ${loser})` : 'Clôturer'}
               icon="trophy"
               onPress={() => onClose(selected!, selected === myTeam, loser ?? undefined, !!loser && loser === myTeam)}
               disabled={!loser}
               full
             />
-            <Button size="sm" label="Passer (pas de dernière place)" variant="ghost" onPress={() => onClose(selected!, selected === myTeam)} full />
+            <Button size="sm" label="Passer (pas de fin de tableau)" variant="ghost" onPress={() => onClose(selected!, selected === myTeam)} full />
           </View>
         </>
       )}
