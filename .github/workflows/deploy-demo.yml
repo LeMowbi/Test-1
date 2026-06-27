@@ -1,0 +1,49 @@
+name: Déployer la démo web (GitHub Pages)
+
+# Construit l'export web Expo et le publie sur la branche gh-pages.
+# Se déclenche à chaque mise à jour de `main`, ou manuellement.
+# Tourne sur les serveurs de GitHub → contourne tout blocage réseau local.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+# Un seul déploiement à la fois ; on annule un déploiement en cours si un nouveau arrive.
+concurrency:
+  group: pages-demo
+  cancel-in-progress: true
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v4
+
+      - name: Installer Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Installer les dépendances
+        run: npm ci
+
+      - name: Exporter le web (baseUrl /PadelConnect)
+        run: npx expo export --platform web --output-dir dist
+
+      - name: Préparer pour GitHub Pages (.nojekyll + repli SPA 404.html)
+        run: node scripts/prepare-pages.mjs
+
+      - name: Publier sur la branche gh-pages
+        uses: peaceiris/actions-gh-pages@v4
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./dist
+          publish_branch: gh-pages
+          force_orphan: true
+          commit_message: 'Déploiement auto de la démo PadelConnect'
