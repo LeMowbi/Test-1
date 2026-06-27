@@ -40,7 +40,7 @@ export default function HomeScreen() {
 
   // Clubs sponsorisés en tête (badge visible), le reste en ordre alphabétique.
   const nearbyClubs = activeClubs(state.customClubs, state.clubInfo).sort(
-    (a, b) => Number(state.boostedClubIds.includes(b.id)) - Number(state.boostedClubIds.includes(a.id))
+    (a, b) => Number(state.boostedClubIds.includes(b.id)) - Number(state.boostedClubIds.includes(a.id)),
   );
   const now = Date.now();
   const today = dayKey(new Date());
@@ -73,12 +73,18 @@ export default function HomeScreen() {
         {/* En-tête : salutation + avatar (→ profil) */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Txt variant="label" color={colors.textFaint}>{greeting}</Txt>
-            <Txt variant="h1" numberOfLines={1} style={{ marginTop: 2 }}>{fullName || 'Bienvenue'}</Txt>
+            <Txt variant="label" color={colors.textFaint}>
+              {greeting}
+            </Txt>
+            <Txt variant="h1" numberOfLines={1} style={{ marginTop: 2 }}>
+              {fullName || 'Bienvenue'}
+            </Txt>
           </View>
           <View style={styles.cityChip}>
             <Ionicons name="location-outline" size={13} color={colors.textMuted} />
-            <Txt variant="small" color={colors.textMuted}>Abidjan</Txt>
+            <Txt variant="small" color={colors.textMuted}>
+              Abidjan
+            </Txt>
           </View>
           <Pressable onPress={() => go('/profil')} hitSlop={6}>
             <Avatar uri={state.account?.photoUri} name={fullName} size={46} />
@@ -90,9 +96,19 @@ export default function HomeScreen() {
           <View style={styles.newsBanner}>
             <Ionicons name="megaphone" size={18} color={colors.purple} />
             <Pressable style={{ flex: 1 }} disabled={!news.link} onPress={() => news.link && Linking.openURL(news.link)}>
-              <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={2}>{news.title}</Txt>
-              {news.subtitle ? <Txt variant="small" color={colors.textMuted} numberOfLines={2}>{news.subtitle}</Txt> : null}
-              {news.link ? <Txt variant="small" color={colors.purple} style={{ fontWeight: '600', marginTop: 2 }}>En savoir plus →</Txt> : null}
+              <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={2}>
+                {news.title}
+              </Txt>
+              {news.subtitle ? (
+                <Txt variant="small" color={colors.textMuted} numberOfLines={2}>
+                  {news.subtitle}
+                </Txt>
+              ) : null}
+              {news.link ? (
+                <Txt variant="small" color={colors.purple} style={{ fontWeight: '600', marginTop: 2 }}>
+                  En savoir plus →
+                </Txt>
+              ) : null}
             </Pressable>
             <Pressable onPress={() => dismissNews(news.id)} hitSlop={8} style={styles.newsClose}>
               <Ionicons name="close" size={16} color={colors.textMuted} />
@@ -131,7 +147,9 @@ export default function HomeScreen() {
               <View style={[styles.quickIcon, { backgroundColor: a.bg }]}>
                 <Ionicons name={a.icon} size={24} color={a.tint} />
               </View>
-              <Txt variant="small" style={{ fontWeight: '600' }}>{a.label}</Txt>
+              <Txt variant="small" style={{ fontWeight: '600' }}>
+                {a.label}
+              </Txt>
             </Pressable>
           ))}
         </View>
@@ -150,29 +168,42 @@ export default function HomeScreen() {
         {pendingResult ? (
           <Pressable onPress={() => go(`/competition/${pendingResult.id}`)} style={[styles.alert, { backgroundColor: colors.purpleSoft }]}>
             <Ionicons name="medal-outline" size={16} color={colors.purple} />
-            <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>Résultats du tournoi disponibles</Txt>
+            <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
+              Résultats du tournoi disponibles
+            </Txt>
             <Ionicons name="chevron-forward" size={15} color={colors.purple} />
           </Pressable>
         ) : null}
 
-        {/* Prochain match */}
-        {upcoming && state.remindersOn ? (
+        {/* Prochain match — toujours affiché si une réservation à venir existe.
+            remindersOn ne pilote QUE le bandeau/rappel, pas la présence de cette carte. */}
+        {upcoming ? (
           <View style={styles.section}>
             <SectionHeader title="Ton prochain match" />
             <Card onPress={() => go('/reservations')}>
               <View style={styles.matchHead}>
                 <View style={styles.dateChip}>
-                  <Txt variant="h2" color={colors.onSignature} style={{ fontSize: 18, lineHeight: 20 }}>{dd}</Txt>
-                  <Txt variant="small" color="rgba(255,255,255,0.85)" style={{ fontSize: 9, fontWeight: '700', letterSpacing: 0.5 }}>
+                  <Txt variant="h2" color={colors.onSignature} style={{ fontSize: 18, lineHeight: 20 }}>
+                    {dd}
+                  </Txt>
+                  <Txt variant="small" color={colors.onPhoto} style={{ fontSize: 9, fontWeight: '700', letterSpacing: 0.5 }}>
                     {(MONTHS_SHORT[Number(mm) - 1] ?? '').toUpperCase()}
                   </Txt>
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>{upcoming.clubName}</Txt>
-                  <Txt variant="muted">{upcoming.time} · {upcoming.court} · 1h30</Txt>
+                  <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
+                    {upcoming.clubName}
+                  </Txt>
+                  <Txt variant="muted">
+                    {upcoming.time} · {upcoming.court} · 1h30
+                  </Txt>
                 </View>
                 <View style={[styles.statusPill, { backgroundColor: upcoming.clubConfirmed ? colors.greenSoft : colors.amberSoft }]}>
-                  <Txt variant="small" color={upcoming.clubConfirmed ? colors.green : colors.amber} style={{ fontWeight: '700', fontSize: 11 }}>
+                  <Txt
+                    variant="small"
+                    color={upcoming.clubConfirmed ? colors.green : colors.amber}
+                    style={{ fontWeight: '700', fontSize: 11 }}
+                  >
                     {upcoming.clubConfirmed ? 'Confirmé' : 'En attente'}
                   </Txt>
                 </View>
@@ -181,8 +212,13 @@ export default function HomeScreen() {
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ flexDirection: 'row' }}>
                   {matchPlayers.map((n, i) => (
-                    <View key={`${n}-${i}`} style={[styles.miniAvatar, { backgroundColor: AVATAR_TONES[i % AVATAR_TONES.length], marginLeft: i === 0 ? 0 : -9 }]}>
-                      <Txt variant="small" color={colors.white} style={{ fontWeight: '700', fontSize: 11 }}>{initials(n)}</Txt>
+                    <View
+                      key={`${n}-${i}`}
+                      style={[styles.miniAvatar, { backgroundColor: AVATAR_TONES[i % AVATAR_TONES.length], marginLeft: i === 0 ? 0 : -9 }]}
+                    >
+                      <Txt variant="small" color={colors.white} style={{ fontWeight: '700', fontSize: 11 }}>
+                        {initials(n)}
+                      </Txt>
                     </View>
                   ))}
                   <Txt variant="small" color={colors.textMuted} style={{ marginLeft: spacing.sm, alignSelf: 'center' }}>
@@ -190,7 +226,9 @@ export default function HomeScreen() {
                   </Txt>
                 </View>
                 <View style={{ flex: 1 }} />
-                <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>Voir</Txt>
+                <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
+                  Voir
+                </Txt>
               </View>
             </Card>
           </View>
@@ -199,7 +237,11 @@ export default function HomeScreen() {
         {/* Clubs près de vous */}
         <View style={styles.section}>
           <SectionHeader title="Clubs près de toi" actionLabel="Tout voir" onAction={() => go('/clubs')} />
-          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}
+          >
             {nearbyClubs.map((c) => (
               <ClubCard key={c.id} club={c} compact />
             ))}
@@ -241,7 +283,7 @@ const styles = StyleSheet.create({
   },
   brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   livePill: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: spacing.md },
-  liveDot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.lime, borderWidth: 4, borderColor: 'rgba(198,242,74,0.35)' },
+  liveDot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.lime, borderWidth: 4, borderColor: colors.limeGlow },
   liveText: { fontWeight: '700', fontSize: 11, letterSpacing: 0.6, textTransform: 'uppercase' },
   heroCta: {
     flexDirection: 'row',
@@ -258,7 +300,14 @@ const styles = StyleSheet.create({
   quickRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xl },
   quickItem: { alignItems: 'center', gap: spacing.sm, width: '23%' },
   quickIcon: { width: 56, height: 56, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
-  alert: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, borderRadius: radius.md, padding: spacing.md, marginTop: spacing.md },
+  alert: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
   newsBanner: {
     flexDirection: 'row',
     alignItems: 'flex-start',
@@ -268,10 +317,32 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.md,
   },
-  newsClose: { width: 26, height: 26, borderRadius: radius.pill, backgroundColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  newsClose: {
+    width: 26,
+    height: 26,
+    borderRadius: radius.pill,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   section: { marginTop: spacing.xl },
   matchHead: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  dateChip: { width: 46, height: 46, borderRadius: radius.md, backgroundColor: colors.signature, alignItems: 'center', justifyContent: 'center' },
+  dateChip: {
+    width: 46,
+    height: 46,
+    borderRadius: radius.md,
+    backgroundColor: colors.signature,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   statusPill: { paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: radius.pill },
-  miniAvatar: { width: 30, height: 30, borderRadius: radius.pill, borderWidth: 2, borderColor: colors.white, alignItems: 'center', justifyContent: 'center' },
+  miniAvatar: {
+    width: 30,
+    height: 30,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
 });

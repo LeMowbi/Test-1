@@ -23,8 +23,15 @@ export default function ProfilScreen() {
   const [editing, setEditing] = useState(false);
   const [confirmReset, setConfirmReset] = useState(false);
   const [photoSheet, setPhotoSheet] = useState(false);
+  // Espaces pro : masqués par défaut (geste discret pour les révéler). Un gérant déjà
+  // déverrouillé garde l'accès à l'Espace Club sans le geste. L'opérateur (PadelConnect)
+  // n'apparaît JAMAIS sans le geste — il n'a pas sa place dans la navigation normale.
+  const [proRevealed, setProRevealed] = useState(false);
 
   if (!account) return null;
+
+  const showClub = proRevealed || state.unlockedClubIds.length > 0 || state.clubMode;
+  const showOperator = proRevealed;
 
   const changePhoto = async () => {
     const uri = await pickImage({ square: true });
@@ -62,7 +69,13 @@ export default function ProfilScreen() {
           {/* Bandeau signature — avatar (anneau dégradé) + identité (maquette Profil) */}
           <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.band}>
             <View style={styles.head}>
-              <Pressable onPress={() => setPhotoSheet(true)} hitSlop={6} accessibilityLabel="Photo de profil">
+              <Pressable
+                onPress={() => setPhotoSheet(true)}
+                onLongPress={() => setProRevealed(true)}
+                delayLongPress={1200}
+                hitSlop={6}
+                accessibilityLabel="Photo de profil"
+              >
                 <Avatar uri={account.photoUri} name={`${account.firstName} ${account.lastName}`} size={76} />
               </Pressable>
               <View style={{ flex: 1 }}>
@@ -70,12 +83,13 @@ export default function ProfilScreen() {
                   {account.firstName} {account.lastName}
                 </Txt>
                 {bd && zod ? (
-                  <Txt variant="small" color="rgba(255,255,255,0.85)" style={{ marginTop: 2, fontWeight: '600' }}>
+                  <Txt variant="small" color={colors.onPhoto} style={{ marginTop: 2, fontWeight: '600' }}>
                     {zod.emoji} {zod.name} · {ageFrom(bd)} ans{g ? ` · ${g}` : ''}
                   </Txt>
                 ) : (
-                  <Txt variant="small" color="rgba(255,255,255,0.85)" style={{ marginTop: 2 }}>
-                    {g ? `${g} · ` : ''}{account.phone}
+                  <Txt variant="small" color={colors.onPhoto} style={{ marginTop: 2 }}>
+                    {g ? `${g} · ` : ''}
+                    {account.phone}
                   </Txt>
                 )}
               </View>
@@ -92,7 +106,9 @@ export default function ProfilScreen() {
         <SectionHeader title="Mon niveau" />
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.md }}>
-            <Txt variant="label" color={colors.textFaint}>Niveau de jeu</Txt>
+            <Txt variant="label" color={colors.textFaint}>
+              Niveau de jeu
+            </Txt>
             <Txt variant="display" color={colors.signature} style={{ fontSize: 28 }}>
               {level.toFixed(2)}
             </Txt>
@@ -101,8 +117,12 @@ export default function ProfilScreen() {
             <View style={[styles.gaugeFill, { width: lvlPct }]} />
           </View>
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 8 }}>
-            <Txt variant="small" color={colors.textFaint}>{lvlLow.toFixed(1)}</Txt>
-            <Txt variant="small" color={colors.textFaint}>{lvlHigh.toFixed(1)}</Txt>
+            <Txt variant="small" color={colors.textFaint}>
+              {lvlLow.toFixed(1)}
+            </Txt>
+            <Txt variant="small" color={colors.textFaint}>
+              {lvlHigh.toFixed(1)}
+            </Txt>
           </View>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm }}>
             <Ionicons name="swap-vertical" size={14} color={colors.textMuted} />
@@ -117,7 +137,7 @@ export default function ProfilScreen() {
                 {officialResults.slice(0, 3).map((o) => (
                   <View key={o.id} style={styles.row}>
                     <Tag
-                      label={o.result === 'win' ? 'Vainqueur' : o.result === 'last' ? 'Dernière place' : 'Participant'}
+                      label={o.result === 'win' ? 'Vainqueur' : o.result === 'last' ? 'Fin de tableau' : 'Participant'}
                       tone={o.result === 'win' ? 'amber' : o.result === 'last' ? 'coral' : 'blue'}
                     />
                     <Txt variant="muted" style={{ flex: 1 }}>
@@ -209,25 +229,33 @@ export default function ProfilScreen() {
         </Card>
       </View>
 
-      {/* Espaces pro */}
-      <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
-        <Card onPress={() => router.push('/club-admin')} style={styles.cta}>
-          <IconCircle icon="business" />
-          <View style={{ flex: 1 }}>
-            <Txt variant="h3">Tu gères un club ?</Txt>
-            <Txt variant="muted">Espace Club : réservations, page, créneaux, tournois.</Txt>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </Card>
-        <Card onPress={() => router.push('/operateur')} style={styles.cta}>
-          <IconCircle icon="stats-chart" color={colors.green} bg={colors.greenSoft} />
-          <View style={{ flex: 1 }}>
-            <Txt variant="h3">Espace opérateur (PadelConnect)</Txt>
-            <Txt variant="muted">Décomptes, commissions, nouveaux clubs.</Txt>
-          </View>
-          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
-        </Card>
-      </View>
+      {/* Espaces pro — non affichés dans la navigation normale (cf. handoff sécurité).
+          Révélés par appui long sur l'avatar ; l'Espace Club reste visible pour un gérant
+          déjà déverrouillé. Les vrais accès restent protégés (code club, gating serveur §B). */}
+      {showClub || showOperator ? (
+        <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+          {showClub ? (
+            <Card onPress={() => router.push('/club-admin')} style={styles.cta}>
+              <IconCircle icon="business" />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3">Tu gères un club ?</Txt>
+                <Txt variant="muted">Espace Club : réservations, page, créneaux, tournois.</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </Card>
+          ) : null}
+          {showOperator ? (
+            <Card onPress={() => router.push('/operateur')} style={styles.cta}>
+              <IconCircle icon="stats-chart" color={colors.green} bg={colors.greenSoft} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3">Espace opérateur (PadelConnect)</Txt>
+                <Txt variant="muted">Décomptes, commissions, nouveaux clubs.</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </Card>
+          ) : null}
+        </View>
+      ) : null}
 
       {/* La suite — fonctions qui arrivent avec la version connectée (serveur) */}
       <View style={{ marginTop: spacing.xl }}>
@@ -323,10 +351,37 @@ function EditAccount({ onDone }: { onDone: () => void }) {
           )}
         </Pressable>
       </View>
-      <TextInput value={firstName} onChangeText={setFirstName} placeholder="Prénom" placeholderTextColor={colors.textFaint} style={styles.input} />
-      <TextInput value={lastName} onChangeText={setLastName} placeholder="Nom" placeholderTextColor={colors.textFaint} style={styles.input} />
-      <TextInput value={phone} onChangeText={setPhone} placeholder="Téléphone" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" style={styles.input} />
-      <TextInput value={birth} onChangeText={(t) => setBirth(maskBirthDate(t, birth))} placeholder="Date de naissance (JJ/MM/AAAA)" placeholderTextColor={colors.textFaint} keyboardType="phone-pad" maxLength={10} style={styles.input} />
+      <TextInput
+        value={firstName}
+        onChangeText={setFirstName}
+        placeholder="Prénom"
+        placeholderTextColor={colors.textFaint}
+        style={styles.input}
+      />
+      <TextInput
+        value={lastName}
+        onChangeText={setLastName}
+        placeholder="Nom"
+        placeholderTextColor={colors.textFaint}
+        style={styles.input}
+      />
+      <TextInput
+        value={phone}
+        onChangeText={setPhone}
+        placeholder="Téléphone"
+        placeholderTextColor={colors.textFaint}
+        keyboardType="phone-pad"
+        style={styles.input}
+      />
+      <TextInput
+        value={birth}
+        onChangeText={(t) => setBirth(maskBirthDate(t, birth))}
+        placeholder="Date de naissance (JJ/MM/AAAA)"
+        placeholderTextColor={colors.textFaint}
+        keyboardType="phone-pad"
+        maxLength={10}
+        style={styles.input}
+      />
       <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md }}>
         {GENDERS.map((gd) => (
           <Chip key={gd.id} label={gd.label} active={gender === gd.id} onPress={() => setGender(gd.id)} />
@@ -345,7 +400,14 @@ function EditAccount({ onDone }: { onDone: () => void }) {
 const styles = StyleSheet.create({
   band: { borderRadius: radius.xl, padding: spacing.lg, marginTop: spacing.sm },
   head: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
-  editBtn: { width: 38, height: 38, borderRadius: radius.pill, backgroundColor: 'rgba(255,255,255,0.18)', alignItems: 'center', justifyContent: 'center' },
+  editBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: radius.pill,
+    backgroundColor: colors.onPhotoSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   gaugeTrack: { height: 8, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, overflow: 'hidden' },
   gaugeFill: { height: 8, borderRadius: radius.pill, backgroundColor: colors.signature },
   avatar: {

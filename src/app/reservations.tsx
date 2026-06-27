@@ -5,11 +5,13 @@ import { StyleSheet, View } from 'react-native';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
+import { findClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
 import { dayKey } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
+import { openMaps } from '@/lib/maps';
 import { colors, radius, spacing } from '@/theme';
 
 const FIVE_H = 5 * 3600000;
@@ -41,7 +43,7 @@ export default function ReservationsScreen() {
     const share = r.price ? `\nPrévois ${perPlayer(r.price)} chacun.` : '';
     openWhatsApp(
       '',
-      `On joue au padel ! 🎾\n${r.clubName} — ${r.date} à ${r.time} (session 1h30)\n${r.court}${who}${share}\nRéservé via PadelConnect.`
+      `On joue au padel ! 🎾\n${r.clubName} — ${r.date} à ${r.time} (session 1h30)\n${r.court}${who}${share}\nRéservé via PadelConnect.`,
     );
   };
 
@@ -107,6 +109,30 @@ export default function ReservationsScreen() {
                 ) : null}
 
                 <Divider style={{ marginVertical: spacing.md }} />
+                {/* Raccourcis contextuels : club + itinéraire */}
+                <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
+                  <Button
+                    size="sm"
+                    label="Voir le club"
+                    icon="business-outline"
+                    variant="secondary"
+                    onPress={() => router.push(`/club/${r.clubId}`)}
+                    pill
+                    full
+                  />
+                  <Button
+                    size="sm"
+                    label="Itinéraire"
+                    icon="navigate-outline"
+                    variant="secondary"
+                    onPress={() => {
+                      const club = findClub(r.clubId, state.customClubs, state.clubInfo);
+                      if (club) openMaps(club);
+                    }}
+                    pill
+                    full
+                  />
+                </View>
                 <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                   <View style={{ flex: 1 }}>
                     <Button
@@ -159,7 +185,7 @@ export default function ReservationsScreen() {
                       mine?.result === 'win' ? (
                         <Tag label="Vainqueur !" tone="amber" icon="trophy" />
                       ) : mine?.result === 'last' ? (
-                        <Tag label="Dernière place" tone="coral" icon="arrow-down" />
+                        <Tag label="Fin de tableau" tone="coral" icon="arrow-down" />
                       ) : (
                         <Tag label="Participé" tone="blue" />
                       )
@@ -217,7 +243,9 @@ export default function ReservationsScreen() {
       <BottomSheet
         visible={cancelTarget !== null}
         title="Annuler cette réservation ?"
-        subtitle={cancelTarget ? `${cancelTarget.clubName} — ${cancelTarget.date} à ${cancelTarget.time} · ${cancelTarget.court}` : undefined}
+        subtitle={
+          cancelTarget ? `${cancelTarget.clubName} — ${cancelTarget.date} à ${cancelTarget.time} · ${cancelTarget.court}` : undefined
+        }
         onClose={() => setCancelTarget(null)}
       >
         <Txt variant="body" color={colors.textMuted}>
@@ -253,7 +281,16 @@ const styles = StyleSheet.create({
   },
   dateDay: { lineHeight: 24 },
   dateMonth: { fontSize: 9, letterSpacing: 0.5, opacity: 0.85 },
-  compRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, padding: 0, borderWidth: 0, shadowOpacity: 0, elevation: 0, backgroundColor: 'transparent' },
+  compRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    padding: 0,
+    borderWidth: 0,
+    shadowOpacity: 0,
+    elevation: 0,
+    backgroundColor: 'transparent',
+  },
   participants: {
     flexDirection: 'row',
     alignItems: 'center',

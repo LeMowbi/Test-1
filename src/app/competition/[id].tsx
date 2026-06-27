@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
@@ -10,7 +11,7 @@ import { demoTeams, formatFee, seedCompetitions, teamCount } from '@/data/compet
 import { dayKey } from '@/lib/days';
 import { shareCompetition } from '@/lib/share';
 import { useApp } from '@/store/AppContext';
-import { colors, radius, shadows, spacing } from '@/theme';
+import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
 export default function CompetitionDetail() {
   const { id } = useLocalSearchParams();
@@ -82,8 +83,8 @@ export default function CompetitionDetail() {
         ) : null
       }
     >
-      {/* En-tête héros violet (univers Tournois) */}
-      <View style={styles.hero}>
+      {/* En-tête héros violet (univers Tournois) — dégradé deepPurple */}
+      <LinearGradient colors={gradients.deepPurple} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
         <View style={styles.heroTopRow}>
           <View style={styles.heroPill}>
             <Txt variant="label" color={colors.purple} style={styles.heroPillText}>
@@ -109,7 +110,7 @@ export default function CompetitionDetail() {
             icon={byClub ? 'business' : 'person'}
           />
         </View>
-      </View>
+      </LinearGradient>
 
       {/* Chips d'info sous le héros */}
       <View style={styles.chipsRow}>
@@ -160,7 +161,7 @@ export default function CompetitionDetail() {
           </Txt>
         </View>
         <View style={styles.barTrack}>
-          <View style={[styles.barFill, { width: (`${pct}%` as `${number}%`) }]} />
+          <View style={[styles.barFill, { width: `${pct}%` as `${number}%` }]} />
         </View>
         <Txt variant="small" color={full ? colors.danger : colors.textMuted} style={{ marginTop: spacing.sm }}>
           {registered
@@ -221,7 +222,7 @@ export default function CompetitionDetail() {
             </View>
             {mine ? (
               <Tag
-                label={mine.result === 'win' ? 'Vainqueur !' : mine.result === 'last' ? 'Dernière place' : 'Participé'}
+                label={mine.result === 'win' ? 'Vainqueur !' : mine.result === 'last' ? 'Fin de tableau' : 'Participé'}
                 tone={mine.result === 'win' ? 'amber' : mine.result === 'last' ? 'coral' : 'blue'}
                 icon={mine.result === 'win' ? 'trophy' : mine.result === 'last' ? 'arrow-down' : 'checkmark'}
               />
@@ -229,7 +230,7 @@ export default function CompetitionDetail() {
           </View>
           {result.loser ? (
             <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
-              Dernière place : {result.loser}
+              Fin de tableau : {result.loser}
             </Txt>
           ) : null}
           {mine?.result === 'win' && comp.official ? (
@@ -239,7 +240,7 @@ export default function CompetitionDetail() {
           ) : null}
           {mine?.result === 'last' && comp.official ? (
             <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
-              Dernière place : ton niveau passe à {mine.levelAfter.toFixed(2)} (−0.25).
+              Fin de tableau : ton niveau passe à {mine.levelAfter.toFixed(2)} (−0.25).
             </Txt>
           ) : null}
         </Card>
@@ -291,7 +292,11 @@ export default function CompetitionDetail() {
                   const sel = winnerName === t;
                   return (
                     <Pressable key={t} onPress={() => setWinnerName(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
-                      <Ionicons name={sel ? 'radio-button-on' : 'radio-button-off'} size={18} color={sel ? colors.signature : colors.textMuted} />
+                      <Ionicons
+                        name={sel ? 'radio-button-on' : 'radio-button-off'}
+                        size={18}
+                        color={sel ? colors.signature : colors.textMuted}
+                      />
                       <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
                         {t}
                       </Txt>
@@ -317,27 +322,39 @@ export default function CompetitionDetail() {
             </>
           ) : (
             <>
-              <Txt variant="h3">Équipe classée dernière ?</Txt>
+              <Txt variant="h3">Fin de tableau ?</Txt>
               <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
                 Facultatif. {comp.official ? 'L’équipe désignée perd −0.25 de niveau. ' : ''}Tu peux passer.
               </Txt>
               <View style={{ marginTop: spacing.sm, gap: 6 }}>
-                {teamList.filter((t) => t !== winnerName).map((t) => {
-                  const sel = loserName === t;
-                  return (
-                    <Pressable key={t} onPress={() => setLoserName(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
-                      <Ionicons name={sel ? 'radio-button-on' : 'radio-button-off'} size={18} color={sel ? colors.coral : colors.textMuted} />
-                      <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
-                        {t}
-                      </Txt>
-                      {registered && t === myTeam ? <Tag label="Ton équipe" tone="blue" /> : null}
-                    </Pressable>
-                  );
-                })}
+                {teamList
+                  .filter((t) => t !== winnerName)
+                  .map((t) => {
+                    const sel = loserName === t;
+                    return (
+                      <Pressable key={t} onPress={() => setLoserName(t)} style={[styles.teamRow, sel && styles.teamRowSel]}>
+                        <Ionicons
+                          name={sel ? 'radio-button-on' : 'radio-button-off'}
+                          size={18}
+                          color={sel ? colors.coral : colors.textMuted}
+                        />
+                        <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
+                          {t}
+                        </Txt>
+                        {registered && t === myTeam ? <Tag label="Ton équipe" tone="blue" /> : null}
+                      </Pressable>
+                    );
+                  })}
               </View>
               <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
-                <Button label={loserName ? `Clôturer (dernière : ${loserName})` : 'Clôturer'} icon="flag" onPress={() => doClose(loserName || undefined)} disabled={!loserName} full />
-                <Button label="Passer (pas de dernière place)" variant="ghost" onPress={() => doClose(undefined)} full />
+                <Button
+                  label={loserName ? `Clôturer (fin de tableau : ${loserName})` : 'Clôturer'}
+                  icon="flag"
+                  onPress={() => doClose(loserName || undefined)}
+                  disabled={!loserName}
+                  full
+                />
+                <Button label="Passer (pas de fin de tableau)" variant="ghost" onPress={() => doClose(undefined)} full />
               </View>
             </>
           )}

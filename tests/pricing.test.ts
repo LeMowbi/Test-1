@@ -64,12 +64,18 @@ const tier = (start: string, end: string, price = 10000) => ({ start, end, price
 check(validateTiers([]).ok === true, 'Aucune plage → valide (tarif unique)');
 
 // Couverture exacte 07:00 → 24:00 en continu → OK (ordre d'entrée quelconque).
-check(validateTiers([tier('16:00', '20:30'), tier('07:00', '16:00'), tier('20:30', '24:00')]).ok === true, 'Couverture 07:00→24:00 continue (désordonnée) → OK');
+check(
+  validateTiers([tier('16:00', '20:30'), tier('07:00', '16:00'), tier('20:30', '24:00')]).ok === true,
+  'Couverture 07:00→24:00 continue (désordonnée) → OK',
+);
 check(validateTiers([tier('07:00', '24:00')]).ok === true, 'Une seule plage 07:00→24:00 → OK');
 
 // Trou → erreur, message désignant le trou exact.
 const gap = validateTiers([tier('07:00', '16:00'), tier('17:00', '24:00')]);
-check(gap.ok === false && /Trou entre 16:00 et 17:00/.test((gap as { error: string }).error), 'Trou 16:00–17:00 → bloqué avec message précis');
+check(
+  gap.ok === false && /Trou entre 16:00 et 17:00/.test((gap as { error: string }).error),
+  'Trou 16:00–17:00 → bloqué avec message précis',
+);
 
 // Chevauchement → erreur.
 const ov = validateTiers([tier('07:00', '20:30'), tier('19:00', '24:00')]);
@@ -109,10 +115,16 @@ check(named.map((g) => g.label).join('|') === 'Journée|Soirée|Fin de soirée',
 check(named[1].items.length === 1 && named[1].items[0].start === '16:00', 'Onglet « Soirée » contient la bonne plage');
 
 // Une plage sans nom → pas d'onglets (liste à plat, rétro-compatible).
-check(groupTiersByLabel([lt('07:00', '16:00', 'Journée'), lt('16:00', '24:00')]).length === 0, 'Une plage sans nom → pas d’onglets (liste à plat)');
+check(
+  groupTiersByLabel([lt('07:00', '16:00', 'Journée'), lt('16:00', '24:00')]).length === 0,
+  'Une plage sans nom → pas d’onglets (liste à plat)',
+);
 
 // Toutes le même nom → un seul onglet inutile → liste à plat.
-check(groupTiersByLabel([lt('07:00', '16:00', 'Tarif'), lt('16:00', '24:00', 'Tarif')]).length === 0, 'Un seul nom distinct → pas d’onglets');
+check(
+  groupTiersByLabel([lt('07:00', '16:00', 'Tarif'), lt('16:00', '24:00', 'Tarif')]).length === 0,
+  'Un seul nom distinct → pas d’onglets',
+);
 
 // Deux plages partageant un nom + une troisième distincte → 2 onglets, le 1er a 2 lignes.
 const shared = groupTiersByLabel([lt('07:00', '12:00', 'Journée'), lt('12:00', '16:00', 'Journée'), lt('16:00', '24:00', 'Soirée')]);

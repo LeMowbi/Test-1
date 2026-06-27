@@ -6,7 +6,7 @@ import { Avatar } from '@/components/Avatar';
 import { ContactButtons } from '@/components/ContactButtons';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
-import { Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
+import { Card, Divider, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { findClub } from '@/data/clubs';
 import { coachClubName, coaches, type Coach } from '@/data/coaches';
 import { useApp } from '@/store/AppContext';
@@ -65,7 +65,7 @@ export default function CoachsScreen() {
     .sort((a, b) => b.levelValue - a.levelValue)
     .filter((c) => inRange(c.levelValue, tab));
   const clubCoaches = Object.entries(state.clubCoaches).flatMap(([clubId, l]) =>
-    l.map((c) => ({ ...c, clubName: findClub(clubId, state.customClubs, state.clubInfo)?.name ?? 'Club' }))
+    l.map((c) => ({ ...c, clubName: findClub(clubId, state.customClubs, state.clubInfo)?.name ?? 'Club' })),
   );
 
   return (
@@ -79,9 +79,15 @@ export default function CoachsScreen() {
 
       <SegmentedControl options={TABS} value={tab} onChange={setTab} />
 
-      {list.map((c) => (
-        <CoachRow key={c.id} coach={c} />
-      ))}
+      {list.length === 0 ? (
+        <EmptyState
+          icon="school-outline"
+          title="Aucun coach dans cette catégorie"
+          text="Essaie un autre filtre de niveau ou reviens bientôt — de nouveaux coachs rejoignent PadelConnect régulièrement."
+        />
+      ) : (
+        list.map((c) => <CoachRow key={c.id} coach={c} />)
+      )}
 
       {clubCoaches.length > 0 ? (
         <View style={{ marginTop: spacing.xl }}>

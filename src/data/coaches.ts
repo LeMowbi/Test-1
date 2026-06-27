@@ -28,7 +28,7 @@ export const coaches: Coach[] = [
     clubId: 'padel-magic',
     phone: '+225 07 07 12 34 56',
     specialties: ['Service', 'Placement', 'Débutants'],
-    bio: "Profil de démonstration. Pédagogue, idéale pour démarrer le padel sereinement et corriger les bases.",
+    bio: 'Profil de démonstration. Pédagogue, idéale pour démarrer le padel sereinement et corriger les bases.',
     accent: ACCENTS[1],
   },
   {
@@ -40,7 +40,7 @@ export const coaches: Coach[] = [
     clubId: 'elite-club',
     phone: '+225 05 04 23 45 67',
     specialties: ['Jeu au filet', 'Tactique', 'Compétition'],
-    bio: "Profil de démonstration. Travaille la tactique de double et le jeu offensif au filet.",
+    bio: 'Profil de démonstration. Travaille la tactique de double et le jeu offensif au filet.',
     accent: ACCENTS[0],
   },
   {
@@ -64,7 +64,7 @@ export const coaches: Coach[] = [
     clubId: 'padel-zone-4',
     phone: '+225 07 08 45 67 89',
     specialties: ['Enfants', 'Initiation', 'Ludique'],
-    bio: "Profil de démonstration. Séances ludiques pour enfants et grands débutants.",
+    bio: 'Profil de démonstration. Séances ludiques pour enfants et grands débutants.',
     accent: ACCENTS[1],
   },
 ];

@@ -19,10 +19,7 @@ export async function pickImage(opts: { square?: boolean } = {}): Promise<string
 }
 
 // Avatar : carré centré 512×512 max. Photo de club : 1280 de large max.
-async function shrink(
-  asset: { uri: string; width?: number; height?: number },
-  square: boolean
-): Promise<string | null> {
+async function shrink(asset: { uri: string; width?: number; height?: number }, square: boolean): Promise<string | null> {
   const MAX = square ? 512 : 1280;
   try {
     const actions: Action[] = [];

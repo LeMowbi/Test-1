@@ -9,8 +9,8 @@ const SIGNS: { until: [number, number]; sign: Zodiac }[] = [
   { until: [3, 20], sign: { name: 'Poissons', emoji: '🐟', message: 'Instinctif — tu sens les balles avant tout le monde.' } },
   { until: [4, 19], sign: { name: 'Bélier', emoji: '🐏', message: "Fonceur — la bandeja n'a qu'à bien se tenir." } },
   { until: [5, 20], sign: { name: 'Taureau', emoji: '🐂', message: 'Solide au filet — rien ne passe.' } },
-  { until: [6, 20], sign: { name: 'Gémeaux', emoji: '👯', message: 'Le double, c\'est ton élément naturel.' } },
-  { until: [7, 22], sign: { name: 'Cancer', emoji: '🦀', message: 'Joueur d\'équipe — ton partenaire a de la chance.' } },
+  { until: [6, 20], sign: { name: 'Gémeaux', emoji: '👯', message: "Le double, c'est ton élément naturel." } },
+  { until: [7, 22], sign: { name: 'Cancer', emoji: '🦀', message: "Joueur d'équipe — ton partenaire a de la chance." } },
   { until: [8, 22], sign: { name: 'Lion', emoji: '🦁', message: 'Né pour briller au centre du court.' } },
   { until: [9, 22], sign: { name: 'Vierge', emoji: '🌾', message: 'Précis — chaque vitre est calculée.' } },
   { until: [10, 22], sign: { name: 'Balance', emoji: '⚖️', message: 'Élégant — ton jeu est un plaisir à regarder.' } },
@@ -65,8 +65,7 @@ export function isBirthdayToday(birthDate?: string): boolean {
 export function ageFrom(date: Date): number {
   const now = new Date();
   let age = now.getFullYear() - date.getFullYear();
-  const beforeBirthday =
-    now.getMonth() < date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() < date.getDate());
+  const beforeBirthday = now.getMonth() < date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() < date.getDate());
   if (beforeBirthday) age -= 1;
   return age;
 }

@@ -18,12 +18,7 @@ export default function DecouvrirScreen() {
   return (
     <Screen back title="Découvrir le padel">
       {/* Héros dégradé vert signature */}
-      <LinearGradient
-        colors={gradients.deepGreen}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.hero}
-      >
+      <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
         <View style={styles.heroBlob} />
         <Txt variant="label" color={colors.lime}>
           En 2 minutes
@@ -35,8 +30,8 @@ export default function DecouvrirScreen() {
 
       {/* Paragraphe d'intro */}
       <Txt variant="body" color={colors.textMuted} style={styles.intro}>
-        Un mélange de tennis et de squash, joué à 4 sur un terrain vitré. Facile à
-        prendre en main, fun dès la première partie — parfait entre amis.
+        Un mélange de tennis et de squash, joué à 4 sur un terrain vitré. Facile à prendre en main, fun dès la première partie — parfait
+        entre amis.
       </Txt>
 
       {/* Les 3 règles à connaître */}
@@ -60,13 +55,7 @@ export default function DecouvrirScreen() {
 
       {/* CTA principal → écran de réservation */}
       <View style={styles.cta}>
-        <Button
-          label="Trouver un terrain près de moi"
-          icon="location-outline"
-          pill
-          full
-          onPress={() => router.push('/reserver')}
-        />
+        <Button label="Trouver un terrain près de moi" icon="location-outline" pill full onPress={() => router.push('/reserver')} />
       </View>
     </Screen>
   );

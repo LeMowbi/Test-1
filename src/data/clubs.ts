@@ -46,7 +46,7 @@ export const clubs: Club[] = [
     type: 'Mixte',
     courts: 4,
     blurb:
-      "Club proposant la réservation de créneaux et la création de matchs entre joueurs, situé du côté de Cocody Danga / Riviera Golf.",
+      'Club proposant la réservation de créneaux et la création de matchs entre joueurs, situé du côté de Cocody Danga / Riviera Golf.',
     amenities: ['Réservation en ligne', 'Vestiaires', 'Location de raquettes'],
     priceFrom: 15000,
     rating: 4.6,
@@ -62,8 +62,7 @@ export const clubs: Club[] = [
     city: CITY,
     type: 'Extérieur',
     courts: 4,
-    blurb:
-      "Destination sport & lifestyle avec terrains de padel en extérieur, café et restaurant. Réservation via application.",
+    blurb: 'Destination sport & lifestyle avec terrains de padel en extérieur, café et restaurant. Réservation via application.',
     amenities: ['Café & restaurant', 'Terrasse', 'Vestiaires'],
     priceFrom: 14000,
     rating: 4.7,
@@ -79,8 +78,7 @@ export const clubs: Club[] = [
     city: CITY,
     type: 'Mixte',
     courts: 3,
-    blurb:
-      "Club de padel à Marcory, au carrefour de Marcory (derrière CAP SUD). Ambiance conviviale pour joueurs de tous niveaux.",
+    blurb: 'Club de padel à Marcory, au carrefour de Marcory (derrière CAP SUD). Ambiance conviviale pour joueurs de tous niveaux.',
     amenities: ['Vestiaires', 'Parking', 'Buvette'],
     priceFrom: 12000,
     rating: 4.4,
@@ -95,8 +93,7 @@ export const clubs: Club[] = [
     city: CITY,
     type: 'Mixte',
     courts: 4,
-    blurb:
-      "Quatre terrains à Marcory Résidentiel (Rue Zéphirs). Idéal pour matchs entre amis et entraînements.",
+    blurb: 'Quatre terrains à Marcory Résidentiel (Rue Zéphirs). Idéal pour matchs entre amis et entraînements.',
     amenities: ['Vestiaires', 'Location de raquettes', 'Parking'],
     priceFrom: 13000,
     rating: 4.5,
@@ -111,8 +108,7 @@ export const clubs: Club[] = [
     city: CITY,
     type: 'Extérieur',
     courts: 4,
-    blurb:
-      "Parmi les premiers terrains de padel du pays, installés du côté de l'Hôtel Ivoire à Cocody.",
+    blurb: "Parmi les premiers terrains de padel du pays, installés du côté de l'Hôtel Ivoire à Cocody.",
     amenities: ['Vestiaires', 'Cadre arboré', 'Buvette'],
     priceFrom: 16000,
     rating: 4.6,
@@ -127,8 +123,7 @@ export const clubs: Club[] = [
     city: CITY,
     type: 'Extérieur',
     courts: 2,
-    blurb:
-      "Terrain de padel desservant Faya et ses environs, vers Bingerville. Accueil familial et détendu.",
+    blurb: 'Terrain de padel desservant Faya et ses environs, vers Bingerville. Accueil familial et détendu.',
     amenities: ['Parking', 'Buvette'],
     priceFrom: 10000,
     rating: 4.3,
@@ -143,8 +138,7 @@ export const clubs: Club[] = [
     city: CITY,
     type: 'Mixte',
     courts: 4,
-    blurb:
-      "Quatre terrains au cœur de la Zone 4 (Rue du Dr Blanchard), à Marcory. Très accessible depuis le Plateau.",
+    blurb: 'Quatre terrains au cœur de la Zone 4 (Rue du Dr Blanchard), à Marcory. Très accessible depuis le Plateau.',
     amenities: ['Vestiaires', 'Bar', 'Location de raquettes'],
     priceFrom: 15000,
     rating: 4.5,
@@ -160,8 +154,7 @@ export const clubs: Club[] = [
     city: CITY,
     type: 'Couvert',
     courts: 5,
-    blurb:
-      "Club indoor à Cocody Danga avec terrains couverts homologués, salle de sport et café. À 5 min du Plateau et de la Riviera.",
+    blurb: 'Club indoor à Cocody Danga avec terrains couverts homologués, salle de sport et café. À 5 min du Plateau et de la Riviera.',
     amenities: ['Terrains couverts', 'Café La Pausa', 'Salle de sport', 'Vestiaires'],
     priceFrom: 10000,
     // Tarifs réels Padelta : heures creuses, prime time, fin de soirée.
@@ -184,8 +177,7 @@ export const clubs: Club[] = [
     city: CITY,
     type: 'Extérieur',
     courts: 3,
-    blurb:
-      "Club de padel outdoor en Zone 3, avec sa propre application de réservation. Bonne ambiance après le travail.",
+    blurb: 'Club de padel outdoor en Zone 3, avec sa propre application de réservation. Bonne ambiance après le travail.',
     amenities: ['Réservation en ligne', 'Vestiaires', 'Buvette'],
     priceFrom: 12000,
     rating: 4.5,
@@ -212,7 +204,10 @@ export type CustomClub = Club & {
 };
 
 // Surcharges du gérant (nom, quartier, description, type, tarif, plages, WhatsApp).
-export type ClubOverrides = Record<string, Partial<Pick<Club, 'name' | 'area' | 'blurb' | 'type' | 'priceFrom' | 'priceTiers'>> & { contactPhone?: string }>;
+export type ClubOverrides = Record<
+  string,
+  Partial<Pick<Club, 'name' | 'area' | 'blurb' | 'type' | 'priceFrom' | 'priceTiers'>> & { contactPhone?: string }
+>;
 
 function applyInfo(club: Club, overrides?: ClubOverrides): Club & { contactPhone?: string } {
   const patch = overrides?.[club.id];
@@ -235,7 +230,7 @@ export function manageableClubs(custom: CustomClub[], overrides?: ClubOverrides)
 export function findClub(
   id: string | string[] | undefined,
   custom: CustomClub[],
-  overrides?: ClubOverrides
+  overrides?: ClubOverrides,
 ): (Club & { contactPhone?: string }) | undefined {
   const key = Array.isArray(id) ? id[0] : id;
   if (!key) return undefined;
@@ -245,10 +240,7 @@ export function findClub(
 
 // Créneaux types proposés (démo) — sessions de 1h30, non chevauchantes.
 // Une vraie version lirait les disponibilités du club.
-export const SAMPLE_SLOTS = [
-  '07:30', '09:00', '10:30', '12:00',
-  '16:30', '18:00', '19:30', '21:00',
-];
+export const SAMPLE_SLOTS = ['07:30', '09:00', '10:30', '12:00', '16:30', '18:00', '19:30', '21:00'];
 
 // Terrains (courts) par défaut d'un club : « Terrain 1 … N » selon son nombre de courts.
 // Les clubs peuvent ensuite les renommer / ajouter / retirer depuis l'Espace Club.
@@ -273,7 +265,10 @@ const PADEL_PHOTOS = [
 ];
 
 export function defaultClubPhotos(clubId: string): string[] {
-  const i = Math.max(0, clubs.findIndex((c) => c.id === clubId));
+  const i = Math.max(
+    0,
+    clubs.findIndex((c) => c.id === clubId),
+  );
   const start = (i * 2) % PADEL_PHOTOS.length;
   return [0, 1, 2].map((k) => PADEL_PHOTOS[(start + k) % PADEL_PHOTOS.length]);
 }

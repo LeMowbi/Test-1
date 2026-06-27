@@ -135,9 +135,18 @@ export function teamCount(comp: Competition, isRegistered: boolean): number {
 // Équipes de DÉMONSTRATION d'un tournoi (noms stables par tournoi). Si l'utilisateur
 // est inscrit, son équipe est en tête de liste.
 const TEAM_POOL = [
-  'Awa & Yann', 'Aïcha & David', 'Fatou & Karim', 'Marina & Ali', 'Nadia & Serge',
-  'Aminata & Paul', 'Chantal & Idriss', 'Léa & Moussa', 'Sarah & Franck', 'Mariam & Hervé',
-  'Clara & Bakary', 'Eva & Junior',
+  'Awa & Yann',
+  'Aïcha & David',
+  'Fatou & Karim',
+  'Marina & Ali',
+  'Nadia & Serge',
+  'Aminata & Paul',
+  'Chantal & Idriss',
+  'Léa & Moussa',
+  'Sarah & Franck',
+  'Mariam & Hervé',
+  'Clara & Bakary',
+  'Eva & Junior',
 ];
 export function demoTeams(comp: Competition, myTeam?: string): string[] {
   const seed = comp.id.split('').reduce((s, ch) => s + ch.charCodeAt(0), 0);
@@ -165,9 +174,4 @@ export function formatFee(s: string | undefined): string {
   return v.replace(/\d{4,}/g, (n) => n.replace(/\B(?=(\d{3})+(?!\d))/g, ' '));
 }
 
-export const COMP_FORMATS = [
-  'Poules + tableau final',
-  'Americano (rotation)',
-  'Mini-tournoi',
-  'Élimination directe',
-];
+export const COMP_FORMATS = ['Poules + tableau final', 'Americano (rotation)', 'Mini-tournoi', 'Élimination directe'];

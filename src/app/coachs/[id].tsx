@@ -29,12 +29,7 @@ export default function CoachDetail() {
     <Screen
       back
       contentStyle={{ paddingTop: 0, paddingHorizontal: 0, paddingBottom: 112 }}
-      overlay={
-        <CoachActionBar
-          onClub={club ? () => router.push(`/club/${club.id}`) : undefined}
-          onCall={() => callNumber(coach.phone)}
-        />
-      }
+      overlay={<CoachActionBar onClub={club ? () => router.push(`/club/${club.id}`) : undefined} onCall={() => callNumber(coach.phone)} />}
     >
       {/* En-tête héros bleu (univers Coachs) — avatar + identité en surimpression */}
       <View style={styles.hero}>

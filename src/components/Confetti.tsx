@@ -18,7 +18,7 @@ export function Confetti({ onDone }: { onDone?: () => void }) {
 
   useEffect(() => {
     Animated.parallel(
-      PIECES.map((p, i) => Animated.timing(progress[i], { toValue: 1, duration: 1300, delay: p.delay, useNativeDriver: true }))
+      PIECES.map((p, i) => Animated.timing(progress[i], { toValue: 1, duration: 1300, delay: p.delay, useNativeDriver: true })),
     ).start();
     const t = setTimeout(() => onDone?.(), 1700);
     return () => clearTimeout(t);

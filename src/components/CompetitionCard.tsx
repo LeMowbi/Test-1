@@ -25,7 +25,11 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
     <Card onPress={() => router.push(`/competition/${comp.id}`)} style={{ marginBottom: spacing.md }}>
       <View style={styles.top}>
         <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap', flex: 1 }}>
-          <Tag label={byClub ? `Club · ${comp.organizer}` : `Joueur · ${comp.organizer}`} tone={byClub ? 'blue' : 'green'} icon={byClub ? 'business' : 'person'} />
+          <Tag
+            label={byClub ? `Club · ${comp.organizer}` : `Joueur · ${comp.organizer}`}
+            tone={byClub ? 'blue' : 'green'}
+            icon={byClub ? 'business' : 'person'}
+          />
           {comp.official ? <Tag label="Officiel" tone="amber" icon="shield-checkmark" /> : null}
           {comp.status === 'pending' ? <Tag label="En attente" tone="coral" icon="hourglass-outline" /> : null}
         </View>
@@ -46,7 +50,7 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
       ) : null}
 
       <View style={styles.barTrack}>
-        <View style={[styles.barFill, { width: (`${pct}%` as `${number}%`) }]} />
+        <View style={[styles.barFill, { width: `${pct}%` as `${number}%` }]} />
       </View>
 
       <View style={styles.footer}>
@@ -57,7 +61,7 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
           mine?.result === 'win' ? (
             <Tag label="Vainqueur !" tone="amber" icon="trophy" />
           ) : mine?.result === 'last' ? (
-            <Tag label="Dernière place" tone="coral" icon="arrow-down" />
+            <Tag label="Fin de tableau" tone="coral" icon="arrow-down" />
           ) : registered ? (
             <Tag label="Participé" tone="blue" icon="checkmark" />
           ) : (

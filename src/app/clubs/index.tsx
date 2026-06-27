@@ -53,10 +53,7 @@ export default function ClubsScreen() {
         ) : null}
       </View>
 
-      <Pressable
-        style={styles.mapBtn}
-        onPress={() => Linking.openURL('https://www.google.com/maps/search/?api=1&query=padel+Abidjan')}
-      >
+      <Pressable style={styles.mapBtn} onPress={() => Linking.openURL('https://www.google.com/maps/search/?api=1&query=padel+Abidjan')}>
         <Ionicons name="map" size={20} color={colors.blue} />
         <View style={{ flex: 1 }}>
           <Txt variant="h3">Voir les terrains sur la carte</Txt>

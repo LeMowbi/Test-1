@@ -8,29 +8,26 @@ export default function Legal() {
       <Card style={{ marginTop: spacing.sm }}>
         <Txt variant="h3">Conditions d'utilisation</Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
-          PadelConnect met en relation des joueurs et des clubs de padel à Abidjan (réservation de
-          créneaux, recherche de partenaires, coachs et compétitions). L'application est fournie
-          « en l'état » pendant sa phase de prototype.
+          PadelConnect met en relation des joueurs et des clubs de padel à Abidjan (réservation de créneaux, recherche de partenaires,
+          coachs et compétitions). L'application est fournie « en l'état » pendant sa phase de prototype.
         </Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
-          Le niveau de jeu évolue uniquement via les tournois officiels : c'est l'organisateur du
-          tournoi qui désigne l'équipe gagnante à la fin (il n'y a pas d'auto-déclaration de match).
-          Les tarifs et disponibilités affichés sont indicatifs et relèvent de la responsabilité de
-          chaque club.
+          Le niveau de jeu évolue uniquement via les tournois officiels : c'est l'organisateur du tournoi qui désigne l'équipe gagnante à la
+          fin (il n'y a pas d'auto-déclaration de match). Les tarifs et disponibilités affichés sont indicatifs et relèvent de la
+          responsabilité de chaque club.
         </Txt>
       </Card>
 
       <Card style={{ marginTop: spacing.md }}>
         <Txt variant="h3">Confidentialité</Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
-          Dans cette version prototype, tes informations (profil, niveau, réservations) sont
-          enregistrées uniquement sur ton appareil. Aucune donnée n'est envoyée à un serveur et
-          aucun paiement réel n'est effectué.
+          Dans cette version prototype, tes informations (profil, niveau, réservations) sont enregistrées uniquement sur ton appareil.
+          Aucune donnée n'est envoyée à un serveur et aucun paiement réel n'est effectué.
         </Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
-          Le numéro de téléphone sert à identifier ton profil ; il n'est pas vérifié à ce stade
-          (la vérification par SMS et l'hébergement sécurisé des données arriveront avec la version
-          finale, dans le respect de la réglementation ivoirienne sur les données personnelles).
+          Le numéro de téléphone sert à identifier ton profil ; il n'est pas vérifié à ce stade (la vérification par SMS et l'hébergement
+          sécurisé des données arriveront avec la version finale, dans le respect de la réglementation ivoirienne sur les données
+          personnelles).
         </Txt>
       </Card>
 

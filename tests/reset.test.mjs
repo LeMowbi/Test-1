@@ -83,9 +83,15 @@ sTop = closeCompetition({ ...makeInitial(), ...regOnly, level: 7.0 }, { id: DEMO
 check(sTop.level === 7.0, 'Plafond : 7.0 reste 7.0');
 
 // Malus « dernière place » : −0.25, avec plancher 1.0.
-let sLast = closeCompetition({ ...makeInitial(), ...regOnly, level: 3.5 }, { id: DEMO_FINISHED_COMP, official: true }, false, 'Awa & Yann', true);
+let sLast = closeCompetition(
+  { ...makeInitial(), ...regOnly, level: 3.5 },
+  { id: DEMO_FINISHED_COMP, official: true },
+  false,
+  'Awa & Yann',
+  true,
+);
 check(sLast.level === 3.25, 'Dernière place officielle : 3.50 → 3.25 (−0.25)');
-check(sLast.officialResults[0].result === 'last', "Palmarès : entrée « Dernière place »");
+check(sLast.officialResults[0].result === 'last', 'Palmarès : entrée « Dernière place »');
 check(sLast.compResults[DEMO_FINISHED_COMP].loser === 'Awa & Yann', 'Résultat : équipe dernière enregistrée');
 let sFloor = closeCompetition({ ...makeInitial(), ...regOnly, level: 1.0 }, { id: DEMO_FINISHED_COMP, official: true }, false, 'X', true);
 check(sFloor.level === 1.0, 'Plancher : un niveau 1.0 ne descend pas sous 1.0');
@@ -94,8 +100,17 @@ let sNear = closeCompetition({ ...makeInitial(), ...regOnly, level: 1.1 }, { id:
 check(sNear.level === 1.0, 'Plancher : 1.1 − 0.25 (= 0.85) → ramené à 1.0');
 
 // « Passer » : clôture sans dernière équipe → aucun loser écrit, niveau intact.
-let sSkip = closeCompetition({ ...makeInitial(), ...regOnly, level: 3.5 }, { id: DEMO_FINISHED_COMP, official: true }, false, undefined, false);
-check(sSkip.compResults[DEMO_FINISHED_COMP].loser === undefined && sSkip.level === 3.5, '« Passer » : pas de dernière équipe écrite, niveau inchangé');
+let sSkip = closeCompetition(
+  { ...makeInitial(), ...regOnly, level: 3.5 },
+  { id: DEMO_FINISHED_COMP, official: true },
+  false,
+  undefined,
+  false,
+);
+check(
+  sSkip.compResults[DEMO_FINISHED_COMP].loser === undefined && sSkip.level === 3.5,
+  '« Passer » : pas de dernière équipe écrite, niveau inchangé',
+);
 
 // Double clôture impossible : le second appel ne change RIEN.
 const once = closeCompetition({ ...makeInitial(), ...regOnly, level: 3.5 }, { id: DEMO_FINISHED_COMP, official: true }, true);
@@ -103,7 +118,11 @@ const twice = closeCompetition(once, { id: DEMO_FINISHED_COMP, official: true },
 check(twice === once, 'Double clôture : le 2ᵉ appel est un no-op strict');
 
 // Tournoi AMICAL : ni bonus ni malus, palmarès seulement.
-let sAmical = closeCompetition({ ...makeInitial(), account: { firstName: 'I' }, level: 3.5, compRegistrations: { d1: { partner: 'K' } } }, { id: 'd1', official: false }, true);
+let sAmical = closeCompetition(
+  { ...makeInitial(), account: { firstName: 'I' }, level: 3.5, compRegistrations: { d1: { partner: 'K' } } },
+  { id: 'd1', official: false },
+  true,
+);
 check(sAmical.level === 3.5, 'Tournoi amical gagné : niveau inchangé');
 s = blockSlot(s, { clubId: 'padelta', dateKey: '2026-06-13', time: '18:00', court: 'Terrain 1', reason: 'Entretien' });
 s = removeFriend(s, 'f4');
@@ -131,7 +150,7 @@ const demoTeams = (comp, myTeam) => {
   return myTeam ? [myTeam, ...list] : list;
 };
 const defi = { id: 'd1', createdByMe: true, registered: 0, slots: 8, official: false };
-const canClose = !!defi.createdByMe && true /* terminé */ && !undefined /* pas de résultat */;
+const canClose = !!defi.createdByMe && true /* terminé */ && !undefined; /* pas de résultat */
 const teamList = demoTeams(defi, undefined); // créateur non inscrit
 check(canClose && teamList.length === 0, 'Défi terminé sans inscrit → « Annuler ce tournoi »');
 

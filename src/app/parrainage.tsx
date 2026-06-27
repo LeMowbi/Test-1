@@ -7,16 +7,13 @@ import { Button, Card, IconCircle, StatTile, Txt } from '@/components/ui';
 import { openWhatsApp } from '@/lib/contact';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
-const APP_URL = 'https://lemowbi.github.io/Test-1/';
+const APP_URL = 'https://lemowbi.github.io/PadelConnect/';
 
 // Parrainage : l'invitation WhatsApp FONCTIONNE déjà (partage client). Le compteur
 // d'amis ayant rejoint, lui, se synchronisera avec la version connectée (§B serveur).
 export default function ParrainageScreen() {
   const invite = () =>
-    openWhatsApp(
-      '',
-      `Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes.\n${APP_URL}`
-    );
+    openWhatsApp('', `Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes.\n${APP_URL}`);
 
   return (
     <Screen back title="Parrainage" subtitle="Invite tes amis à jouer">
@@ -28,7 +25,7 @@ export default function ParrainageScreen() {
           <Txt variant="display" color={colors.onSignature} style={{ fontSize: 24, marginTop: spacing.md }}>
             Joue à plusieurs
           </Txt>
-          <Txt variant="small" color="rgba(255,255,255,0.85)" style={{ marginTop: 4 }}>
+          <Txt variant="small" color={colors.onPhoto} style={{ marginTop: 4 }}>
             Le padel, c'est mieux entre amis. Invite-les — tu les retrouves direct sur tes réservations.
           </Txt>
         </LinearGradient>
@@ -59,7 +56,7 @@ const styles = StyleSheet.create({
     width: 48,
     height: 48,
     borderRadius: radius.md,
-    backgroundColor: 'rgba(255,255,255,0.14)',
+    backgroundColor: colors.onPhotoSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },

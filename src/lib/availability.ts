@@ -33,12 +33,8 @@ export function hasCompetition(clubId: string, dateKey: string, comps: Competiti
 // Terrains encore libres d'un club à (jour, heure) — réservés ET bloqués hors app exclus.
 export function freeCourts(club: Club, dateKey: string, time: string, ctx: AvailCtx): string[] {
   if (hasCompetition(club.id, dateKey, ctx.comps)) return [];
-  const taken = ctx.reservations
-    .filter((r) => r.clubId === club.id && r.dateKey === dateKey && r.time === time)
-    .map((r) => r.court);
-  const blocked = ctx.blocked
-    .filter((b) => b.clubId === club.id && b.dateKey === dateKey && b.time === time)
-    .map((b) => b.court);
+  const taken = ctx.reservations.filter((r) => r.clubId === club.id && r.dateKey === dateKey && r.time === time).map((r) => r.court);
+  const blocked = ctx.blocked.filter((b) => b.clubId === club.id && b.dateKey === dateKey && b.time === time).map((b) => b.court);
   return courtsFor(club, ctx.clubCourts).filter((c) => !taken.includes(c) && !blocked.includes(c));
 }
 

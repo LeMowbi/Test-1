@@ -1,13 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import React from 'react';
-import {
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  type ViewStyle,
-} from 'react-native';
+import { ScrollView, StyleSheet, TouchableOpacity, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Txt } from './ui';
 import { colors, radius, spacing } from '@/theme';
@@ -24,17 +18,7 @@ type Props = {
   scrollRef?: React.Ref<ScrollView>;
 };
 
-export function Screen({
-  children,
-  title,
-  subtitle,
-  back,
-  scroll = true,
-  headerRight,
-  contentStyle,
-  overlay,
-  scrollRef,
-}: Props) {
+export function Screen({ children, title, subtitle, back, scroll = true, headerRight, contentStyle, overlay, scrollRef }: Props) {
   const insets = useSafeAreaInsets();
   const router = useRouter();
 
@@ -42,17 +26,16 @@ export function Screen({
     <View style={styles.header}>
       <View style={styles.headerRow}>
         {back ? (
-          <TouchableOpacity
-            onPress={() => router.back()}
-            style={styles.backBtn}
-            hitSlop={12}
-            accessibilityLabel="Retour"
-          >
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel="Retour">
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
         ) : null}
         <View style={{ flex: 1 }}>
-          {title ? <Txt variant="h1" style={{ fontSize: 28 }}>{title}</Txt> : null}
+          {title ? (
+            <Txt variant="h1" style={{ fontSize: 28 }}>
+              {title}
+            </Txt>
+          ) : null}
           {subtitle ? (
             <Txt variant="muted" style={{ marginTop: 2 }}>
               {subtitle}

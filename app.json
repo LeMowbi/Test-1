@@ -8,7 +8,7 @@
     "icon": "./assets/images/icon.png",
     "scheme": "padelco",
     "userInterfaceStyle": "light",
-    "backgroundColor": "#F1F5F3",
+    "backgroundColor": "#F4F1E8",
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ci.padelco.app",
@@ -33,7 +33,7 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#F1F5F3",
+          "backgroundColor": "#F4F1E8",
           "image": "./assets/images/splash-icon.png",
           "imageWidth": 120
         }
@@ -44,12 +44,13 @@
           "photosPermission": "PadelConnect accède à vos photos pour votre photo de profil et, côté gérant, les photos de votre club.",
           "cameraPermission": false
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": false,
       "reactCompiler": false,
-      "baseUrl": "/Test-1"
+      "baseUrl": "/PadelConnect"
     },
     "extra": {
       "eas": {

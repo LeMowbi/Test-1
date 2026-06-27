@@ -49,7 +49,10 @@ export default function ClubDetail() {
   const boosted = state.boostedClubIds.includes(club.id);
   const gallery = clubGallery(club, state.clubPhotos[club.id] ?? []);
   const posts = state.clubOffers[club.id] ?? [];
-  const offers = offersForClub(club, posts.filter((o) => o.kind !== 'evenement'));
+  const offers = offersForClub(
+    club,
+    posts.filter((o) => o.kind !== 'evenement'),
+  );
   // Événements du club : publications « événement » + tournois créés par le club (officiels ou non).
   const events = posts.filter((o) => o.kind === 'evenement');
   // Tournois publics du club (les tournois joueur « en attente » de validation n'apparaissent pas).
@@ -163,11 +166,7 @@ export default function ClubDetail() {
       <View style={styles.infoChips}>
         <View style={styles.infoChip}>
           <Ionicons name="star" size={16} color={colors.amber} />
-          {ratingCount === 0 ? (
-            <Txt variant="h3">Nouveau</Txt>
-          ) : (
-            <Txt variant="h3">{avgRating.toFixed(1)}</Txt>
-          )}
+          {ratingCount === 0 ? <Txt variant="h3">Nouveau</Txt> : <Txt variant="h3">{avgRating.toFixed(1)}</Txt>}
           <Txt variant="small" color={colors.textFaint}>
             {ratingCount === 0 ? 'club' : `${ratingCount} avis`}
           </Txt>
@@ -311,7 +310,11 @@ export default function ClubDetail() {
             </View>
           ))}
           {clubComps.map((c, i) => (
-            <Pressable key={c.id} onPress={() => router.push(`/competition/${c.id}`)} style={[styles.eventRow, { marginTop: i === 0 && events.length === 0 ? 0 : spacing.sm }]}>
+            <Pressable
+              key={c.id}
+              onPress={() => router.push(`/competition/${c.id}`)}
+              style={[styles.eventRow, { marginTop: i === 0 && events.length === 0 ? 0 : spacing.sm }]}
+            >
               <IconCircle icon="trophy" color={colors.purple} bg={colors.purpleSoft} size={38} />
               <View style={{ flex: 1 }}>
                 <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
@@ -344,7 +347,9 @@ export default function ClubDetail() {
               <View style={[styles.coachRow, { marginTop: i === 0 ? spacing.md : 0 }]}>
                 <IconCircle icon="person" color={colors.signature} bg={colors.signatureSoft} size={38} />
                 <View style={{ flex: 1 }}>
-                  <Txt variant="body" style={{ fontWeight: '600' }}>{c.name}</Txt>
+                  <Txt variant="body" style={{ fontWeight: '600' }}>
+                    {c.name}
+                  </Txt>
                   <Txt variant="muted">{c.sub}</Txt>
                 </View>
               </View>
@@ -360,39 +365,39 @@ export default function ClubDetail() {
 
         {/* Résumé : grande note + répartition des étoiles des avis affichés */}
         {ratingCount > 0 ? (
-        <Card style={{ marginTop: spacing.md }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
-            <View style={{ alignItems: 'center' }}>
-              <Txt variant="display" color={colors.signature}>
-                {avgRating.toFixed(1)}
-              </Txt>
-              <RatingStars value={avgRating} size={13} />
-              <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
-                {ratingCount} avis
-              </Txt>
-            </View>
-            <View style={{ flex: 1, gap: 5 }}>
-              {[5, 4, 3, 2, 1].map((s) => {
-                const n = reviews.filter((r) => Math.round(r.rating) === s).length;
-                const pct = reviews.length ? Math.round((n / reviews.length) * 100) : 0;
-                return (
-                  <View key={s} style={styles.barRow}>
-                    <Txt variant="small" color={colors.textMuted} style={{ width: 10, textAlign: 'center' }}>
-                      {s}
-                    </Txt>
-                    <Ionicons name="star" size={10} color={colors.signature} />
-                    <View style={styles.summaryTrack}>
-                      <View style={[styles.summaryFill, { width: (`${pct}%` as `${number}%`) }]} />
+          <Card style={{ marginTop: spacing.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.lg }}>
+              <View style={{ alignItems: 'center' }}>
+                <Txt variant="display" color={colors.signature}>
+                  {avgRating.toFixed(1)}
+                </Txt>
+                <RatingStars value={avgRating} size={13} />
+                <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
+                  {ratingCount} avis
+                </Txt>
+              </View>
+              <View style={{ flex: 1, gap: 5 }}>
+                {[5, 4, 3, 2, 1].map((s) => {
+                  const n = reviews.filter((r) => Math.round(r.rating) === s).length;
+                  const pct = reviews.length ? Math.round((n / reviews.length) * 100) : 0;
+                  return (
+                    <View key={s} style={styles.barRow}>
+                      <Txt variant="small" color={colors.textMuted} style={{ width: 10, textAlign: 'center' }}>
+                        {s}
+                      </Txt>
+                      <Ionicons name="star" size={10} color={colors.signature} />
+                      <View style={styles.summaryTrack}>
+                        <View style={[styles.summaryFill, { width: `${pct}%` as `${number}%` }]} />
+                      </View>
+                      <Txt variant="small" color={colors.textFaint} style={{ width: 18, textAlign: 'right' }}>
+                        {n}
+                      </Txt>
                     </View>
-                    <Txt variant="small" color={colors.textFaint} style={{ width: 18, textAlign: 'right' }}>
-                      {n}
-                    </Txt>
-                  </View>
-                );
-              })}
+                  );
+                })}
+              </View>
             </View>
-          </View>
-        </Card>
+          </Card>
         ) : null}
 
         <Card style={{ marginTop: spacing.md }}>
@@ -491,7 +496,7 @@ export default function ClubDetail() {
               <Ionicons name="close" size={24} color={colors.white} />
             </Pressable>
             <View style={styles.viewerHint}>
-              <Txt variant="small" color="rgba(255,255,255,0.85)">
+              <Txt variant="small" color={colors.onPhoto}>
                 {gallery.length} photo{gallery.length > 1 ? 's — fais défiler' : ''}
               </Txt>
             </View>
@@ -569,7 +574,7 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: radius.pill,
-    backgroundColor: 'rgba(255,255,255,0.15)',
+    backgroundColor: colors.onPhotoSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },

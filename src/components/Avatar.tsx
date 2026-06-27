@@ -24,12 +24,7 @@ export function Avatar({ uri, name, size = 46 }: { uri?: string | null; name: st
     >
       <View style={[styles.gap, { width: mid, height: mid, borderRadius: mid / 2 }]}>
         {uri ? (
-          <Image
-            source={{ uri }}
-            contentFit="cover"
-            transition={120}
-            style={{ width: inner, height: inner, borderRadius: inner / 2 }}
-          />
+          <Image source={{ uri }} contentFit="cover" transition={120} style={{ width: inner, height: inner, borderRadius: inner / 2 }} />
         ) : (
           <View style={[styles.fallback, { width: inner, height: inner, borderRadius: inner / 2 }]}>
             <Txt
@@ -50,7 +45,7 @@ const styles = StyleSheet.create({
   ring: {
     alignItems: 'center',
     justifyContent: 'center',
-    shadowColor: '#000',
+    shadowColor: colors.black,
     shadowOpacity: 0.15,
     shadowRadius: 5,
     shadowOffset: { width: 0, height: 2 },

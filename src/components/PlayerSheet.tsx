@@ -28,7 +28,13 @@ export function PlayerSheet({ player, onClose }: { player: PlayerLike | null; on
     <BottomSheet
       visible={!!player}
       title={player?.name ?? ''}
-      subtitle={player?.isTeam ? 'Équipe inscrite' : player?.level !== undefined ? `${levelLabel(player.level)} · Niveau ${player.level.toFixed(2)}` : undefined}
+      subtitle={
+        player?.isTeam
+          ? 'Équipe inscrite'
+          : player?.level !== undefined
+            ? `${levelLabel(player.level)} · Niveau ${player.level.toFixed(2)}`
+            : undefined
+      }
       onClose={onClose}
     >
       {player ? (
@@ -36,9 +42,7 @@ export function PlayerSheet({ player, onClose }: { player: PlayerLike | null; on
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
             <Avatar name={player.name} size={48} />
             <View style={{ flex: 1 }}>
-              {player.level !== undefined ? (
-                <Tag label={`Niveau ${player.level.toFixed(2)}`} tone="blue" icon="ribbon" />
-              ) : null}
+              {player.level !== undefined ? <Tag label={`Niveau ${player.level.toFixed(2)}`} tone="blue" icon="ribbon" /> : null}
               {club ? (
                 <Txt variant="small" color={colors.textMuted} style={{ marginTop: 4 }}>
                   Club favori : {club.name}
@@ -75,8 +79,12 @@ export function PlayerSheet({ player, onClose }: { player: PlayerLike | null; on
 function Stat({ value, label }: { value: number; label: string }) {
   return (
     <View style={styles.stat}>
-      <Txt variant="h2" color={colors.purple}>{value}</Txt>
-      <Txt variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>{label}</Txt>
+      <Txt variant="h2" color={colors.purple}>
+        {value}
+      </Txt>
+      <Txt variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>
+        {label}
+      </Txt>
     </View>
   );
 }

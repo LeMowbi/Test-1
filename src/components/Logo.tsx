@@ -5,11 +5,7 @@ import { colors, font } from '@/theme';
 export function Logo({ size = 30, tagline }: { size?: number; tagline?: string }) {
   return (
     <View style={styles.row}>
-      <Image
-        source={require('../../assets/images/brand-mark.png')}
-        style={{ width: size, height: size }}
-        resizeMode="contain"
-      />
+      <Image source={require('../../assets/images/brand-mark.png')} style={{ width: size, height: size }} resizeMode="contain" />
       <View>
         <Text style={styles.word}>
           Padel<Text style={{ color: colors.signature }}>Connect</Text>
