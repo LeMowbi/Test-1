@@ -604,3 +604,69 @@ sur la caisse** : le nom est purement de l'affichage.
 - Vérifs : **tsc 0 · lint 0/0 · tests verts (+8 cas `groupTiersByLabel`) · export OK (18 routes)**.
   Garde-fous respectés : zéro couleur en dur, kit maison, prix FCFA, sessions 1h30, aucune
   auto-déclaration, pas de tabbar. Cache : ouvrir la démo avec `?v=418` en navigation privée.
+
+---
+
+## Patches v4.19 → v4.23 — Préparation au lancement natif iOS/Android + liaison Expo
+
+Le projet, jusque-là testé surtout en **export web**, est rendu **prêt à fabriquer une vraie app
+mobile**. Aucune logique métier touchée ; la démo web reste identique.
+- **v4.19 — préparation native** : `app.json` déclare le plugin **expo-image-picker** avec la
+  chaîne de permission photo (FR, couvre profil joueur + photos de club, `cameraPermission:false`)
+  → évite le crash iOS et le rejet App Store ; ajout de `ios.buildNumber` / `android.versionCode`.
+  **`eas.json`** créé (profils `development` / `preview` / `production`, `appVersionSource: local`).
+  `_layout.tsx` : splash maintenu jusqu'au chargement des polices (plus de flash). `icon.png`
+  aplati en **RGB opaque** (Apple). Dépendances : `expo-device` retiré ; `@expo/ui`/
+  `expo-glass-effect`/`expo-symbols` ne sont plus des deps directes (restent transitives via
+  expo-router) ; **reanimated + worklets conservés** (animations à venir, décision porteur).
+- **v4.20 — liaison Expo** : `app.json` reçoit `owner: padelconnect-ci`, slug `padelconnect`,
+  `extra.eas.projectId`. Le projet est un **projet Expo officiel** → EAS peut builder.
+  Un **APK Android `preview` a été buildé avec succès** via EAS (preuve que le natif fonctionne).
+- **v4.21** : nom du paquet npm → `padelconnect` ; nettoyage `eas.json`.
+- **v4.22 — renommage dépôt `Test-1` → `PadelConnect`** : URL de démo, liens partagés in-app
+  (parrainage/partage) et docs mis à jour vers `lemowbi.github.io/PadelConnect/` ; `baseUrl`
+  web aligné.
+- **v4.23** : versions de paquets **alignées sur le SDK 56** (`expo install --fix`) ; expo-doctor
+  19/21 (les 2 échecs sont des vérifs réseau bloquées par l'environnement, faux négatifs).
+
+> **Note iPhone (importante)** : l'**Expo Go public de l'App Store ne supporte pas encore le SDK 56**.
+> Pour tester sur iPhone avant publication → **TestFlight** (compte Apple Developer requis) ou la
+> **démo web** (Safari). Sur Android, l'**APK `preview`** s'installe directement. Voir
+> `docs/CHECKLIST-STORES.md`.
+
+---
+
+## Patches v4.24 → v4.27b — Revue 360° + 4 vagues d'amélioration
+
+Une **revue complète par 5 agents spécialisés** (Expo/build, sécurité, design/UI, UX, qualité de
+code) a donné un verdict global « bon » et une feuille de route en 4 vagues, toutes exécutées
+**sans serveur**, **sans toucher la logique métier**, garde-fous respectés.
+
+- **v4.24 — Vague 1 (sécurité de démo + splash)** : l'**Espace opérateur** n'apparaît plus dans
+  la navigation normale — révélé par un **appui long (~1,2 s) sur l'avatar** du Profil (geste
+  discret) ; l'**Espace Club** est conditionné (gérant déjà déverrouillé / mode gérant / même
+  geste). La build web publique n'expose donc plus `/operateur` (codes club) au premier venu.
+  Couleur de fond du splash alignée sur le thème (`#F1F5F3 → #F4F1E8`) — fin du flash au démarrage.
+- **v4.25 — Vague 2 (frictions UX)** : carte « Ton prochain match » toujours affichée (découplée
+  du réglage « rappels ») ; « Voir le club » + « Itinéraire » sur **Mes réservations** ; « Prévenir
+  mes partenaires » sur l'**écran de succès** de réservation (si invités) ; états vides chaleureux
+  (Coachs, Suivis) ; pont « Inviter des amis » → Parrainage ; onboarding **+225** pré-rempli + focus
+  auto ; wording « Dernière place » → « **Fin de tableau** » (mécanique −0.25 inchangée).
+- **v4.26 — Vague 3 (finition design)** : garde-fou **« zéro couleur en dur » tenu à 100 %** —
+  nouveaux tokens `onPhoto` / `onPhotoSoft` / `limeGlow` / `purpleDark` + gradient `deepPurple`,
+  ~11 littéraux rgba/#000 remplacés. **Fiche tournoi** : héros en **dégradé violet** (au lieu d'une
+  couleur plate). `BookingSheet` : élévation `e3` alignée sur les autres bottom sheets.
+- **v4.27 — Vague 4 (qualité & stores)** : **`club-admin/index.tsx` découpé : 1557 → 378 lignes
+  (−76 %)** — 8 composants extraits dans `src/components/club-admin/` (hors arborescence des routes :
+  export confirmé 24 routes, aucune route parasite), comportement strictement identique. Ajout de
+  **Prettier** (`.prettierrc`, scripts `format`/`format:check`) ; script `reset-project` cassé
+  retiré ; **`docs/CHECKLIST-STORES.md`** (publication App Store / Play Store). **v4.27b** :
+  reformatage Prettier (56 fichiers, cosmétique, 0 changement de comportement).
+
+Vérifs (chaque vague) : **tsc 0 · eslint 0/0 · tests logique verts · export web OK**.
+
+> **Limite d'infra connue** : dans l'environnement de travail, les pushes vers `main` et `gh-pages`
+> sont actuellement refusés par le proxy (la branche de travail `claude/padelconnect-v4-17-4zblgh`
+> reçoit tout). La **démo en ligne reste donc à republier** à sa nouvelle adresse
+> `lemowbi.github.io/PadelConnect/` (build prêt dans `dist/`) — à faire depuis un poste avec accès
+> Git complet, ou quand l'infra le permettra.
