@@ -44,7 +44,8 @@
           "photosPermission": "PadelConnect accède à vos photos pour votre photo de profil et, côté gérant, les photos de votre club.",
           "cameraPermission": false
         }
-      ]
+      ],
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": false,
