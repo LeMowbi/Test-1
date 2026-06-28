@@ -23,9 +23,13 @@
 // n'apparaît pas dans la navigation normale.
 
 /** L'utilisateur peut-il voir l'Espace opérateur ? */
-export function canAccessOperator(): boolean {
+export function canAccessOperator(operatorUnlocked: boolean): boolean {
+  // PROTOTYPE : l'Espace opérateur est verrouillé par un code PIN choisi par l'opérateur
+  // sur son appareil (redemandé à chaque lancement). `operatorUnlocked` reflète une
+  // session déverrouillée. Comme les codes d'accès des clubs ne sont visibles QUE dans
+  // cet espace, ce verrou protège aussi indirectement les comptes clubs.
   // TODO(app finale) : return session?.user.role === 'operator' (vérifié serveur).
-  return true; // prototype : décidé d'attendre le serveur pour le lier au seul compte opérateur
+  return operatorUnlocked;
 }
 
 /** L'utilisateur peut-il gérer CE club ? */
