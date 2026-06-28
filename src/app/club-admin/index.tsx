@@ -6,6 +6,7 @@ import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { BottomSheet } from '@/components/BottomSheet';
 import { SegmentedControl } from '@/components/SegmentedControl';
+import { useToast } from '@/components/Toast';
 import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { ClosePanel } from '@/components/club-admin/ClosePanel';
 import { CodeGate } from '@/components/club-admin/CodeGate';
@@ -27,8 +28,19 @@ const CLUB_TYPES: Club['type'][] = ['Couvert', 'Extérieur', 'Mixte'];
 
 export default function ClubAdmin() {
   const router = useRouter();
-  const { state, setClubMode, setManagedClub, requestClub, closeCompetition, deleteCompetition, unlockClub, blockSlot, unblockSlot } =
-    useApp();
+  const {
+    state,
+    setClubMode,
+    setManagedClub,
+    requestClub,
+    cancelOwnClubRequest,
+    closeCompetition,
+    deleteCompetition,
+    unlockClub,
+    blockSlot,
+    unblockSlot,
+  } = useApp();
+  const toast = useToast();
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
   const [closingId, setClosingId] = useState<string | null>(null);
@@ -75,6 +87,7 @@ export default function ClubAdmin() {
     setNcArea('');
     setNcPrice('');
     setNcPhone('');
+    toast.show('Demande envoyée à PadelConnect ✅');
   };
 
   const header = (
@@ -217,6 +230,18 @@ export default function ClubAdmin() {
               </Txt>{' '}
               par PadelConnect. Prépare ta page (photos, terrains, créneaux) : les joueurs la verront dès l'activation.
             </Txt>
+            <Pressable
+              onPress={() => {
+                cancelOwnClubRequest(club.id);
+                toast.show('Demande annulée');
+              }}
+              hitSlop={8}
+              accessibilityLabel="Annuler ma demande de club"
+            >
+              <Txt variant="small" color={colors.danger} style={{ fontWeight: '700' }}>
+                Annuler
+              </Txt>
+            </Pressable>
           </View>
         ) : null}
       </View>
@@ -281,7 +306,10 @@ export default function ClubAdmin() {
                             label="Débloquer"
                             icon="lock-open"
                             variant="secondary"
-                            onPress={() => unblockSlot(club.id, selectedCell.dateKey, selectedCell.time, c)}
+                            onPress={() => {
+                              unblockSlot(club.id, selectedCell.dateKey, selectedCell.time, c);
+                              toast.show('Créneau rouvert');
+                            }}
                           />
                         </>
                       ) : (
@@ -312,11 +340,12 @@ export default function ClubAdmin() {
                             key={reason}
                             label={reason}
                             onPress={() => {
-                              blockSlot(
+                              const ok = blockSlot(
                                 { clubId: club.id, dateKey: selectedCell.dateKey, time: selectedCell.time, court: c, reason },
                                 cellTs,
                               );
                               setBlockingCourt(null);
+                              toast.show(ok ? 'Créneau bloqué' : 'Impossible de bloquer ce créneau', ok ? undefined : { icon: 'alert-circle' });
                             }}
                           />
                         ))}

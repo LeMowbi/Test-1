@@ -207,7 +207,7 @@ type AppContextType = {
   toggleHideCoach: (coachId: string) => void;
   toggleBoostClub: (clubId: string) => void;
   setBoost: (clubId: string, days: number) => void; // days > 0 active (avec expiration), 0 désactive
-  setPaymentStatus: (clubId: string, monthKey: string, status: 'tofacture' | 'sent' | 'paid') => void;
+  setPaymentStatus: (clubId: string, weekKey: string, status: 'tofacture' | 'sent' | 'paid') => void;
   requestClub: (input: {
     name: string;
     area: string;
@@ -216,6 +216,7 @@ type AppContextType = {
     priceFrom: number;
     contactPhone?: string;
   }) => void;
+  cancelOwnClubRequest: (id: string) => void; // annule une demande « en attente » créée sur cet appareil
   approveClub: (id: string) => void;
   rejectClub: (id: string) => void;
   unlockClub: (clubId: string, code: string) => boolean;
@@ -232,6 +233,7 @@ type AppContextType = {
   blockSlot: (b: BlockedSlot, startsAt: number) => boolean;
   unblockSlot: (clubId: string, dateKey: string, time: string, court: string) => void;
   setOperatorNews: (news: { title: string; subtitle?: string; link?: string }) => void;
+  removeOperatorNews: () => void; // retire l'actu d'accueil publiée
   dismissNews: (id: string) => void;
   toggleFollow: (id: string, info: { name: string; level?: number; favoriteClub?: string }) => void;
   resetAll: () => void;
@@ -486,12 +488,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => {
           const n = name.trim();
           if (!n) return s;
+          // Normalise le téléphone en format international (+225) pour que le lien
+          // WhatsApp/appel fonctionne (sinon openWhatsApp échoue sur un numéro local).
+          const p = phone.trim();
+          const normPhone = p ? (p.startsWith('+') ? p : `+225 ${p}`) : undefined;
           const existing = s.clubCoaches[clubId] ?? [];
           return {
             ...s,
             clubCoaches: {
               ...s.clubCoaches,
-              [clubId]: [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach', phone: phone.trim() || undefined }, ...existing],
+              [clubId]: [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach', phone: normPhone }, ...existing],
             },
           };
         }),
@@ -535,10 +541,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             boostExpiry: { ...s.boostExpiry, [clubId]: Date.now() + days * 86400000 },
           };
         }),
-      setPaymentStatus: (clubId, monthKey, status) =>
+      setPaymentStatus: (clubId, weekKey, status) =>
         setState((s) => {
           const next = { ...s.operatorPayments };
-          const k = `${clubId}:${monthKey}`;
+          const k = `${clubId}:${weekKey}`;
           if (status === 'tofacture') delete next[k];
           else next[k] = status;
           return { ...s, operatorPayments: next };
@@ -547,6 +553,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => {
           const n = name.trim();
           if (n.length < 2) return s;
+          // Anti double-tap : on ne recrée pas une demande « en attente » identique
+          // (même nom + même quartier) déjà soumise sur cet appareil.
+          const areaClean = area.trim() || 'Abidjan';
+          const dup = s.customClubs.some(
+            (c) =>
+              c.status === 'pending' &&
+              c.name.trim().toLowerCase() === n.toLowerCase() &&
+              c.area.trim().toLowerCase() === areaClean.toLowerCase(),
+          );
+          if (dup) return s;
           const accents = ACCENTS;
           const club: CustomClub = {
             id: uid(),
@@ -569,6 +585,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // Le gérant bascule directement sur SON club pour préparer sa page.
           return { ...s, customClubs: [...s.customClubs, club], managedClubId: club.id };
         }),
+      // Le gérant annule SA demande tant qu'elle est « en attente » (pas encore activée).
+      cancelOwnClubRequest: (id) =>
+        setState((s) => ({
+          ...s,
+          customClubs: s.customClubs.filter((c) => !(c.id === id && c.status === 'pending')),
+        })),
       approveClub: (id) =>
         setState((s) => ({
           ...s,
@@ -620,17 +642,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             (x) => !(x.clubId === clubId && x.dateKey === dateKey && x.time === time && x.court === court),
           ),
         })),
-      // L'opérateur publie/met à jour l'actu d'accueil (nouvel id → réapparaît même si fermée).
+      // L'opérateur publie/met à jour l'actu d'accueil. On ne régénère l'id (ce qui la
+      // fait RÉAPPARAÎTRE chez les joueurs qui l'avaient fermée) QUE si le contenu change.
       setOperatorNews: (news) =>
-        setState((s) => ({
-          ...s,
-          operatorNews: {
-            id: uid(),
-            title: news.title.trim(),
-            subtitle: news.subtitle?.trim() || undefined,
-            link: news.link?.trim() || undefined,
-          },
-        })),
+        setState((s) => {
+          const title = news.title.trim();
+          const subtitle = news.subtitle?.trim() || undefined;
+          // Lien : on n'accepte qu'une URL ; on préfixe https:// si l'opérateur l'a oublié.
+          let link = news.link?.trim() || undefined;
+          if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
+          if (link && !/^https?:\/\/.+\..+/i.test(link)) link = undefined;
+          const prev = s.operatorNews;
+          const unchanged = !!prev && prev.title === title && prev.subtitle === subtitle && prev.link === link;
+          return { ...s, operatorNews: { id: unchanged ? prev.id : uid(), title, subtitle, link } };
+        }),
+      removeOperatorNews: () => setState((s) => ({ ...s, operatorNews: null })),
       dismissNews: (id) => setState((s) => ({ ...s, dismissedNewsId: id })),
       toggleFollow: (id, info) =>
         setState((s) => {
