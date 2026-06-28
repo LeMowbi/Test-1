@@ -148,7 +148,13 @@ export default function Operateur() {
 
       {/* Sélecteur de semaine ‹ › */}
       <View style={styles.weekNav}>
-        <Pressable onPress={() => setWeek(addWeeks(week, -1))} hitSlop={8} style={styles.weekArrow}>
+        <Pressable
+          onPress={() => setWeek(addWeeks(week, -1))}
+          hitSlop={8}
+          style={styles.weekArrow}
+          accessibilityRole="button"
+          accessibilityLabel="Semaine précédente"
+        >
           <Ionicons name="chevron-back" size={18} color={colors.text} />
         </Pressable>
         <View style={{ flex: 1, alignItems: 'center' }}>
@@ -166,6 +172,8 @@ export default function Operateur() {
           hitSlop={8}
           style={[styles.weekArrow, week === thisWeek && { opacity: 0.3 }]}
           disabled={week === thisWeek}
+          accessibilityRole="button"
+          accessibilityLabel="Semaine suivante"
         >
           <Ionicons name="chevron-forward" size={18} color={colors.text} />
         </Pressable>

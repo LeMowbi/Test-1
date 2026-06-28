@@ -119,6 +119,9 @@ export function Button({
       <Pressable
         onPress={onPress}
         disabled={disabled}
+        accessibilityRole="button"
+        accessibilityLabel={label}
+        accessibilityState={{ disabled: !!disabled }}
         style={({ pressed }) => [
           shadows.e2,
           { borderRadius: br },
@@ -143,6 +146,9 @@ export function Button({
     <Pressable
       onPress={onPress}
       disabled={disabled}
+      accessibilityRole="button"
+      accessibilityLabel={label}
+      accessibilityState={{ disabled: !!disabled }}
       style={({ pressed }) => [
         btn.base,
         size === 'sm' && btn.sm,
