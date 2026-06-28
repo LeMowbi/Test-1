@@ -108,6 +108,7 @@ type AppState = {
   // chaque lancement) → le PIN est redemandé à chaque ouverture de l'app.
   operatorPin: string | null;
   operatorUnlocked: boolean;
+  storageFull: boolean; // true si la sauvegarde a dû abandonner des photos (quota plein)
   managedClubId: string;
   clubSlots: Record<string, string[]>; // horaires ouverts par club
   clubCourts: Record<string, string[]>; // terrains (courts) gérés par club
@@ -124,6 +125,7 @@ export const COMMISSION_RATE = 0.1; // commission opérateur (10 %)
 const LEVEL_STEP = 0.5; // bonus de niveau pour l'équipe vainqueure d'un tournoi officiel
 const LEVEL_PENALTY = 0.25; // malus de niveau pour l'équipe classée dernière (facultatif)
 const STORAGE_KEY = 'padelco_state_v4'; // v4 : modèle sans matchs ni victoires/défaites
+export const MAX_CLUB_PHOTOS = 6; // plafond de photos par club (quota de stockage local)
 
 const initialState: AppState = {
   account: null,
@@ -153,6 +155,7 @@ const initialState: AppState = {
   clubMode: false,
   operatorPin: null,
   operatorUnlocked: false,
+  storageFull: false,
   managedClubId: 'padelta',
   clubSlots: {},
   clubCourts: {},
@@ -276,9 +279,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+        // Sauvegarde complète OK → on lève l'éventuel drapeau « stockage plein ».
+        setState((s) => (s.storageFull ? { ...s, storageFull: false } : s));
       } catch {
-        // Quota dépassé (photos volumineuses en data-uri sur le web) : plutôt que de
-        // TOUT perdre silencieusement (offres, coachs…), on persiste sans les photos.
+        // Quota dépassé (photos volumineuses en data-uri) : plutôt que de TOUT perdre
+        // silencieusement (offres, coachs…), on persiste sans les photos ET on prévient
+        // l'utilisateur via le drapeau storageFull (bandeau dans l'Espace Club).
         try {
           const slim = {
             ...state,
@@ -289,6 +295,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } catch {
           // stockage indisponible — l'app continue en mémoire
         }
+        setState((s) => (s.storageFull ? s : { ...s, storageFull: true }));
       }
     })();
   }, [state, hydrated]);
@@ -470,7 +477,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       addClubPhoto: (clubId, uri) =>
         setState((s) => {
           const existing = s.clubPhotos[clubId] ?? [];
-          if (!uri || existing.includes(uri)) return s;
+          // Plafond pour éviter de dépasser le quota de stockage local (perte de photos).
+          if (!uri || existing.includes(uri) || existing.length >= MAX_CLUB_PHOTOS) return s;
           return { ...s, clubPhotos: { ...s.clubPhotos, [clubId]: [...existing, uri] } };
         }),
       removeClubPhoto: (clubId, uri) =>

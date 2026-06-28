@@ -3,11 +3,12 @@ import { useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { ClubPhoto } from '@/components/ClubPhoto';
+import { useToast } from '@/components/Toast';
 import { Button, Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { ClubInfoCard } from '@/components/club-admin/ClubInfoCard';
 import { type Club } from '@/data/clubs';
 import { coaches as allCoaches } from '@/data/coaches';
-import { useApp } from '@/store/AppContext';
+import { MAX_CLUB_PHOTOS, useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
 import { colors, radius, spacing } from '@/theme';
@@ -29,6 +30,7 @@ export function SectionMonClub({ club }: { club: Club }) {
     setClubInfo,
     toggleHideCoach,
   } = useApp();
+  const toast = useToast();
 
   const [url, setUrl] = useState('');
   const [offerKind, setOfferKind] = useState<'offre' | 'actu' | 'evenement'>('offre');
@@ -70,11 +72,20 @@ export function SectionMonClub({ club }: { club: Club }) {
   const shareBoost = () =>
     Share.share({ message: `Bonjour PadelConnect, je souhaite booster le profil de ${club.name} (paiement par Wave).` }).catch(() => {});
 
+  const photosFull = photos.length >= MAX_CLUB_PHOTOS;
   const addPhotoFromDevice = async () => {
+    if (photosFull) {
+      toast.show(`Maximum ${MAX_CLUB_PHOTOS} photos par club`, { icon: 'alert-circle' });
+      return;
+    }
     const uri = await pickImage();
     if (uri) addClubPhoto(club.id, uri);
   };
   const addPhotoFromUrl = () => {
+    if (photosFull) {
+      toast.show(`Maximum ${MAX_CLUB_PHOTOS} photos par club`, { icon: 'alert-circle' });
+      return;
+    }
     if (/^https?:\/\//.test(url.trim())) {
       addClubPhoto(club.id, url.trim());
       setUrl('');
@@ -124,7 +135,17 @@ export function SectionMonClub({ club }: { club: Club }) {
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Photos du terrain" />
         <Card>
-          <Txt variant="muted">Ajoute les vraies photos de ton club (visibles par les joueurs).</Txt>
+          <Txt variant="muted">
+            Ajoute les vraies photos de ton club (visibles par les joueurs). Jusqu'à {MAX_CLUB_PHOTOS} photos.
+          </Txt>
+          {state.storageFull ? (
+            <View style={styles.storageWarn}>
+              <Ionicons name="warning-outline" size={16} color={colors.danger} />
+              <Txt variant="small" color={colors.danger} style={{ flex: 1 }}>
+                Stockage plein — certaines photos n'ont pas pu être enregistrées. Retire-en quelques-unes.
+              </Txt>
+            </View>
+          ) : null}
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginTop: spacing.md }}>
             {photos.map((uri) => (
               <View key={uri}>
@@ -134,12 +155,14 @@ export function SectionMonClub({ club }: { club: Club }) {
                 </Pressable>
               </View>
             ))}
-            <Pressable onPress={addPhotoFromDevice} style={styles.addTile}>
-              <Ionicons name="camera-outline" size={22} color={colors.signature} />
-              <Txt variant="small" color={colors.signature} style={{ marginTop: 4 }}>
-                Ajouter
-              </Txt>
-            </Pressable>
+            {photosFull ? null : (
+              <Pressable onPress={addPhotoFromDevice} style={styles.addTile}>
+                <Ionicons name="camera-outline" size={22} color={colors.signature} />
+                <Txt variant="small" color={colors.signature} style={{ marginTop: 4 }}>
+                  Ajouter
+                </Txt>
+              </Pressable>
+            )}
           </ScrollView>
           <View style={styles.inlineRow}>
             <TextInput
@@ -359,6 +382,15 @@ export function SectionMonClub({ club }: { club: Club }) {
 
 const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  storageWarn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.dangerSoft,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+    marginTop: spacing.sm,
+  },
   removeBadge: {
     position: 'absolute',
     top: 4,
