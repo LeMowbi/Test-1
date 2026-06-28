@@ -33,7 +33,6 @@
     "esbuild": "^0.28.1",
     "eslint": "^9.39.4",
     "eslint-config-expo": "^56.0.4",
-    "gh-pages": "^6.3.0",
     "prettier": "^3.9.0",
     "typescript": "~6.0.3"
   },
@@ -41,9 +40,6 @@
     "start": "expo start",
     "android": "expo start --android",
     "ios": "expo start --ios",
-    "web": "expo start --web",
-    "predeploy": "expo export --platform web --output-dir dist && node scripts/prepare-pages.mjs",
-    "deploy": "gh-pages -d dist --dotfiles -m \"Republier la démo PadelConnect\"",
     "lint": "eslint src tests",
     "format": "prettier --write src tests",
     "format:check": "prettier --check src tests",
