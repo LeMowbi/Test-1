@@ -6,6 +6,7 @@ import { useEffect } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { ToastProvider } from '@/components/Toast';
 import { AppProvider, useApp } from '@/store/AppContext';
 import { colors } from '@/theme';
 
@@ -35,7 +36,9 @@ export default function RootLayout() {
       <SafeAreaProvider>
         {fontsLoaded ? (
           <AppProvider>
-            <RootNav />
+            <ToastProvider>
+              <RootNav />
+            </ToastProvider>
           </AppProvider>
         ) : (
           <View style={{ flex: 1, backgroundColor: colors.bg }} />

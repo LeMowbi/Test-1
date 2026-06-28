@@ -14,7 +14,7 @@ import { colors, font, radius, shadows, spacing } from '@/theme';
 const PAY_PCT = Math.round(COMMISSION_RATE * 100);
 
 export default function Operateur() {
-  const { state, setBoost, approveClub, rejectClub, setPaymentStatus, setOperatorNews } = useApp();
+  const { state, setBoost, approveClub, rejectClub, setPaymentStatus, setOperatorNews, removeOperatorNews } = useApp();
 
   // Le décompte est HEBDOMADAIRE (semaine calendaire lundi → dimanche).
   const thisWeek = weekKeyOf(Date.now());
@@ -109,7 +109,7 @@ export default function Operateur() {
       {/* Actualité de l'accueil — éditorialisée par l'opérateur, visible par tous les joueurs */}
       <View style={{ marginBottom: spacing.md }}>
         <SectionHeader title="Actualité de l'accueil" />
-        <NewsEditor news={state.operatorNews} onPublish={setOperatorNews} />
+        <NewsEditor news={state.operatorNews} onPublish={setOperatorNews} onRemove={removeOperatorNews} />
       </View>
 
       {/* Relance : semaine précédente prête à facturer */}
@@ -370,9 +370,11 @@ export default function Operateur() {
 function NewsEditor({
   news,
   onPublish,
+  onRemove,
 }: {
   news: { title: string; subtitle?: string; link?: string } | null;
   onPublish: (n: { title: string; subtitle?: string; link?: string }) => void;
+  onRemove: () => void;
 }) {
   const [title, setTitle] = useState(news?.title ?? '');
   const [subtitle, setSubtitle] = useState(news?.subtitle ?? '');
@@ -415,7 +417,7 @@ function NewsEditor({
         keyboardType="url"
         style={styles.newsInput}
       />
-      <View style={{ marginTop: spacing.md }}>
+      <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
         <Button
           size="sm"
           label={saved ? 'Publiée ✓' : 'Publier l’actu'}
@@ -424,6 +426,21 @@ function NewsEditor({
           disabled={title.trim().length < 3}
           full
         />
+        {news ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            label="Retirer l’actu de l’accueil"
+            icon="trash-outline"
+            onPress={() => {
+              onRemove();
+              setTitle('');
+              setSubtitle('');
+              setLink('');
+            }}
+            full
+          />
+        ) : null}
       </View>
     </Card>
   );

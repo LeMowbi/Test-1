@@ -7,6 +7,7 @@ import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
 import { findClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
+import { useToast } from '@/components/Toast';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
 import { dayKey } from '@/lib/days';
@@ -21,6 +22,7 @@ const MONTHS = ['JANV.', 'FÉVR.', 'MARS', 'AVR.', 'MAI', 'JUIN', 'JUIL.', 'AOÛ
 export default function ReservationsScreen() {
   const router = useRouter();
   const { state, cancelReservation } = useApp();
+  const toast = useToast();
   const [showAllPast, setShowAllPast] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null); // confirmation avant annulation
 
@@ -264,7 +266,10 @@ export default function ReservationsScreen() {
             icon="close-circle"
             variant="danger"
             onPress={() => {
-              if (cancelTarget) cancelReservation(cancelTarget.id);
+              if (cancelTarget) {
+                cancelReservation(cancelTarget.id);
+                toast.show('Réservation annulée');
+              }
               setCancelTarget(null);
             }}
             full

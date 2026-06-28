@@ -203,7 +203,11 @@ export default function HomeScreen() {
         {showNews && news ? (
           <View style={styles.newsBanner}>
             <Ionicons name="megaphone" size={18} color={colors.purple} />
-            <Pressable style={{ flex: 1 }} disabled={!news.link} onPress={() => news.link && Linking.openURL(news.link)}>
+            <Pressable
+              style={{ flex: 1 }}
+              disabled={!news.link}
+              onPress={() => news.link && Linking.openURL(news.link).catch(() => {})}
+            >
               <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={2}>
                 {news.title}
               </Txt>
