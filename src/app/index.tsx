@@ -194,8 +194,8 @@ export default function HomeScreen() {
               Abidjan
             </Txt>
           </View>
-          <Pressable onPress={() => go('/profil')} hitSlop={6}>
-            <Avatar uri={state.account?.photoUri} name={fullName} size={46} />
+          <Pressable onPress={() => go('/profil')} hitSlop={6} style={styles.avatarRing}>
+            <Avatar uri={state.account?.photoUri} name={fullName} size={42} />
           </Pressable>
         </View>
 
@@ -578,6 +578,13 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm, marginBottom: spacing.md },
+  // Anneau or autour de l'avatar (handoff refonte).
+  avatarRing: {
+    padding: 2,
+    borderRadius: radius.pill,
+    borderWidth: 2,
+    borderColor: colors.amber,
+  },
   cityChip: {
     flexDirection: 'row',
     alignItems: 'center',
