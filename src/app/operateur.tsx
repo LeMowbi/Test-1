@@ -92,10 +92,10 @@ export default function Operateur() {
     setPaymentStatus(row.clubId, week, 'sent');
   };
 
-  // Garde d'accès centralisée (src/lib/access.ts). PROTOTYPE : toujours vrai — la
-  // navigation ne change pas. App finale : rendu seulement si le serveur confirme
-  // role === 'operator' (le branchement se fera dans access.ts, pas ici).
-  if (!canAccessOperator()) return null;
+  // Garde d'accès centralisée (src/lib/access.ts). L'Espace opérateur n'est rendu que
+  // si la session est déverrouillée par le code PIN (cf. Profil → appui long sur l'avatar).
+  // App finale : rendu seulement si le serveur confirme role === 'operator'.
+  if (!canAccessOperator(state.operatorUnlocked)) return null;
 
   return (
     <Screen back title="Espace opérateur" subtitle="PadelConnect — suivi & commissions">

@@ -103,6 +103,11 @@ type AppState = {
   operatorPayments: Record<string, 'sent' | 'paid'>; // « clubId:AAAA-MM » → statut de règlement
   customClubs: CustomClub[]; // clubs inscrits via l'app (activation par l'opérateur)
   clubMode: boolean;
+  // Espace opérateur : protégé par un code PIN défini par l'opérateur sur SON appareil.
+  // `operatorPin` est persisté ; `operatorUnlocked` est une session (remis à false à
+  // chaque lancement) → le PIN est redemandé à chaque ouverture de l'app.
+  operatorPin: string | null;
+  operatorUnlocked: boolean;
   managedClubId: string;
   clubSlots: Record<string, string[]>; // horaires ouverts par club
   clubCourts: Record<string, string[]>; // terrains (courts) gérés par club
@@ -146,6 +151,8 @@ const initialState: AppState = {
   operatorPayments: {},
   customClubs: [],
   clubMode: false,
+  operatorPin: null,
+  operatorUnlocked: false,
   managedClubId: 'padelta',
   clubSlots: {},
   clubCourts: {},
@@ -214,6 +221,11 @@ type AppContextType = {
   unlockClub: (clubId: string, code: string) => boolean;
   setClubCode: (clubId: string, code: string) => void;
   setClubMode: (on: boolean) => void;
+  setOperatorPin: (pin: string | null) => void; // définit/efface le code PIN opérateur
+  // Tente de déverrouiller l'Espace opérateur : crée le PIN s'il n'existe pas encore,
+  // sinon le vérifie. Retourne true si l'accès est accordé.
+  unlockOperator: (pin: string) => boolean;
+  lockOperator: () => void; // re-verrouille (déconnexion de l'Espace opérateur)
   setManagedClub: (id: string) => void;
   setClubSlots: (clubId: string, slots: string[]) => void;
   setClubCourts: (clubId: string, courts: string[]) => void;
@@ -246,7 +258,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        if (raw) setState({ ...initialState, ...JSON.parse(raw) });
+        // `operatorUnlocked` est toujours remis à false : le PIN opérateur est
+        // redemandé à chaque lancement (même si l'appareil était déverrouillé avant).
+        if (raw) setState({ ...initialState, ...JSON.parse(raw), operatorUnlocked: false });
       } catch {
         // état par défaut
       } finally {
@@ -569,6 +583,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           managedClubId: s.managedClubId === id ? 'padelta' : s.managedClubId,
         })),
       setClubMode: (on) => setState((s) => ({ ...s, clubMode: on })),
+      setOperatorPin: (pin) => setState((s) => ({ ...s, operatorPin: pin })),
+      // PROTOTYPE (local) : 1ʳᵉ saisie = création du PIN (l'opérateur le choisit sur SON
+      // appareil) ; ensuite = vérification. Une vraie sécurité « réservée à mon compte »
+      // arrivera avec le serveur (rôle vérifié côté serveur, cf. src/lib/access.ts).
+      unlockOperator: (pin) => {
+        const clean = pin.trim();
+        if (clean.length < 4) return false;
+        if (!state.operatorPin) {
+          setState((s) => ({ ...s, operatorPin: clean, operatorUnlocked: true }));
+          return true;
+        }
+        if (clean !== state.operatorPin) return false;
+        setState((s) => ({ ...s, operatorUnlocked: true }));
+        return true;
+      },
+      lockOperator: () => setState((s) => ({ ...s, operatorUnlocked: false })),
       setManagedClub: (id) => setState((s) => ({ ...s, managedClubId: id })),
       setClubSlots: (clubId, slots) => setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: [...slots].sort() } })),
       setClubCourts: (clubId, courts) => setState((s) => ({ ...s, clubCourts: { ...s.clubCourts, [clubId]: courts } })),

@@ -7,6 +7,7 @@ import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Chip } from '@/components/Chip';
+import { OperatorPinSheet } from '@/components/OperatorPinSheet';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
 import { useApp } from '@/store/AppContext';
@@ -27,8 +28,16 @@ export default function ProfilScreen() {
   // déverrouillé garde l'accès à l'Espace Club sans le geste. L'opérateur (PadelConnect)
   // n'apparaît JAMAIS sans le geste — il n'a pas sa place dans la navigation normale.
   const [proRevealed, setProRevealed] = useState(false);
+  const [pinOpen, setPinOpen] = useState(false); // feuille de saisie du code opérateur
 
   if (!account) return null;
+
+  // Tap sur la carte opérateur : si la session est déjà déverrouillée on entre ;
+  // sinon on demande le code PIN (créé puis vérifié dans OperatorPinSheet).
+  const openOperator = () => {
+    if (state.operatorUnlocked) router.push('/operateur');
+    else setPinOpen(true);
+  };
 
   const showClub = proRevealed || state.unlockedClubIds.length > 0 || state.clubMode;
   const showOperator = proRevealed;
@@ -87,7 +96,7 @@ export default function ProfilScreen() {
               <Pressable
                 onPress={() => setPhotoSheet(true)}
                 onLongPress={() => setProRevealed(true)}
-                delayLongPress={1200}
+                delayLongPress={3000}
                 hitSlop={6}
                 accessibilityLabel="Photo de profil"
               >
@@ -284,11 +293,17 @@ export default function ProfilScreen() {
             </Card>
           ) : null}
           {showOperator ? (
-            <Card onPress={() => router.push('/operateur')} style={styles.cta}>
-              <IconCircle icon="stats-chart" color={colors.green} bg={colors.greenSoft} />
+            <Card onPress={openOperator} style={styles.cta}>
+              <IconCircle
+                icon={state.operatorUnlocked ? 'stats-chart' : 'lock-closed'}
+                color={colors.green}
+                bg={colors.greenSoft}
+              />
               <View style={{ flex: 1 }}>
                 <Txt variant="h3">Espace opérateur (PadelConnect)</Txt>
-                <Txt variant="muted">Décomptes, commissions, nouveaux clubs.</Txt>
+                <Txt variant="muted">
+                  {state.operatorUnlocked ? 'Décomptes, commissions, nouveaux clubs.' : 'Protégé par un code — réservé à toi.'}
+                </Txt>
               </View>
               <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </Card>
@@ -349,6 +364,15 @@ export default function ProfilScreen() {
           <Button label="Annuler" variant="ghost" onPress={() => setPhotoSheet(false)} full />
         </View>
       </BottomSheet>
+
+      <OperatorPinSheet
+        visible={pinOpen}
+        onClose={() => setPinOpen(false)}
+        onUnlocked={() => {
+          setPinOpen(false);
+          router.push('/operateur');
+        }}
+      />
     </Screen>
   );
 }
