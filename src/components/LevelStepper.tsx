@@ -8,7 +8,13 @@ export function LevelStepper({ value, onChange }: { value: number; onChange: (n:
   const round = (n: number) => Math.round(n * 10) / 10;
   return (
     <View style={styles.row}>
-      <Pressable onPress={() => onChange(Math.max(1, round(value - 0.5)))} style={styles.btn} hitSlop={8}>
+      <Pressable
+        onPress={() => onChange(Math.max(1, round(value - 0.5)))}
+        style={styles.btn}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Diminuer le niveau"
+      >
         <Ionicons name="remove" size={20} color={colors.text} />
       </Pressable>
       <View style={styles.value}>
@@ -16,7 +22,13 @@ export function LevelStepper({ value, onChange }: { value: number; onChange: (n:
           {value.toFixed(1)}
         </Txt>
       </View>
-      <Pressable onPress={() => onChange(Math.min(7, round(value + 0.5)))} style={styles.btn} hitSlop={8}>
+      <Pressable
+        onPress={() => onChange(Math.min(7, round(value + 0.5)))}
+        style={styles.btn}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Augmenter le niveau"
+      >
         <Ionicons name="add" size={20} color={colors.text} />
       </Pressable>
     </View>

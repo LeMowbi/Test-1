@@ -24,7 +24,13 @@ export function RatingStars({ value, size = 16, onChange }: Props) {
         }
         const icon = <Ionicons name={name} size={size} color={colors.signature} />;
         return onChange ? (
-          <Pressable key={i} onPress={() => onChange(i)} hitSlop={6}>
+          <Pressable
+            key={i}
+            onPress={() => onChange(i)}
+            hitSlop={6}
+            accessibilityRole="button"
+            accessibilityLabel={`Noter ${i} sur 5`}
+          >
             {icon}
           </Pressable>
         ) : (

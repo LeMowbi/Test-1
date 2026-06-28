@@ -21,6 +21,7 @@ const styles = StyleSheet.create({
   word: {
     color: colors.text,
     fontSize: 20,
+    fontFamily: font.family.heavy,
     fontWeight: font.weight.heavy,
     letterSpacing: -0.3,
   },
