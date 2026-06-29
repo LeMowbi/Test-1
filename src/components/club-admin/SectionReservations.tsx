@@ -254,7 +254,7 @@ export function SectionReservations({
                     label={r.clubConfirmed ? 'Annuler la confirmation' : 'Confirmer la réservation'}
                     icon={r.clubConfirmed ? 'close' : 'checkmark'}
                     variant={r.clubConfirmed ? 'ghost' : 'primary'}
-                    onPress={() => confirmReservationByClub(r.id)}
+                    onPress={() => void confirmReservationByClub(r.id)}
                     full
                   />
                 </View>

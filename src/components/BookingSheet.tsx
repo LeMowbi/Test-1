@@ -29,6 +29,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,
+    occupancy: state.occupancy,
     comps: [...seedCompetitions, ...state.myCompetitions],
     blocked: state.blockedSlots,
   };
@@ -45,6 +46,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [extraName, setExtraName] = useState('');
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false); // attente de la confirmation serveur
 
   const participantCount = friendIds.length + extraNames.length;
   const toggleFriend = (id: string) =>
@@ -57,13 +59,14 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
     setExtraName('');
   };
 
-  const confirm = () => {
-    if (!court) return;
+  const confirm = async () => {
+    if (!court || submitting) return;
+    setSubmitting(true);
     const invited = [
       ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false })),
       ...extraNames.map((n, i) => ({ id: `x-${Date.now()}-${i}`, name: n, confirmed: false })),
     ];
-    const ok = addReservation({
+    const ok = await addReservation({
       clubId: club.id,
       clubName: club.name,
       court,
@@ -75,10 +78,12 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
       players: 1 + invited.length,
       invited,
     });
+    setSubmitting(false);
     if (ok) {
       setDone(true);
     } else {
-      // Terrain pris entre-temps : on repropose un autre terrain libre et on prévient.
+      // Terrain pris entre-temps (autre joueur / conflit serveur) : on repropose un autre
+      // terrain libre et on prévient.
       const alt = free.find((c) => c !== court) ?? null;
       setCourt(alt);
       toast.show(alt ? 'Ce terrain vient d’être pris — réessaie' : 'Plus aucun terrain libre à cet horaire', {
@@ -108,11 +113,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
   return (
     <Modal transparent animationType="slide" visible onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <KeyboardAvoidingView
-        style={styles.wrapper}
-        pointerEvents="box-none"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={styles.wrapper} pointerEvents="box-none" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.sheet, { paddingBottom: spacing.xxl + insets.bottom }]}>
           <View style={styles.handle} />
 
@@ -156,56 +157,62 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                 </View>
               ) : (
                 <>
-              <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-                AVEC QUI ? (TOI + {participantCount}/3)
-              </Txt>
-              <View style={styles.row}>
-                {state.friends.map((f) => (
-                  <Chip
-                    key={f.id}
-                    label={f.name}
-                    icon={friendIds.includes(f.id) ? 'checkmark' : 'person-add'}
-                    active={friendIds.includes(f.id)}
-                    onPress={() => toggleFriend(f.id)}
-                  />
-                ))}
-                {extraNames.map((n) => (
-                  <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
-                ))}
-              </View>
-              {participantCount < 3 ? (
-                <View style={styles.extraRow}>
-                  <TextInput
-                    value={extraName}
-                    onChangeText={setExtraName}
-                    placeholder="Ou un autre nom…"
-                    placeholderTextColor={colors.textFaint}
-                    style={styles.extraInput}
-                    onSubmitEditing={addExtra}
-                  />
-                  <Button
-                    size="sm"
-                    label="Ajouter"
-                    icon="add"
-                    variant="secondary"
-                    onPress={addExtra}
-                    disabled={extraName.trim().length < 2}
-                  />
-                </View>
-              ) : null}
+                  <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
+                    AVEC QUI ? (TOI + {participantCount}/3)
+                  </Txt>
+                  <View style={styles.row}>
+                    {state.friends.map((f) => (
+                      <Chip
+                        key={f.id}
+                        label={f.name}
+                        icon={friendIds.includes(f.id) ? 'checkmark' : 'person-add'}
+                        active={friendIds.includes(f.id)}
+                        onPress={() => toggleFriend(f.id)}
+                      />
+                    ))}
+                    {extraNames.map((n) => (
+                      <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
+                    ))}
+                  </View>
+                  {participantCount < 3 ? (
+                    <View style={styles.extraRow}>
+                      <TextInput
+                        value={extraName}
+                        onChangeText={setExtraName}
+                        placeholder="Ou un autre nom…"
+                        placeholderTextColor={colors.textFaint}
+                        style={styles.extraInput}
+                        onSubmitEditing={addExtra}
+                      />
+                      <Button
+                        size="sm"
+                        label="Ajouter"
+                        icon="add"
+                        variant="secondary"
+                        onPress={addExtra}
+                        disabled={extraName.trim().length < 2}
+                      />
+                    </View>
+                  ) : null}
 
-              <View style={styles.priceLine}>
-                <Txt variant="small" color={colors.textMuted}>
-                  {fcfa(price)} la session · soit ~{perPlayer(price)}/joueur à 4
-                </Txt>
-              </View>
+                  <View style={styles.priceLine}>
+                    <Txt variant="small" color={colors.textMuted}>
+                      {fcfa(price)} la session · soit ~{perPlayer(price)}/joueur à 4
+                    </Txt>
+                  </View>
 
-              <View style={{ marginTop: spacing.md }}>
-                <Button label="Réserver le terrain" icon="checkmark" onPress={confirm} disabled={!court} full />
-                <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                  Session de 1h30 · sans paiement en ligne — réglé au club. Annulation jusqu'à 5h avant.
-                </Txt>
-              </View>
+                  <View style={{ marginTop: spacing.md }}>
+                    <Button
+                      label={submitting ? 'Réservation…' : 'Réserver le terrain'}
+                      icon="checkmark"
+                      onPress={confirm}
+                      disabled={!court || submitting}
+                      full
+                    />
+                    <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+                      Session de 1h30 · sans paiement en ligne — réglé au club. Annulation jusqu'à 5h avant.
+                    </Txt>
+                  </View>
                 </>
               )}
             </>

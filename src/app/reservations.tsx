@@ -27,8 +27,12 @@ export default function ReservationsScreen() {
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null); // confirmation avant annulation
 
   const now = Date.now();
-  const upcoming = state.reservations.filter((r) => !isPlayed(r, now)).sort((a, b) => a.startsAt - b.startsAt);
-  const past = state.reservations.filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt);
+  // « Mes réservations » = les MIENNES. En mode serveur, un compte club/opérateur reçoit
+  // (via RLS) les résas de tout son périmètre : on filtre ici sur mon user_id pour que cet
+  // écran joueur ne montre que mes propres réservations.
+  const mine = state.serverUserId ? state.reservations.filter((r) => !r.userId || r.userId === state.serverUserId) : state.reservations;
+  const upcoming = mine.filter((r) => !isPlayed(r, now)).sort((a, b) => a.startsAt - b.startsAt);
+  const past = mine.filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt);
   const pastShown = showAllPast ? past : past.slice(0, PAST_PREVIEW);
 
   // Mes tournois : ceux où mon équipe est inscrite (à venir / résultats).
@@ -267,7 +271,7 @@ export default function ReservationsScreen() {
             variant="danger"
             onPress={() => {
               if (cancelTarget) {
-                cancelReservation(cancelTarget.id);
+                void cancelReservation(cancelTarget.id);
                 toast.show('Réservation annulée');
               }
               setCancelTarget(null);

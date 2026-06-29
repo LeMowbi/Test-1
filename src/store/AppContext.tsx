@@ -9,6 +9,14 @@ import type { Review } from '@/data/reviews';
 import { seedFriends, type Friend } from '@/data/user';
 import { dayKey, nextDays } from '@/lib/days';
 import { priceForSlot } from '@/lib/pricing';
+import {
+  deleteReservationRow,
+  fetchOccupancy,
+  fetchReservations,
+  insertReservation,
+  setClubConfirmedRow,
+  type SlotOccupancy,
+} from '@/lib/reservations';
 import { phoneToAuthEmail, supabase } from '@/lib/supabase';
 import { ACCENTS } from '@/theme';
 
@@ -38,6 +46,7 @@ export type ServerClubRequest = {
 
 export type Reservation = {
   id: string;
+  userId?: string; // auteur côté serveur (sert à filtrer « mes » résas en mode club/opérateur)
   clubId: string;
   clubName: string;
   court: string; // terrain précis réservé (ex. « Terrain 2 »)
@@ -128,6 +137,8 @@ type AppState = {
   // Un joueur ne peut pas se promouvoir (protégé par un trigger côté serveur).
   role: 'player' | 'operator' | 'club';
   serverManagedClubId: string | null; // pour un compte 'club' : l'id du club géré
+  serverUserId: string | null; // id Supabase quand connecté → mode « réservations serveur »
+  occupancy: SlotOccupancy[]; // créneaux pris par TOUS (vue publique) → dispo cross-joueur
   storageFull: boolean; // true si la sauvegarde a dû abandonner des photos (quota plein)
   managedClubId: string;
   clubSlots: Record<string, string[]>; // horaires ouverts par club
@@ -192,6 +203,8 @@ const initialState: AppState = {
   operatorUnlocked: false,
   role: 'player',
   serverManagedClubId: null,
+  serverUserId: null,
+  occupancy: [],
   storageFull: false,
   managedClubId: 'padelta',
   clubSlots: {},
@@ -238,9 +251,10 @@ type AppContextType = {
   deleteCompetition: (id: string) => void; // annulation / refus d'un tournoi (créateur ou club hôte)
   registerCompetition: (id: string, partner: string) => void;
   unregisterCompetition: (id: string) => void;
-  addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy'>) => boolean;
-  cancelReservation: (id: string) => void;
-  confirmReservationByClub: (id: string) => void;
+  // Réservations : SERVEUR = source de vérité quand connecté (sinon miroir local, démo).
+  addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy' | 'userId'>) => Promise<boolean>;
+  cancelReservation: (id: string) => Promise<void>;
+  confirmReservationByClub: (id: string) => Promise<void>;
   addFriend: (name: string, phone: string) => void;
   removeFriend: (id: string) => void;
   toggleFavorite: (clubId: string) => void;
@@ -344,23 +358,36 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         } = await supabase.auth.getSession();
         const userId = session?.user?.id;
         if (!userId) return;
+        // On connaît la session → mode « réservations serveur ».
+        setState((s) => ({ ...s, serverUserId: userId }));
         const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
         // Hors-ligne / erreur réseau : on GARDE le profil et le rôle persistés localement
         // (pas de rétrogradation silencieuse d'un gérant/opérateur qui ouvre l'app sans réseau).
-        if (error || !prof) return;
+        if (!error && prof) {
+          setState((s) => ({
+            ...s,
+            account: {
+              firstName: prof.first_name ?? s.account?.firstName ?? '',
+              lastName: prof.last_name ?? s.account?.lastName ?? '',
+              phone: prof.phone ?? s.account?.phone ?? '',
+              photoUri: prof.photo_uri ?? s.account?.photoUri,
+              birthDate: prof.birth_date ?? s.account?.birthDate,
+              gender: prof.gender ?? s.account?.gender,
+            },
+            role: (prof.role as AppState['role']) ?? 'player',
+            serverManagedClubId: prof.managed_club_id ?? null,
+            level: clampLevel(Number(prof.level ?? s.level)),
+          }));
+        }
+        // Réservations : le serveur est la source de vérité → on remplace le miroir local
+        // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
+        // via RLS), et on charge l'occupation de TOUS pour la disponibilité cross-joueur.
+        const [reservationsRes, occ] = await Promise.all([fetchReservations(), fetchOccupancy()]);
         setState((s) => ({
           ...s,
-          account: {
-            firstName: prof.first_name ?? s.account?.firstName ?? '',
-            lastName: prof.last_name ?? s.account?.lastName ?? '',
-            phone: prof.phone ?? s.account?.phone ?? '',
-            photoUri: prof.photo_uri ?? s.account?.photoUri,
-            birthDate: prof.birth_date ?? s.account?.birthDate,
-            gender: prof.gender ?? s.account?.gender,
-          },
-          role: (prof.role as AppState['role']) ?? 'player',
-          serverManagedClubId: prof.managed_club_id ?? null,
-          level: clampLevel(Number(prof.level ?? s.level)),
+          // En cas d'échec réseau on garde le miroir persisté (offline-friendly).
+          reservations: reservationsRes.ok ? reservationsRes.reservations : s.reservations,
+          occupancy: occ,
         }));
       } catch {
         // getSession a échoué (réseau) : on reste sur l'état local hydraté, sans crash.
@@ -394,7 +421,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [state, hydrated]);
 
-  const stats = useMemo(() => computeStats(state.reservations, state.officialResults), [state.reservations, state.officialResults]);
+  // Stats PERSONNELLES : en mode serveur, un compte club/opérateur reçoit aussi les résas
+  // de son périmètre (RLS) → on ne compte QUE les miennes pour ne pas gonfler « parties jouées ».
+  const stats = useMemo(() => {
+    const mine = state.serverUserId ? state.reservations.filter((r) => !r.userId || r.userId === state.serverUserId) : state.reservations;
+    return computeStats(mine, state.officialResults);
+  }, [state.reservations, state.officialResults, state.serverUserId]);
 
   const api = useMemo<AppContextType>(
     () => ({
@@ -492,6 +524,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           updated_at: new Date().toISOString(),
         });
         if (pErr) return { ok: false, error: 'Profil non enregistré — réessaie.' };
+        const occ = await fetchOccupancy();
         setState((s) => ({
           ...s,
           account: {
@@ -502,6 +535,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             gender: profile.gender,
           },
           level,
+          serverUserId: userId, // mode « réservations serveur » activé
+          reservations: [], // compte neuf → aucune résa locale parasite
+          occupancy: occ, // créneaux déjà pris par les autres (disponibilité)
         }));
         return { ok: true };
       },
@@ -513,6 +549,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const userId = data.user?.id;
         if (!userId) return { ok: false, error: 'Connexion impossible. Réessaie.' };
         const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+        // Reconnexion : on recharge les résas du périmètre (RLS) + l'occupation de tous.
+        const [reservationsRes, occ] = await Promise.all([fetchReservations(), fetchOccupancy()]);
         setState((s) => ({
           ...s,
           account: {
@@ -525,13 +563,27 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           },
           role: (prof?.role as AppState['role']) ?? 'player',
           serverManagedClubId: prof?.managed_club_id ?? null,
+          serverUserId: userId,
+          reservations: reservationsRes.ok ? reservationsRes.reservations : s.reservations,
+          occupancy: occ,
           level: clampLevel(Number(prof?.level ?? 3.0)),
         }));
         return { ok: true };
       },
       signOut: () => {
         supabase.auth.signOut().catch(() => {});
-        setState((s) => ({ ...s, account: null, role: 'player', serverManagedClubId: null, operatorUnlocked: false }));
+        // On vide aussi les données SERVEUR (résas/occupation/identité) pour ne pas les
+        // laisser visibles à un autre compte qui se connecterait sur le même appareil.
+        setState((s) => ({
+          ...s,
+          account: null,
+          role: 'player',
+          serverManagedClubId: null,
+          serverUserId: null,
+          reservations: [],
+          occupancy: [],
+          operatorUnlocked: false,
+        }));
       },
       setLevel: (n) => setState((s) => ({ ...s, level: clampLevel(n) })),
       // Clôture par l'ORGANISATEUR : fige le vainqueur (et, en option, l'équipe classée
@@ -599,27 +651,68 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           delete next[id];
           return { ...s, compRegistrations: next };
         }),
-      addReservation: (r) => {
+      addReservation: async (r) => {
         // Garde-fou : on ne réserve jamais un créneau dont l'heure de début est passée.
         if (r.startsAt <= Date.now()) return false;
-        // Anti double-réservation : un même TERRAIN ne peut être pris 2× au même créneau.
-        // (Deux terrains différents au même horaire restent possibles.) Indexé sur dateKey.
-        const taken = (x: Reservation) => x.clubId === r.clubId && x.dateKey === r.dateKey && x.time === r.time && x.court === r.court;
-        if (state.reservations.some(taken)) return false;
+        // Anti double-réservation locale (réponse immédiate). La barrière FORTE reste la
+        // contrainte unique serveur : si un autre joueur a pris le terrain entre-temps,
+        // l'insert échoue (conflict) et on renvoie false.
+        const sameSlot = (x: { clubId: string; dateKey: string; time: string; court: string }) =>
+          x.clubId === r.clubId && x.dateKey === r.dateKey && x.time === r.time && x.court === r.court;
+        if (state.reservations.some(sameSlot) || state.occupancy.some(sameSlot)) return false;
+        const bookedBy = state.account
+          ? { name: `${state.account.firstName} ${state.account.lastName}`.trim(), phone: state.account.phone }
+          : undefined;
+
+        // Mode SERVEUR (connecté) : on écrit sur Supabase d'abord (source de vérité).
+        if (state.serverUserId) {
+          const res = await insertReservation(r, state.serverUserId, bookedBy);
+          if (!res.ok || !res.reservation) return false; // conflit (terrain pris) ou erreur réseau
+          const created = res.reservation;
+          setState((s) => ({
+            ...s,
+            reservations: [created, ...s.reservations.filter((x) => x.id !== created.id)],
+            occupancy: [...s.occupancy, { clubId: created.clubId, dateKey: created.dateKey, time: created.time, court: created.court }],
+          }));
+          return true;
+        }
+
+        // Mode LOCAL (démo, hors session) : comportement d'origine.
         setState((s) => {
-          if (s.reservations.some(taken)) return s;
-          // Identité du réservant (nom + numéro) : c'est ce que le club reçoit.
-          const bookedBy = s.account ? { name: `${s.account.firstName} ${s.account.lastName}`.trim(), phone: s.account.phone } : undefined;
+          if (s.reservations.some(sameSlot)) return s;
           return { ...s, reservations: [{ ...r, bookedBy, id: uid(), createdAt: Date.now() }, ...s.reservations] };
         });
         return true;
       },
-      cancelReservation: (id) => setState((s) => ({ ...s, reservations: s.reservations.filter((r) => r.id !== id) })),
-      confirmReservationByClub: (id) =>
+      cancelReservation: async (id) => {
+        const res = state.reservations.find((r) => r.id === id);
+        // Serveur d'abord (si connecté et résa serveur) : on n'efface le miroir qu'au succès.
+        if (state.serverUserId && res) {
+          const ok = await deleteReservationRow(id);
+          if (!ok) return;
+        }
         setState((s) => ({
           ...s,
-          reservations: s.reservations.map((r) => (r.id === id ? { ...r, clubConfirmed: !r.clubConfirmed } : r)),
-        })),
+          reservations: s.reservations.filter((r) => r.id !== id),
+          occupancy: res
+            ? s.occupancy.filter(
+                (o) => !(o.clubId === res.clubId && o.dateKey === res.dateKey && o.time === res.time && o.court === res.court),
+              )
+            : s.occupancy,
+        }));
+      },
+      confirmReservationByClub: async (id) => {
+        const res = state.reservations.find((r) => r.id === id);
+        const next = !res?.clubConfirmed;
+        if (state.serverUserId && res) {
+          const ok = await setClubConfirmedRow(id, next);
+          if (!ok) return;
+        }
+        setState((s) => ({
+          ...s,
+          reservations: s.reservations.map((r) => (r.id === id ? { ...r, clubConfirmed: next } : r)),
+        }));
+      },
       addFriend: (name, phone) =>
         setState((s) => {
           const n = name.trim();

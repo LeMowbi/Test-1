@@ -46,6 +46,7 @@ export default function ReserverScreen() {
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,
+    occupancy: state.occupancy,
     comps: [...seedCompetitions, ...state.myCompetitions],
     blocked: state.blockedSlots,
   };

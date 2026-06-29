@@ -6,11 +6,16 @@ import { SAMPLE_SLOTS, defaultCourts, type Club } from '@/data/clubs';
 import type { Competition } from '@/data/competitions';
 import type { BlockedSlot, Reservation } from '@/store/AppContext';
 
+// Occupation cross-joueur : créneaux pris par TOUS (vue serveur, sans identité). Sert à
+// masquer un terrain déjà réservé par un AUTRE joueur, que je ne « vois » pas dans mes résas.
+export type Occupancy = { clubId: string; dateKey: string; time: string; court: string };
+
 export type AvailCtx = {
   clubs: Club[]; // clubs visibles (de base + inscrits activés)
   clubSlots: Record<string, string[]>;
   clubCourts: Record<string, string[]>;
   reservations: Reservation[];
+  occupancy?: Occupancy[]; // créneaux pris par les autres joueurs (serveur)
   comps: Competition[];
   blocked: BlockedSlot[]; // créneaux fermés hors app par les clubs
 };
@@ -34,8 +39,12 @@ export function hasCompetition(clubId: string, dateKey: string, comps: Competiti
 export function freeCourts(club: Club, dateKey: string, time: string, ctx: AvailCtx): string[] {
   if (hasCompetition(club.id, dateKey, ctx.comps)) return [];
   const taken = ctx.reservations.filter((r) => r.clubId === club.id && r.dateKey === dateKey && r.time === time).map((r) => r.court);
+  // Terrains pris par d'AUTRES joueurs (occupation serveur) — invisibles dans mes résas.
+  const occupied = (ctx.occupancy ?? [])
+    .filter((o) => o.clubId === club.id && o.dateKey === dateKey && o.time === time)
+    .map((o) => o.court);
   const blocked = ctx.blocked.filter((b) => b.clubId === club.id && b.dateKey === dateKey && b.time === time).map((b) => b.court);
-  return courtsFor(club, ctx.clubCourts).filter((c) => !taken.includes(c) && !blocked.includes(c));
+  return courtsFor(club, ctx.clubCourts).filter((c) => !taken.includes(c) && !occupied.includes(c) && !blocked.includes(c));
 }
 
 // Grille des horaires = union des créneaux ouverts par les clubs (triée).

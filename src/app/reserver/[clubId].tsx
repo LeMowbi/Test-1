@@ -7,6 +7,7 @@ import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { StickyBar } from '@/components/StickyBar';
 import { Stepper } from '@/components/Stepper';
+import { useToast } from '@/components/Toast';
 import { Button, Card, EmptyState, Txt, type IconName } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
@@ -22,6 +23,7 @@ export default function ReserverScreen() {
   const params = useLocalSearchParams<{ clubId: string; dateKey?: string; time?: string }>();
   const router = useRouter();
   const { state, addReservation } = useApp();
+  const toast = useToast();
   const club = findClub(params.clubId, state.customClubs, state.clubInfo);
 
   const dates = useMemo(() => nextDays(7), []);
@@ -33,6 +35,7 @@ export default function ReserverScreen() {
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [extraName, setExtraName] = useState('');
   const [done, setDone] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   if (!club) {
     return (
@@ -47,6 +50,7 @@ export default function ReserverScreen() {
     clubSlots: state.clubSlots,
     clubCourts: state.clubCourts,
     reservations: state.reservations,
+    occupancy: state.occupancy,
     comps: [...seedCompetitions, ...state.myCompetitions],
     blocked: state.blockedSlots,
   };
@@ -77,15 +81,16 @@ export default function ReserverScreen() {
   const hasTiers = priceTiersFor(club).length > 0;
   const slotPrice = slot ? priceForSlot(club, slot) : minPrice(club);
 
-  const confirm = () => {
-    if (!day || !slot || !effectiveCourt) return;
+  const confirm = async () => {
+    if (!day || !slot || !effectiveCourt || submitting) return;
     const startsAt = slotTimestamp(day.value, slot);
     if (startsAt <= Date.now()) return;
+    setSubmitting(true);
     const invited = [
       ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false })),
       ...extraNames.map((n, i) => ({ id: `x-${Date.now()}-${i}`, name: n, confirmed: false })),
     ];
-    const ok = addReservation({
+    const ok = await addReservation({
       clubId: club.id,
       clubName: club.name,
       court: effectiveCourt,
@@ -97,8 +102,14 @@ export default function ReserverScreen() {
       players: 1 + invited.length,
       invited,
     });
+    setSubmitting(false);
     if (ok) setDone(true);
-    else setCourt(null); // terrain pris entre-temps → réinitialise aussi la pré-sélection
+    else {
+      // Terrain pris entre-temps (autre joueur / conflit serveur) : on prévient et on
+      // réinitialise la pré-sélection pour en choisir un autre.
+      setCourt(null);
+      toast.show('Ce terrain vient d’être pris — choisis-en un autre', { icon: 'alert-circle' });
+    }
   };
 
   if (done) {
