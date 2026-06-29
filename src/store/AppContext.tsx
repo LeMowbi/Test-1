@@ -2,6 +2,7 @@
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import { AppState as RNAppState } from 'react-native';
 import { clubs, type Club, type CustomClub, type PriceTier } from '@/data/clubs';
 import type { Competition } from '@/data/competitions';
 import { DEMO_CLOSED_COMP, DEMO_FINISHED_COMP } from '@/data/competitions';
@@ -226,6 +227,7 @@ type AppContextType = {
   state: AppState;
   hydrated: boolean;
   stats: Stats;
+  myReservations: Reservation[]; // mes réservations seules (cf. memo) — pour tout écran perso
   setAccount: (a: Account) => void;
   updateAccount: (patch: Partial<Account>) => void;
   loadDemo: () => void;
@@ -255,8 +257,8 @@ type AppContextType = {
   unregisterCompetition: (id: string) => void;
   // Réservations : SERVEUR = source de vérité quand connecté (sinon miroir local, démo).
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy' | 'userId'>) => Promise<boolean>;
-  cancelReservation: (id: string) => Promise<void>;
-  confirmReservationByClub: (id: string) => Promise<void>;
+  cancelReservation: (id: string) => Promise<boolean>;
+  confirmReservationByClub: (id: string) => Promise<boolean>;
   addFriend: (name: string, phone: string) => void;
   removeFriend: (id: string) => void;
   toggleFavorite: (clubId: string) => void;
@@ -405,6 +407,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
+  // Retour au premier plan : on rafraîchit l'occupation (et mes résas) pour que la
+  // disponibilité affichée ne reste pas figée si d'autres joueurs ont réservé entre-temps.
+  useEffect(() => {
+    if (!state.serverUserId) return;
+    const sub = RNAppState.addEventListener('change', (st) => {
+      if (st !== 'active') return;
+      void fetchOccupancy().then((occ) => setState((s) => ({ ...s, occupancy: occ })));
+      void fetchReservations().then((res) => {
+        if (res.ok) setState((s) => ({ ...s, reservations: res.reservations }));
+      });
+    });
+    return () => sub.remove();
+  }, [state.serverUserId]);
+
   useEffect(() => {
     if (!hydrated) return;
     (async () => {
@@ -431,21 +447,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [state, hydrated]);
 
-  // Stats PERSONNELLES : en mode serveur, un compte club/opérateur reçoit aussi les résas
-  // de son périmètre (RLS) → on ne compte QUE les miennes pour ne pas gonfler « parties jouées ».
-  const stats = useMemo(() => {
-    const mine = state.serverUserId ? state.reservations.filter((r) => !r.userId || r.userId === state.serverUserId) : state.reservations;
-    return computeStats(mine, state.officialResults);
-  }, [state.reservations, state.officialResults, state.serverUserId]);
+  // MES réservations — source unique pour tout calcul PERSONNEL. En mode serveur, un compte
+  // club/opérateur reçoit aussi les résas de son périmètre (RLS) ; on filtre donc sur mon
+  // user_id pour ne jamais afficher/compter celles des autres comme les miennes.
+  const myReservations = useMemo(
+    () => (state.serverUserId ? state.reservations.filter((r) => !r.userId || r.userId === state.serverUserId) : state.reservations),
+    [state.reservations, state.serverUserId],
+  );
+
+  const stats = useMemo(() => computeStats(myReservations, state.officialResults), [myReservations, state.officialResults]);
 
   const api = useMemo<AppContextType>(
     () => ({
       state,
       hydrated,
       stats,
+      myReservations,
       setAccount: (a) => setState((s) => ({ ...s, account: a })),
       updateAccount: (patch) => setState((s) => ({ ...s, account: s.account ? { ...s.account, ...patch } : s.account })),
-      loadDemo: () =>
+      loadDemo: () => {
+        // Le parcours « Invité Démo » est HORS session : on coupe toute session serveur
+        // pour éviter qu'au prochain lancement l'app recharge un vrai compte par-dessus.
+        supabase.auth.signOut().catch(() => {});
+        void syncMatchReminders([], false);
         setState(() => {
           const now = Date.now();
           const demain = nextDays(2)[1]; // jour « Demain » stable
@@ -508,7 +532,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               },
             ],
           };
-        }),
+        });
+      },
       // Création de compte serveur : téléphone + mot de passe (e-mail interne, sans SMS).
       signUpWithPhone: async (phone, password, profile) => {
         const email = phoneToAuthEmail(phone);
@@ -585,8 +610,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       signOut: () => {
         supabase.auth.signOut().catch(() => {});
-        // On vide aussi les données SERVEUR (résas/occupation/identité) pour ne pas les
-        // laisser visibles à un autre compte qui se connecterait sur le même appareil.
+        void syncMatchReminders([], false); // on efface les rappels locaux du compte sortant
+        // On revient à un état NEUF : identité + données serveur ET tout le périmètre
+        // personnel (niveau, amis, favoris, avis, palmarès…) sont remis à zéro, pour qu'un
+        // autre compte se connectant sur le même appareil ne récupère rien du précédent.
         setState((s) => ({
           ...s,
           account: null,
@@ -595,6 +622,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           serverUserId: null,
           reservations: [],
           occupancy: [],
+          level: initialState.level,
+          friends: [],
+          favoriteClubIds: [],
+          userReviews: [],
+          myCompetitions: [],
+          compRegistrations: {},
+          compResults: {},
+          officialResults: [],
+          followed: {},
           operatorUnlocked: false,
         }));
       },
@@ -634,8 +670,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }),
       setRemindersOn: (on) => {
         setState((s) => ({ ...s, remindersOn: on }));
-        // (Dé)programme les rappels locaux pour toutes mes résas à venir selon l'interrupteur.
-        const upcoming = state.reservations.filter((r) => r.startsAt > Date.now());
+        // (Dé)programme les rappels locaux pour MES résas à venir (pas celles des autres,
+        // qu'un compte club/opérateur reçoit via RLS) selon l'interrupteur.
+        const upcoming = myReservations.filter((r) => r.startsAt > Date.now());
         void syncMatchReminders(upcoming, on);
       },
       setReserverView: (v) => setState((s) => ({ ...s, reserverView: v })),
@@ -685,7 +722,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Mode SERVEUR (connecté) : on écrit sur Supabase d'abord (source de vérité).
         if (state.serverUserId) {
           const res = await insertReservation(r, state.serverUserId, bookedBy);
-          if (!res.ok || !res.reservation) return false; // conflit (terrain pris) ou erreur réseau
+          if (!res.ok || !res.reservation) {
+            // Conflit (un autre joueur a pris le terrain) : on resynchronise l'occupation
+            // pour que la disponibilité affichée se corrige immédiatement (anti dead-loop).
+            if (res.conflict) {
+              const fresh = await fetchOccupancy();
+              setState((s) => ({ ...s, occupancy: fresh }));
+            }
+            return false;
+          }
           const created = res.reservation;
           setState((s) => ({
             ...s,
@@ -710,7 +755,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Serveur d'abord (si connecté et résa serveur) : on n'efface le miroir qu'au succès.
         if (state.serverUserId && res) {
           const ok = await deleteReservationRow(id);
-          if (!ok) return;
+          if (!ok) return false; // échec réseau → on ne ment pas à l'UI
         }
         void cancelMatchReminder(id); // on retire son rappel local
 
@@ -723,18 +768,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               )
             : s.occupancy,
         }));
+        return true;
       },
       confirmReservationByClub: async (id) => {
         const res = state.reservations.find((r) => r.id === id);
         const next = !res?.clubConfirmed;
         if (state.serverUserId && res) {
           const ok = await setClubConfirmedRow(id, next);
-          if (!ok) return;
+          if (!ok) return false; // RLS/réseau a refusé → on ne bascule pas l'affichage
         }
         setState((s) => ({
           ...s,
           reservations: s.reservations.map((r) => (r.id === id ? { ...r, clubConfirmed: next } : r)),
         }));
+        return true;
       },
       addFriend: (name, phone) =>
         setState((s) => {
@@ -985,15 +1032,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return { ...s, followed };
         }),
       resetAll: () => {
-        // Réinitialisation TOTALE de la démo : on efface AUSSI la clé persistée pour
-        // qu'aucune donnée (niveau, palmarès, blocages, amis retirés…) ne survive à
-        // un rechargement, puis on revient à l'état seed complet. La persistance
-        // réécrira ensuite l'état seed — équivalent à une toute première ouverture.
+        // Réinitialisation TOTALE : on coupe la session serveur, on efface les rappels et
+        // la clé persistée, puis on revient à l'état seed complet (≈ première ouverture).
+        supabase.auth.signOut().catch(() => {});
+        void syncMatchReminders([], false);
         AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});
         setState(initialState);
       },
     }),
-    [state, hydrated, stats],
+    [state, hydrated, stats, myReservations],
   );
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;

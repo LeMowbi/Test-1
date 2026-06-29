@@ -31,7 +31,9 @@ language plpgsql
 security definer
 set search_path = public
 as $$
-declare ref uuid;
+declare
+  ref uuid;
+  inserted int;
 begin
   if auth.uid() is null then return false; end if;
   select id into ref from public.profiles where referral_code = upper(trim(code)) limit 1;
@@ -39,7 +41,8 @@ begin
   insert into public.referrals (referrer_id, referee_id)
     values (ref, auth.uid())
     on conflict (referee_id) do nothing;
-  return true;
+  get diagnostics inserted = row_count;
+  return inserted > 0; -- false si le filleul était déjà parrainé (aucune insertion)
 end;
 $$;
 

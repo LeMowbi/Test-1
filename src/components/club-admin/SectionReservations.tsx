@@ -2,6 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { BarChart } from '@/components/BarChart';
+import { useToast } from '@/components/Toast';
 import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
 import { LegendDot } from '@/components/club-admin/LegendDot';
 import { QuickBlock } from '@/components/club-admin/QuickBlock';
@@ -24,6 +25,7 @@ export function SectionReservations({
   onSelectCell: (cell: SelectedCell) => void;
 }) {
   const { state, blockSlot, unblockSlot, confirmReservationByClub } = useApp();
+  const toast = useToast();
   const [planDayKey, setPlanDayKey] = useState<string | null>(null);
   const [showBlockForm, setShowBlockForm] = useState(false);
 
@@ -73,7 +75,7 @@ export function SectionReservations({
       {/* Vue d'ensemble */}
       <View style={styles.stats}>
         <StatTile value={upcomingRes.length} label="À venir" color={colors.signature} bg={colors.signatureSoft} />
-        <StatTile value={pastRes.length} label="Jouées" color={colors.amber} bg={colors.amberSoft} />
+        <StatTile value={pastRes.length} label="Jouées" color={colors.green} bg={colors.greenSoft} />
         <StatTile value={clubRes.length} label="Total" color={colors.green} bg={colors.greenSoft} />
       </View>
 
@@ -192,7 +194,7 @@ export function SectionReservations({
           <View style={styles.planLegend}>
             <LegendDot color={colors.signature} label="Réservé" />
             <LegendDot color={colors.surface} label="Libre" />
-            <LegendDot color={colors.surfaceAlt} label="Bloqué" />
+            <LegendDot color={colors.surfaceBeige} label="Bloqué" />
           </View>
           <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
             Touche une case pour voir le détail du créneau ou bloquer un terrain.
@@ -202,8 +204,8 @@ export function SectionReservations({
         {/* Mini-stats de la semaine */}
         <View style={[styles.stats, { marginTop: spacing.md }]}>
           <StatTile value={`${occupancy}%`} label="Occupation (7 j)" color={colors.green} bg={colors.greenSoft} />
-          <StatTile value={weekRes.length} label="Résas (7 j)" color={colors.blue} bg={colors.blueSoft} />
-          <StatTile value={topHour} label="Heure phare" color={colors.purple} bg={colors.purpleSoft} />
+          <StatTile value={weekRes.length} label="Résas (7 j)" color={colors.green} bg={colors.greenSoft} />
+          <StatTile value={topHour} label="Heure phare" color={colors.amber} bg={colors.amberSoft} />
         </View>
 
         {/* Remplissage par créneau sur la semaine (données réelles) */}
@@ -245,7 +247,7 @@ export function SectionReservations({
                     </Txt>
                   ) : null}
                 </View>
-                {r.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="coral" />}
+                {r.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="amber" />}
               </View>
               <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
                 <View style={{ flex: 1 }}>
@@ -254,7 +256,11 @@ export function SectionReservations({
                     label={r.clubConfirmed ? 'Annuler la confirmation' : 'Confirmer la réservation'}
                     icon={r.clubConfirmed ? 'close' : 'checkmark'}
                     variant={r.clubConfirmed ? 'ghost' : 'primary'}
-                    onPress={() => void confirmReservationByClub(r.id)}
+                    onPress={() =>
+                      void confirmReservationByClub(r.id).then((ok) => {
+                        if (!ok) toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
+                      })
+                    }
                     full
                   />
                 </View>
@@ -292,7 +298,7 @@ export function SectionReservations({
                 <Txt variant="label" color={colors.textFaint}>
                   Semaine {weekLabel(g.week)}
                 </Txt>
-                <Tag label={`${g.items.length} jouée${g.items.length > 1 ? 's' : ''}`} tone="blue" />
+                <Tag label={`${g.items.length} jouée${g.items.length > 1 ? 's' : ''}`} tone="green" />
               </View>
               {g.items.map((r, i) => (
                 <View key={r.id}>
@@ -351,7 +357,7 @@ const styles = StyleSheet.create({
   gridCellBox: { width: 50, height: 38, borderRadius: radius.sm, marginHorizontal: 2, alignItems: 'center', justifyContent: 'center' },
   gcReserved: { backgroundColor: colors.signature, ...shadows.e1 },
   gcFree: { backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.border },
-  gcBlocked: { backgroundColor: colors.surfaceAlt, borderWidth: 1, borderColor: colors.border },
+  gcBlocked: { backgroundColor: colors.surfaceBeige, borderWidth: 1, borderColor: colors.border },
   gcTournoi: { backgroundColor: colors.purple, ...shadows.e1 },
   planLegend: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md, marginTop: spacing.md },
 });

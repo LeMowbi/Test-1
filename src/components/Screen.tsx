@@ -55,10 +55,7 @@ export function Screen({ children, title, subtitle, back, scroll = true, headerR
   );
 
   return (
-    <KeyboardAvoidingView
-      style={[styles.root, { paddingTop: insets.top }]}
-      behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-    >
+    <KeyboardAvoidingView style={[styles.root, { paddingTop: insets.top }]} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       {scroll ? (
         <ScrollView
           ref={scrollRef}

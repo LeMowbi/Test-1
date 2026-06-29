@@ -47,7 +47,7 @@ function countdownLabel(startsAt: number): string {
 
 export default function HomeScreen() {
   const router = useRouter();
-  const { state, dismissNews, stats } = useApp();
+  const { state, dismissNews, stats, myReservations } = useApp();
   const go = (route: string) => router.push(route as never);
 
   const fullName = `${state.account?.firstName ?? ''} ${state.account?.lastName ?? ''}`.trim();
@@ -62,12 +62,13 @@ export default function HomeScreen() {
   const competitions = [...state.myCompetitions, ...seedCompetitions]
     .filter((c) => isTournamentPublic(c) && c.dateKey >= today)
     .slice(0, 2);
-  const upcoming = [...state.reservations].filter((r) => r.startsAt > now).sort((a, b) => a.startsAt - b.startsAt)[0];
+  // MES réservations seulement (un compte club/opérateur en reçoit d'autres via RLS).
+  const upcoming = [...myReservations].filter((r) => r.startsAt > now).sort((a, b) => a.startsAt - b.startsAt)[0];
 
   // A-L1 : dernier club joué/réservé (la réservation passée la plus récente).
   // N'apparaît QUE s'il n'y a AUCUNE réservation à venir.
   const lastPlayed = !upcoming
-    ? ([...state.reservations].filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt)[0] ?? null)
+    ? ([...myReservations].filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt)[0] ?? null)
     : null;
   const lastPlayedClub = lastPlayed ? findClub(lastPlayed.clubId, state.customClubs, state.clubInfo) : null;
 
@@ -203,11 +204,7 @@ export default function HomeScreen() {
         {showNews && news ? (
           <View style={styles.newsBanner}>
             <Ionicons name="megaphone" size={18} color={colors.purple} />
-            <Pressable
-              style={{ flex: 1 }}
-              disabled={!news.link}
-              onPress={() => news.link && Linking.openURL(news.link).catch(() => {})}
-            >
+            <Pressable style={{ flex: 1 }} disabled={!news.link} onPress={() => news.link && Linking.openURL(news.link).catch(() => {})}>
               <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={2}>
                 {news.title}
               </Txt>

@@ -23,11 +23,7 @@ export function BottomSheet({
   return (
     <Modal transparent visible={visible} animationType="slide" onRequestClose={onClose} statusBarTranslucent>
       <Pressable style={styles.backdrop} onPress={onClose} />
-      <KeyboardAvoidingView
-        style={styles.wrapper}
-        pointerEvents="box-none"
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-      >
+      <KeyboardAvoidingView style={styles.wrapper} pointerEvents="box-none" behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={[styles.sheet, { paddingBottom: spacing.xxl + insets.bottom }]}>
           <View style={styles.handle} />
           <View style={styles.head}>

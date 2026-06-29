@@ -94,8 +94,10 @@ export async function deleteReservationRow(id: string): Promise<boolean> {
 }
 
 export async function setClubConfirmedRow(id: string, value: boolean): Promise<boolean> {
-  const { error } = await supabase.from('reservations').update({ club_confirmed: value }).eq('id', id);
-  return !error;
+  // Passe par la fonction serveur (SECURITY DEFINER) qui ne modifie QUE club_confirmed
+  // après contrôle du rôle — pas d'UPDATE large qui laisserait réécrire prix/terrain.
+  const { data, error } = await supabase.rpc('set_club_confirmed', { p_id: id, p_value: value });
+  return !error && data === true;
 }
 
 // Mes réservations (RLS) — pour un compte club/opérateur, la RLS renvoie aussi celles

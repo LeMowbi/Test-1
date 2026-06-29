@@ -94,7 +94,7 @@ const card = StyleSheet.create({
 
 /* --------------------------------- Bouton --------------------------------- */
 
-type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger';
+type BtnVariant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'tournament';
 
 export function Button({
   label,
@@ -181,6 +181,8 @@ const btnTones: Record<BtnVariant, { bg: string; fg: string; border: string }> =
   secondary: { bg: colors.surfaceAlt, fg: colors.text, border: colors.border },
   ghost: { bg: 'transparent', fg: colors.signature, border: 'transparent' },
   danger: { bg: colors.dangerSoft, fg: colors.danger, border: 'transparent' },
+  // Rôle « tournoi » = violet (handoff). CTA plein violet, texte blanc.
+  tournament: { bg: colors.purple, fg: colors.white, border: colors.purple },
 };
 
 const btn = StyleSheet.create({

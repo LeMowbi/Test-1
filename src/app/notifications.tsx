@@ -70,7 +70,8 @@ export default function NotificationsScreen() {
         <View style={styles_note}>
           <Ionicons name="information-circle-outline" size={16} color={colors.textFaint} />
           <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-            Aperçu de démonstration. Les notifications en temps réel arriveront avec la version connectée.
+            Les rappels de match fonctionnent déjà (interrupteur « Rappels » du profil). Les notifications sociales ci-dessous (réponse du
+            club, place libérée…) arriveront avec la version connectée.
           </Txt>
         </View>
 

@@ -25,8 +25,9 @@ export default function ParrainageScreen() {
 
   useEffect(() => {
     let alive = true;
-    if (!state.serverUserId) return;
-    fetchReferralCount().then((n) => {
+    const uid = state.serverUserId;
+    if (!uid) return;
+    fetchReferralCount(uid).then((n) => {
       if (alive) setCount(n);
     });
     return () => {

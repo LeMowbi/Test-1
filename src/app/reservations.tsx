@@ -270,11 +270,13 @@ export default function ReservationsScreen() {
             icon="close-circle"
             variant="danger"
             onPress={() => {
-              if (cancelTarget) {
-                void cancelReservation(cancelTarget.id);
-                toast.show('Réservation annulée');
-              }
+              const target = cancelTarget;
               setCancelTarget(null);
+              if (target) {
+                void cancelReservation(target.id).then((ok) =>
+                  toast.show(ok ? 'Réservation annulée' : 'Annulation impossible — réessaie', ok ? undefined : { icon: 'alert-circle' }),
+                );
+              }
             }}
             full
           />

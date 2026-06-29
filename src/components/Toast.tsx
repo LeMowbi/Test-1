@@ -41,10 +41,7 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     <ToastContext.Provider value={{ show }}>
       {children}
       {message !== null ? (
-        <Animated.View
-          pointerEvents="none"
-          style={[styles.wrap, { opacity, bottom: insets.bottom + spacing.xl }]}
-        >
+        <Animated.View pointerEvents="none" style={[styles.wrap, { opacity, bottom: insets.bottom + spacing.xl }]}>
           <View style={styles.toast}>
             <Ionicons name={icon} size={18} color={colors.white} />
             <Txt color={colors.white} style={{ flex: 1 }}>

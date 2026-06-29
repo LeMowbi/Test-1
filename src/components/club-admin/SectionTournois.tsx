@@ -56,6 +56,7 @@ export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comp
       <Button
         label="Créer un tournoi (club)"
         icon="trophy"
+        variant="tournament"
         onPress={() => router.push(`/competition/nouvelle?as=club&clubId=${club.id}`)}
         full
       />

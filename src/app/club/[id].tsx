@@ -25,7 +25,7 @@ import { colors, radius, spacing } from '@/theme';
 export default function ClubDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { state, addReview, toggleFavorite } = useApp();
+  const { state, addReview, toggleFavorite, myReservations } = useApp();
   const club = findClub(id, state.customClubs, state.clubInfo);
 
   const [rating, setRating] = useState(0);
@@ -73,9 +73,9 @@ export default function ClubDetail() {
   const tierGroups = groupTiersByLabel(tiers);
   const activeTier = tierGroups.length ? tierGroups[Math.min(tierTab, tierGroups.length - 1)] : null;
 
-  // Avis VÉRIFIÉ : on ne peut noter un club qu'après y avoir réellement joué (une résa
-  // passée à ce club). Sinon, le formulaire laisse place à une invitation à jouer d'abord.
-  const hasPlayedHere = state.reservations.some((r) => r.clubId === club.id && isPlayed(r));
+  // Avis VÉRIFIÉ : on ne peut noter un club qu'après Y AVOIR SOI-MÊME joué (une de MES
+  // résas passées à ce club). Sinon, le formulaire laisse place à une invitation à jouer.
+  const hasPlayedHere = myReservations.some((r) => r.clubId === club.id && isPlayed(r));
 
   const submit = () => {
     if (!hasPlayedHere) return; // garde-fou : pas de note sans partie jouée

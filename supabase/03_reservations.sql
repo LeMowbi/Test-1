@@ -28,26 +28,46 @@ create policy "reservations_select_operator" on public.reservations
     exists (select 1 from public.profiles p where p.id = auth.uid() and p.role = 'operator')
   );
 
--- Le club (son club) et l'opérateur peuvent CONFIRMER une réservation (club_confirmed).
+-- Confirmation par le club/opérateur : on NE donne PAS un UPDATE large (qui laisserait
+-- réécrire prix, terrain, user_id…). On passe par une fonction SECURITY DEFINER qui ne
+-- touche QUE `club_confirmed`, après avoir vérifié que l'appelant gère bien ce club
+-- (ou est opérateur). Pas de policy UPDATE pour les clubs : seul le joueur garde la sienne.
 drop policy if exists "reservations_update_club" on public.reservations;
-create policy "reservations_update_club" on public.reservations
-  for update using (
-    exists (
-      select 1 from public.profiles p
-      where p.id = auth.uid()
-        and ((p.role = 'club' and p.managed_club_id = reservations.club_id) or p.role = 'operator')
-    )
-  );
+
+create or replace function public.set_club_confirmed(p_id uuid, p_value boolean)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare allowed boolean;
+begin
+  select exists (
+    select 1
+    from public.reservations r
+    join public.profiles p on p.id = auth.uid()
+    where r.id = p_id
+      and ((p.role = 'club' and p.managed_club_id = r.club_id) or p.role = 'operator')
+  ) into allowed;
+  if not allowed then return false; end if;
+  update public.reservations set club_confirmed = p_value where id = p_id;
+  return true;
+end;
+$$;
+
+grant execute on function public.set_club_confirmed(uuid, boolean) to authenticated;
 
 -- ─── OCCUPATION publique (sans identité) ─────────────────────────────────────
 -- Pour que CHAQUE joueur voie les créneaux déjà pris par les AUTRES, on expose une
 -- vue qui ne révèle QUE l'occupation (club, jour, heure, terrain) — jamais qui a
 -- réservé. La vue tourne en droits « définisseur » (security_invoker = off) pour
 -- contourner la RLS de la table et montrer l'occupation de tous, colonnes sûres only.
+-- Accès réservé aux comptes CONNECTÉS (pas `anon`) : seuls eux réservent.
 create or replace view public.slot_occupancy as
   select club_id, date_key, "time", court
   from public.reservations
   where status = 'booked';
 
 alter view public.slot_occupancy set (security_invoker = off);
-grant select on public.slot_occupancy to anon, authenticated;
+revoke select on public.slot_occupancy from anon;
+grant select on public.slot_occupancy to authenticated;

@@ -324,7 +324,7 @@ export default function ClubAdmin() {
                           <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }} numberOfLines={1}>
                             Réservé via PadelConnect · {resa.bookedBy?.name ?? 'Joueur'}
                           </Txt>
-                          {resa.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="coral" />}
+                          {resa.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="amber" />}
                         </>
                       ) : blk ? (
                         <>

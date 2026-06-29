@@ -184,7 +184,7 @@ export default function Operateur() {
 
       {/* Santé plateforme */}
       <View style={styles.health}>
-        <StatTile value={`${activeClubsCount}`} label="Clubs actifs" color={colors.blue} bg={colors.blueSoft} />
+        <StatTile value={`${activeClubsCount}`} label="Clubs actifs" color={colors.green} bg={colors.greenSoft} />
         <StatTile
           value={`${resThisWeek} ${resThisWeek >= resPrevWeek ? '▲' : '▼'}`}
           label="Résas / 7 j"
@@ -232,7 +232,7 @@ export default function Operateur() {
           Semaine {weekLabel(week)}
         </Txt>
         <View style={styles.totals}>
-          <StatTile value={`${totalCount}`} label="Parties jouées" color={colors.blue} bg={colors.blueSoft} />
+          <StatTile value={`${totalCount}`} label="Parties jouées" color={colors.green} bg={colors.greenSoft} />
           <StatTile value={fcfa(totalRevenue)} label="Volume" color={colors.green} bg={colors.greenSoft} />
           <StatTile value={fcfa(totalDue)} label="Reste à encaisser" color={colors.amber} bg={colors.amberSoft} />
         </View>
@@ -271,7 +271,7 @@ export default function Operateur() {
                     </Txt>
                     <Tag
                       label={st === 'paid' ? 'Payé ✓' : st === 'sent' ? 'Décompte envoyé' : 'À facturer'}
-                      tone={st === 'paid' ? 'green' : st === 'sent' ? 'blue' : 'coral'}
+                      tone={st === 'paid' ? 'green' : st === 'sent' ? 'blue' : 'neutral'}
                     />
                   </View>
                 </View>
@@ -479,8 +479,8 @@ export default function Operateur() {
                       {c.name}
                     </Txt>
                     {on && exp ? (
-                      <Txt variant="small" color={colors.amber}>
-                        Actif jusqu'au {new Date(exp).toLocaleDateString('fr-FR')}
+                      <Txt variant="small" color={colors.green} style={{ fontWeight: '600' }}>
+                        Sponsorisé · jusqu'au {new Date(exp).toLocaleDateString('fr-FR')}
                       </Txt>
                     ) : (
                       <Txt variant="small" color={colors.textFaint}>
@@ -488,14 +488,13 @@ export default function Operateur() {
                       </Txt>
                     )}
                   </View>
-                  {on ? (
-                    <Button size="sm" label="Arrêter" icon="close" variant="ghost" onPress={() => setBoost(c.id, 0)} />
-                  ) : (
-                    <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                      <Button size="sm" label="7 j" variant="secondary" onPress={() => setBoost(c.id, 7)} />
-                      <Button size="sm" label="30 j" onPress={() => setBoost(c.id, 30)} />
-                    </View>
-                  )}
+                  {/* 7j / 30j toujours accessibles (on peut prolonger/changer la durée) ;
+                      « Arrêter » apparaît quand le boost est actif. */}
+                  <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
+                    <Button size="sm" label="7 j" variant="secondary" onPress={() => setBoost(c.id, 7)} />
+                    <Button size="sm" label="30 j" onPress={() => setBoost(c.id, 30)} />
+                    {on ? <Button size="sm" label="Arrêter" icon="close" variant="ghost" onPress={() => setBoost(c.id, 0)} /> : null}
+                  </View>
                 </View>
               </View>
             );
@@ -622,7 +621,7 @@ const styles = StyleSheet.create({
   },
   hero: { ...shadows.e2, marginBottom: spacing.md, alignItems: 'flex-start', gap: 2 },
   heroValue: {
-    fontSize: font.size.display,
+    fontSize: 40, // chiffre vitrine (handoff : 40px/800), au-dessus de l'échelle display (32)
     fontFamily: font.family.heavy,
     fontWeight: font.weight.heavy,
     color: colors.amber,

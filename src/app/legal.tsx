@@ -9,7 +9,8 @@ export default function Legal() {
         <Txt variant="h3">Conditions d'utilisation</Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
           PadelConnect met en relation des joueurs et des clubs de padel à Abidjan (réservation de créneaux, recherche de partenaires,
-          coachs et compétitions). L'application est fournie « en l'état » pendant sa phase de prototype.
+          coachs et compétitions). Aucun paiement n'est effectué dans l'application : le règlement de la session se fait directement au
+          club.
         </Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
           Le niveau de jeu évolue uniquement via les tournois officiels : c'est l'organisateur du tournoi qui désigne l'équipe gagnante à la
@@ -21,13 +22,14 @@ export default function Legal() {
       <Card style={{ marginTop: spacing.md }}>
         <Txt variant="h3">Confidentialité</Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
-          Dans cette version prototype, tes informations (profil, niveau, réservations) sont enregistrées uniquement sur ton appareil.
-          Aucune donnée n'est envoyée à un serveur et aucun paiement réel n'est effectué.
+          Pour faire fonctionner ton compte, tes informations (profil, niveau, réservations, parrainage) sont enregistrées sur un serveur
+          sécurisé (hébergé par Supabase) et synchronisées entre tes appareils. Tes données ne sont visibles que par toi ; un club ne voit
+          que les réservations le concernant, et l'opérateur de PadelConnect le strict nécessaire au suivi du service.
         </Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
-          Le numéro de téléphone sert à identifier ton profil ; il n'est pas vérifié à ce stade (la vérification par SMS et l'hébergement
-          sécurisé des données arriveront avec la version finale, dans le respect de la réglementation ivoirienne sur les données
-          personnelles).
+          La connexion se fait par numéro de téléphone et mot de passe (sans vérification par SMS à ce stade). Aucun paiement en ligne n'est
+          réalisé. Tu peux demander la suppression de ton compte et de tes données en nous écrivant à l'adresse ci-dessous, dans le respect
+          de la réglementation ivoirienne (ARTCI) sur les données personnelles.
         </Txt>
       </Card>
 

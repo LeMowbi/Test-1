@@ -116,7 +116,7 @@ export function SectionMonClub({ club }: { club: Club }) {
         <SectionHeader title="Booster mon profil" />
         <Card>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <IconCircle icon="megaphone" color={colors.coral} bg={colors.coralSoft} />
+            <IconCircle icon="megaphone" color={colors.signature} bg={colors.greenSoft} />
             <View style={{ flex: 1 }}>
               <Txt variant="h3">Mettre {club.name} en avant</Txt>
               <Txt variant="muted">
@@ -267,7 +267,7 @@ export function SectionMonClub({ club }: { club: Club }) {
           <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
             {coaches.map((c) => (
               <View key={c.id} style={styles.listRow}>
-                <IconCircle icon="person" color={colors.blue} bg={colors.blueSoft} size={36} />
+                <IconCircle icon="person" color={colors.signature} bg={colors.greenSoft} size={36} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="body" style={{ fontWeight: '600' }}>
                     {c.name}
@@ -289,8 +289,8 @@ export function SectionMonClub({ club }: { club: Club }) {
                 <View key={c.id} style={styles.listRow}>
                   <IconCircle
                     icon="person"
-                    color={hidden ? colors.textFaint : colors.blue}
-                    bg={hidden ? colors.surfaceAlt : colors.blueSoft}
+                    color={hidden ? colors.textFaint : colors.signature}
+                    bg={hidden ? colors.surfaceAlt : colors.greenSoft}
                     size={36}
                   />
                   <View style={{ flex: 1 }}>

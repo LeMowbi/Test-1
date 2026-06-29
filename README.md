@@ -4,10 +4,13 @@ Application mobile (iOS + Android, et web) pour **réserver un terrain de padel 
 un partenaire / adversaire / coéquipier, trouver un coach, organiser des compétitions** et suivre
 ses résultats. Conçue avec un design sobre « luxe + sport ».
 
-> **Statut : prototype cliquable** (interface complète, données simulées stockées sur l'appareil —
-> pas encore de serveur central). L'app sert à **réserver**, **sans paiement en ligne** (le tarif se
-> règle au club). Pour la stratégie, la mise en ligne sur les stores, la vente aux clubs et la suite
-> technique, voir **[STRATEGIE.md](./STRATEGIE.md)** et **[GUIDE-LANCEMENT.md](./GUIDE-LANCEMENT.md)**.
+> **Statut : application connectée (bêta TestFlight)** — serveur central **Supabase** en place :
+> comptes (téléphone + mot de passe, **sans SMS**), réservations partagées entre appareils,
+> parrainage, et sécurité par rôle (joueur / club / opérateur) via Row Level Security. L'app sert à
+> **réserver**, **sans paiement en ligne** (le tarif se règle au club). Migrations SQL dans
+> `supabase/` (ordre : `schema` → `02_roles` → `03_reservations` → `04_referrals`). Pour la
+> stratégie et la mise en ligne, voir **[STRATEGIE.md](./STRATEGIE.md)** et
+> **[GUIDE-LANCEMENT.md](./GUIDE-LANCEMENT.md)**.
 
 ## Fonctionnalités (toutes présentes ✅)
 
@@ -61,8 +64,8 @@ src/
 
 - Les **noms et quartiers des clubs sont réels** (vérifiés) ; **tarifs indicatifs** et **photos
   illustratives libres de droits** sont à confirmer/remplacer par les visuels officiels de chaque club.
-- Compte, coachs, matchs et certains avis sont des **exemples de démonstration** (profil local,
-  téléphone non vérifié — la vraie auth SMS viendra avec le back-end).
+- Le **compte est réel** (serveur Supabase, téléphone + mot de passe, sans vérification SMS pour
+  l'instant). Coachs et certains avis seed restent des **exemples de démonstration** à remplacer.
 
 ## Vérifié
 

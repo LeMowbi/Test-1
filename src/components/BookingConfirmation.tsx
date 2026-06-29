@@ -36,9 +36,7 @@ export function BookingConfirmation({
       Animated.spring(check, { toValue: 1, friction: 5, tension: 90, useNativeDriver: true }),
       Animated.timing(fade, { toValue: 1, duration: 450, easing: Easing.out(Easing.quad), useNativeDriver: true }),
     ]).start();
-    Animated.loop(
-      Animated.timing(ring, { toValue: 1, duration: 1800, easing: Easing.out(Easing.quad), useNativeDriver: true }),
-    ).start();
+    Animated.loop(Animated.timing(ring, { toValue: 1, duration: 1800, easing: Easing.out(Easing.quad), useNativeDriver: true })).start();
   }, [check, fade, ring]);
 
   const ringScale = ring.interpolate({ inputRange: [0, 1], outputRange: [0.8, 2.2] });
