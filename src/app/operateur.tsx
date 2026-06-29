@@ -147,9 +147,9 @@ export default function Operateur() {
 
   return (
     <Screen back title="Espace opérateur" subtitle="PadelConnect — suivi & commissions">
-      <View style={styles.note}>
-        <Ionicons name="information-circle-outline" size={15} color={colors.textFaint} />
-        <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
+      <View style={styles.infoBanner}>
+        <Ionicons name="information-circle" size={17} color={colors.amberDark} />
+        <Txt variant="small" color={colors.amberDark} style={{ flex: 1 }}>
           Chaque fin de semaine : envoie le décompte à chaque club par WhatsApp, il te règle par Wave, tu marques « Payé ».
         </Txt>
       </View>
@@ -611,7 +611,15 @@ function NewsEditor({
 }
 
 const styles = StyleSheet.create({
-  note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  infoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.amberSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
   hero: { ...shadows.e2, marginBottom: spacing.md, alignItems: 'flex-start', gap: 2 },
   heroValue: {
     fontSize: font.size.display,
