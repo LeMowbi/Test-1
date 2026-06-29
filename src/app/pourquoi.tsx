@@ -63,7 +63,7 @@ export default function Pourquoi() {
         Commission de 10% uniquement sur les parties jouées réservées via l'app. Pas d'abonnement, pas de paiement en ligne.
       </Txt>
       <View style={{ marginTop: spacing.lg }}>
-        <Button label="Inscrire mon club" icon="business" onPress={() => router.push('/club-admin')} full />
+        <Button label="Inscrire mon club" icon="business" onPress={() => router.push('/inscrire-club')} full />
       </View>
     </Screen>
   );

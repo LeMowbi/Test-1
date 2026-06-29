@@ -37,7 +37,7 @@ export function BottomSheet({
                 </Txt>
               ) : null}
             </View>
-            <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
+            <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Fermer">
               <Ionicons name="close" size={20} color={colors.textMuted} />
             </Pressable>
           </View>

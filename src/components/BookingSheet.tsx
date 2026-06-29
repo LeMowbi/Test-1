@@ -128,7 +128,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                     {day.label} · {time} · 1h30 · {fcfa(price)} la session
                   </Txt>
                 </View>
-                <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn}>
+                <Pressable onPress={onClose} hitSlop={8} style={styles.closeBtn} accessibilityRole="button" accessibilityLabel="Fermer">
                   <Ionicons name="close" size={20} color={colors.textMuted} />
                 </Pressable>
               </View>

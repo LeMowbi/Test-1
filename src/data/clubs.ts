@@ -239,6 +239,9 @@ export function serverRowToClub(row: {
     mapsQuery: `${row.name} ${row.city ?? CITY}`,
     accent: ACCENTS[accentIdx],
     contactPhone: row.contact_phone ?? undefined,
+    // fetchServerClubs ne renvoie que des clubs status='active' (filtre côté requête) → on
+    // les marque actifs. Un éventuel écran opérateur listant aussi les clubs masqués devra
+    // mapper row.status au lieu de ce littéral.
     status: 'active',
     createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
     fromServer: true,

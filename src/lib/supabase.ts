@@ -35,11 +35,12 @@ export function normalizePhone(phone: string): string {
   return d; // tout le reste (étranger, format inhabituel) : laissé tel quel
 }
 
-// ─── Connexion « téléphone + mot de passe » SANS SMS ─────────────────────────
-// Supabase n'autorise le canal « téléphone » qu'avec un fournisseur SMS payant.
-// Astuce : on mappe le numéro vers un e-mail interne non routable et on s'appuie sur
-// l'auth e-mail/mot de passe (confirmation d'e-mail désactivée côté Supabase).
-// L'utilisateur ne voit JAMAIS cet e-mail : il saisit seulement son numéro.
+// ─── Connexion « téléphone + mot de passe » SANS SMS (comptes HÉRITÉS) ────────
+// Parcours d'origine, conservé uniquement pour la CONNEXION des comptes créés avant
+// l'inscription par e-mail (dont le compte opérateur). On mappe le numéro vers un e-mail
+// interne non routable. L'inscription principale se fait désormais par e-mail RÉEL avec
+// confirmation activée (cf. signUpWithEmail + useEmailConfirmLink) ; ces comptes hérités
+// ont été confirmés à leur création, leur connexion reste donc valable.
 export function phoneToAuthEmail(phone: string): string {
   return `p${normalizePhone(phone)}@phone.padelconnect.app`;
 }

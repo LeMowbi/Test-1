@@ -298,7 +298,7 @@ export default function Operateur() {
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                   <IconCircle icon="wallet" color={colors.amber} bg={colors.amberSoft} />
                   <View style={{ flex: 1 }}>
-                    <Txt variant="h3" style={{ fontSize: 15 }}>
+                    <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
                       {r.clubName}
                     </Txt>
                     <Txt variant="muted">
@@ -311,7 +311,7 @@ export default function Operateur() {
                     </Txt>
                     <Tag
                       label={st === 'paid' ? 'Payé ✓' : st === 'sent' ? 'Décompte envoyé' : 'À facturer'}
-                      tone={st === 'paid' ? 'green' : st === 'sent' ? 'blue' : 'neutral'}
+                      tone={st === 'paid' ? 'green' : st === 'sent' ? 'amber' : 'neutral'}
                     />
                   </View>
                 </View>
@@ -381,7 +381,7 @@ export default function Operateur() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                 <IconCircle icon="business" color={colors.amber} bg={colors.amberSoft} size={40} />
                 <View style={{ flex: 1 }}>
-                  <Txt variant="h3" style={{ fontSize: 15 }}>
+                  <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
                     {r.name}
                   </Txt>
                   <Txt variant="muted">
@@ -406,7 +406,7 @@ export default function Operateur() {
                           : 'Nouveau'
                   }
                   tone={
-                    r.status === 'approved' ? 'green' : r.status === 'rejected' ? 'neutral' : r.status === 'contacted' ? 'blue' : 'coral'
+                    r.status === 'approved' ? 'green' : r.status === 'rejected' ? 'neutral' : r.status === 'contacted' ? 'amber' : 'coral'
                   }
                 />
               </View>
@@ -469,7 +469,7 @@ export default function Operateur() {
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                 <IconCircle icon="chatbubble-ellipses" color={colors.coral} bg={colors.coralSoft} size={40} />
                 <View style={{ flex: 1 }}>
-                  <Txt variant="h3" style={{ fontSize: 15 }}>
+                  <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
                     {m.name || 'Joueur'}
                   </Txt>
                   {m.contact_phone ? (
@@ -480,7 +480,7 @@ export default function Operateur() {
                 </View>
                 <Tag
                   label={m.status === 'resolved' ? 'Résolu ✓' : m.status === 'read' ? 'Lu' : 'Nouveau'}
-                  tone={m.status === 'resolved' ? 'green' : m.status === 'read' ? 'blue' : 'coral'}
+                  tone={m.status === 'resolved' ? 'green' : m.status === 'read' ? 'amber' : 'coral'}
                 />
               </View>
               <Txt variant="body" style={{ marginTop: spacing.sm }}>

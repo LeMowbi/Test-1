@@ -297,8 +297,8 @@ export default function ProfilScreen() {
           <Card onPress={() => router.push('/inscrire-club')} style={styles.cta}>
             <IconCircle icon="business" color={colors.amber} bg={colors.amberSoft} />
             <View style={{ flex: 1 }}>
-              <Txt variant="h3">Tu gères un club ?</Txt>
-              <Txt variant="muted">Référence-le sur PadelConnect — on te recontacte.</Txt>
+              <Txt variant="h3">Inscrire mon club</Txt>
+              <Txt variant="muted">Ton club n'est pas dans la liste ? On te recontacte.</Txt>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </Card>

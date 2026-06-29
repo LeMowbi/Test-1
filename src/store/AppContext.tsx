@@ -408,19 +408,49 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     remindersOnRef.current = state.remindersOn;
   }, [state.remindersOn]);
 
+  // « Époque » de session : incrémentée à chaque déconnexion / réinitialisation. Toute
+  // requête en vol (loadSession, rafraîchissement au premier plan) capture l'époque au
+  // départ et n'applique son résultat QUE si l'époque n'a pas changé entre-temps — sinon
+  // une réponse tardive réécrirait les données d'un compte déjà déconnecté.
+  const sessionEpochRef = useRef(0);
+
   // Charge (ou recharge) la session serveur : profil + rôle, réservations, occupation,
   // participations et clubs serveur. Réutilisé au démarrage ET après la confirmation
   // d'e-mail (deep link) — d'où l'extraction en fonction stable.
   const loadSession = useCallback(async () => {
+    const epoch = sessionEpochRef.current;
+    const stillCurrent = () => sessionEpochRef.current === epoch;
     try {
       const {
         data: { session },
       } = await supabase.auth.getSession();
       const userId = session?.user?.id;
-      if (!userId) return;
-      // On connaît la session → mode « réservations serveur ».
-      setState((s) => ({ ...s, serverUserId: userId }));
+      if (!userId || !stillCurrent()) return;
+      // On connaît la session → mode « réservations serveur ». Si on CHANGE de compte
+      // (userId différent de celui en mémoire), on repart d'un périmètre personnel NEUF
+      // pour ne jamais montrer les données du compte précédent (amis, favoris, miroir…).
+      setState((s) =>
+        s.serverUserId === userId
+          ? { ...s, serverUserId: userId }
+          : {
+              ...s,
+              serverUserId: userId,
+              reservations: [],
+              participantReservationIds: [],
+              occupancy: [],
+              friends: [],
+              favoriteClubIds: [],
+              userReviews: [],
+              myCompetitions: [],
+              compRegistrations: {},
+              compResults: {},
+              officialResults: [],
+              followed: {},
+              level: initialState.level,
+            },
+      );
       const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      if (!stillCurrent()) return;
       // Hors-ligne / erreur réseau : on GARDE le profil et le rôle persistés localement
       // (pas de rétrogradation silencieuse d'un gérant/opérateur qui ouvre l'app sans réseau).
       if (!error && prof) {
@@ -449,6 +479,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchMyParticipations(userId),
         fetchServerClubs(),
       ]);
+      if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       setState((s) => ({
         ...s,
         // En cas d'échec réseau on garde le miroir persisté (offline-friendly).
@@ -485,12 +516,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const userId = state.serverUserId;
     const sub = RNAppState.addEventListener('change', (st) => {
       if (st !== 'active') return;
-      void fetchOccupancy().then((occ) => setState((s) => ({ ...s, occupancy: occ })));
+      // On capture l'époque au déclenchement : si une déconnexion survient pendant les
+      // requêtes, leurs résultats tardifs ne réécriront pas les données du compte sortant.
+      const epoch = sessionEpochRef.current;
+      const ok = () => sessionEpochRef.current === epoch;
+      void fetchOccupancy().then((occ) => ok() && setState((s) => ({ ...s, occupancy: occ })));
       void fetchReservations().then((res) => {
-        if (res.ok) setState((s) => ({ ...s, reservations: res.reservations }));
+        if (res.ok && ok()) setState((s) => ({ ...s, reservations: res.reservations }));
       });
-      void fetchMyParticipations(userId).then((parts) => setState((s) => ({ ...s, participantReservationIds: parts })));
-      void fetchServerClubs().then((serverClubs) => setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) })));
+      void fetchMyParticipations(userId).then((parts) => ok() && setState((s) => ({ ...s, participantReservationIds: parts })));
+      void fetchServerClubs().then(
+        (serverClubs) => ok() && setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) })),
+      );
     });
     return () => sub.remove();
   }, [state.serverUserId]);
@@ -732,6 +769,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       signOut: () => {
+        sessionEpochRef.current += 1; // invalide toute requête en vol du compte sortant
         supabase.auth.signOut().catch(() => {});
         void syncMatchReminders([], false); // on efface les rappels locaux du compte sortant
         // On revient à un état NEUF : identité + données serveur ET tout le périmètre
@@ -1204,6 +1242,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       resetAll: () => {
         // Réinitialisation TOTALE : on coupe la session serveur, on efface les rappels et
         // la clé persistée, puis on revient à l'état seed complet (≈ première ouverture).
+        sessionEpochRef.current += 1; // invalide toute requête en vol
         supabase.auth.signOut().catch(() => {});
         void syncMatchReminders([], false);
         AsyncStorage.removeItem(STORAGE_KEY).catch(() => {});

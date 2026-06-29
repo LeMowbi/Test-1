@@ -13,20 +13,44 @@ create table if not exists public.reservation_participants (
 
 alter table public.reservation_participants enable row level security;
 
+-- ⚠️ RÉCURSION RLS : la policy de reservation_participants doit lire reservations, et la
+-- policy de reservations doit lire reservation_participants. Si chaque policy interroge
+-- DIRECTEMENT l'autre table, Postgres applique récursivement la RLS de l'autre table et
+-- lève « 42P17 infinite recursion detected in policy ». On casse le cycle avec deux petites
+-- fonctions SECURITY DEFINER (qui ne déclenchent pas la RLS des tables qu'elles lisent).
+
+-- Suis-je l'auteur de cette réservation ? (lecture sans RLS → pas de récursion)
+create or replace function public.is_reservation_owner(p_res uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.reservations r where r.id = p_res and r.user_id = auth.uid());
+$$;
+
+-- Suis-je participant (invité) de cette réservation ? (lecture sans RLS → pas de récursion)
+create or replace function public.is_reservation_participant(p_res uuid)
+returns boolean
+language sql
+security definer
+set search_path = public
+as $$
+  select exists (select 1 from public.reservation_participants p where p.reservation_id = p_res and p.user_id = auth.uid());
+$$;
+
+grant execute on function public.is_reservation_owner(uuid) to authenticated;
+grant execute on function public.is_reservation_participant(uuid) to authenticated;
+
 -- Je vois mes lignes de participant ; l'auteur de la résa voit celles de SA résa.
 drop policy if exists "rp_select" on public.reservation_participants;
 create policy "rp_select" on public.reservation_participants
-  for select using (
-    auth.uid() = user_id
-    or exists (select 1 from public.reservations r where r.id = reservation_id and r.user_id = auth.uid())
-  );
+  for select using (auth.uid() = user_id or public.is_reservation_owner(reservation_id));
 
 -- Un participant peut LIRE la réservation où il est invité (en plus de l'auteur/club/opérateur).
 drop policy if exists "reservations_select_participant" on public.reservations;
 create policy "reservations_select_participant" on public.reservations
-  for select using (
-    exists (select 1 from public.reservation_participants p where p.reservation_id = reservations.id and p.user_id = auth.uid())
-  );
+  for select using (public.is_reservation_participant(reservations.id));
 
 -- Rattache des amis à une résa, par numéro — SECURITY DEFINER (résout les numéros sans
 -- exposer les profils). Appelable UNIQUEMENT par l'auteur de la réservation. Comparaison
