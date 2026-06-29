@@ -1,9 +1,11 @@
 // État global de l'app (prototype) + persistance locale via AsyncStorage.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
+import * as Linking from 'expo-linking';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState as RNAppState } from 'react-native';
 import { clubs, type Club, type CustomClub, type PriceTier } from '@/data/clubs';
+import { approveClubRequest as approveClubRequestRpc, fetchServerClubs } from '@/lib/clubsServer';
 import type { Competition } from '@/data/competitions';
 import { DEMO_CLOSED_COMP, DEMO_FINISHED_COMP } from '@/data/competitions';
 import type { Review } from '@/data/reviews';
@@ -29,6 +31,7 @@ export type Account = {
   firstName: string;
   lastName: string;
   phone: string;
+  email?: string; // identifiant de connexion (inscription par e-mail) — facultatif pour les comptes téléphone
   photoUri?: string;
   birthDate?: string; // JJ/MM/AAAA — sert à l'âge et au signe astro
   gender?: 'homme' | 'femme' | 'nd';
@@ -177,8 +180,10 @@ export const MAX_CLUB_PHOTOS = 6; // plafond de photos par club (quota de stocka
 // Traduit les messages d'erreur Supabase en français clair pour l'utilisateur.
 function frAuthError(msg: string): string {
   const m = (msg || '').toLowerCase();
-  if (m.includes('invalid login')) return 'Numéro ou mot de passe incorrect.';
-  if (m.includes('already registered') || m.includes('already been registered')) return 'Ce numéro a déjà un compte — connecte-toi.';
+  if (m.includes('email not confirmed')) return "Confirme d'abord ton e-mail — vérifie ta boîte mail (et tes spams).";
+  if (m.includes('invalid login')) return 'Identifiant ou mot de passe incorrect.';
+  if (m.includes('already registered') || m.includes('already been registered')) return 'Cet e-mail a déjà un compte — connecte-toi.';
+  if (m.includes('unable to validate email') || m.includes('invalid format')) return 'Adresse e-mail invalide — vérifie-la.';
   if (m.includes('password should be') || m.includes('password')) return 'Mot de passe trop court (6 caractères minimum).';
   if (m.includes('network') || m.includes('fetch') || m.includes('timeout')) return 'Connexion internet impossible — réessaie.';
   if (m.includes('email logins are disabled') || m.includes('signups not allowed'))
@@ -245,7 +250,19 @@ type AppContextType = {
   setAccount: (a: Account) => void;
   updateAccount: (patch: Partial<Account>) => void;
   loadDemo: () => void;
-  // Connexion serveur (Supabase) — téléphone + mot de passe (sans SMS).
+  // Inscription serveur PRINCIPALE — e-mail (confirmé) + mot de passe, le téléphone est
+  // conservé (sans SMS) pour que les clubs puissent joindre les joueurs. `needsConfirm`
+  // = true quand l'e-mail de confirmation vient d'être envoyé (pas encore de session).
+  signUpWithEmail: (
+    email: string,
+    password: string,
+    phone: string,
+    profile: { firstName: string; lastName: string; birthDate?: string; gender?: Account['gender']; level?: number; referralCode?: string },
+  ) => Promise<{ ok: boolean; needsConfirm?: boolean; error?: string }>;
+  signInWithEmail: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  // Recharge la session (profil + données) — appelé après la confirmation d'e-mail (deep link).
+  refreshSession: () => Promise<void>;
+  // Connexion serveur héritée — téléphone + mot de passe (comptes créés avant l'e-mail).
   signUpWithPhone: (
     phone: string,
     password: string,
@@ -310,6 +327,9 @@ type AppContextType = {
   // On renvoie un drapeau ok pour distinguer « vide » d'un échec réseau/RLS.
   fetchClubRequests: () => Promise<{ ok: boolean; requests: ServerClubRequest[] }>;
   setClubRequestStatus: (id: string, status: ServerClubRequest['status']) => Promise<{ ok: boolean }>;
+  // Approuve une demande côté SERVEUR : crée le club (visible par tous) + donne au
+  // demandeur l'accès à son Espace Club. Recharge ensuite la liste des clubs serveur.
+  approveClubRequest: (requestId: string) => Promise<{ ok: boolean; clubId?: string }>;
   // Aide / signalements : le joueur envoie un message, l'opérateur les lit/traite.
   submitSupportMessage: (message: string, contactPhone?: string) => Promise<{ ok: boolean; error?: string }>;
   fetchSupportMessages: () => Promise<{ ok: boolean; messages: ServerSupportMessage[] }>;
@@ -339,6 +359,16 @@ type AppContextType = {
 const AppContext = createContext<AppContextType | null>(null);
 const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 const clampLevel = (n: number) => Math.min(7, Math.max(1, Math.round(n * 100) / 100));
+
+// Fusionne les clubs venus du SERVEUR dans la liste locale `customClubs` : on garde les
+// clubs démo créés localement (sans drapeau `fromServer`) et on remplace systématiquement
+// l'ensemble des clubs serveur par la version fraîchement chargée (dédup par id, le serveur
+// fait foi). Ainsi tous les écrans qui lisent déjà `customClubs` voient les nouveaux clubs.
+function mergeServerClubs(local: CustomClub[], server: CustomClub[]): CustomClub[] {
+  const serverIds = new Set(server.map((c) => c.id));
+  const localOnly = local.filter((c) => !c.fromServer && !serverIds.has(c.id));
+  return [...localOnly, ...server];
+}
 
 function computeStats(reservations: Reservation[], officialResults: OfficialResult[]): Stats {
   const now = Date.now();
@@ -371,62 +401,82 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Au démarrage, si une session serveur existe, on rafraîchit le profil ET le RÔLE
   // depuis Supabase (ainsi, dès que l'opérateur promeut un compte côté serveur, le
   // changement prend effet à la prochaine ouverture). Sans session → on ne touche à rien.
+  // Préférence « rappels » lue par loadSession SANS la remettre dans ses dépendances
+  // (sinon un simple basculement de l'interrupteur relancerait toute la session).
+  const remindersOnRef = useRef(state.remindersOn);
   useEffect(() => {
-    if (!hydrated) return;
-    (async () => {
-      try {
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        const userId = session?.user?.id;
-        if (!userId) return;
-        // On connaît la session → mode « réservations serveur ».
-        setState((s) => ({ ...s, serverUserId: userId }));
-        const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-        // Hors-ligne / erreur réseau : on GARDE le profil et le rôle persistés localement
-        // (pas de rétrogradation silencieuse d'un gérant/opérateur qui ouvre l'app sans réseau).
-        if (!error && prof) {
-          setState((s) => ({
-            ...s,
-            account: {
-              firstName: prof.first_name ?? s.account?.firstName ?? '',
-              lastName: prof.last_name ?? s.account?.lastName ?? '',
-              phone: prof.phone ?? s.account?.phone ?? '',
-              photoUri: prof.photo_uri ?? s.account?.photoUri,
-              birthDate: prof.birth_date ?? s.account?.birthDate,
-              gender: prof.gender ?? s.account?.gender,
-            },
-            role: (prof.role as AppState['role']) ?? 'player',
-            serverManagedClubId: prof.managed_club_id ?? null,
-            level: clampLevel(Number(prof.level ?? s.level)),
-          }));
-        }
-        // Réservations : le serveur est la source de vérité → on remplace le miroir local
-        // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
-        // via RLS), et on charge l'occupation de TOUS pour la disponibilité cross-joueur.
-        const [reservationsRes, occ, parts] = await Promise.all([fetchReservations(), fetchOccupancy(), fetchMyParticipations(userId)]);
+    remindersOnRef.current = state.remindersOn;
+  }, [state.remindersOn]);
+
+  // Charge (ou recharge) la session serveur : profil + rôle, réservations, occupation,
+  // participations et clubs serveur. Réutilisé au démarrage ET après la confirmation
+  // d'e-mail (deep link) — d'où l'extraction en fonction stable.
+  const loadSession = useCallback(async () => {
+    try {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      const userId = session?.user?.id;
+      if (!userId) return;
+      // On connaît la session → mode « réservations serveur ».
+      setState((s) => ({ ...s, serverUserId: userId }));
+      const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+      // Hors-ligne / erreur réseau : on GARDE le profil et le rôle persistés localement
+      // (pas de rétrogradation silencieuse d'un gérant/opérateur qui ouvre l'app sans réseau).
+      if (!error && prof) {
         setState((s) => ({
           ...s,
-          // En cas d'échec réseau on garde le miroir persisté (offline-friendly).
-          reservations: reservationsRes.ok ? reservationsRes.reservations : s.reservations,
-          occupancy: occ,
-          participantReservationIds: parts,
+          account: {
+            firstName: prof.first_name ?? s.account?.firstName ?? '',
+            lastName: prof.last_name ?? s.account?.lastName ?? '',
+            phone: prof.phone ?? s.account?.phone ?? '',
+            email: prof.email ?? s.account?.email,
+            photoUri: prof.photo_uri ?? s.account?.photoUri,
+            birthDate: prof.birth_date ?? s.account?.birthDate,
+            gender: prof.gender ?? s.account?.gender,
+          },
+          role: (prof.role as AppState['role']) ?? 'player',
+          serverManagedClubId: prof.managed_club_id ?? null,
+          level: clampLevel(Number(prof.level ?? s.level)),
         }));
-        // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses).
-        if (reservationsRes.ok) {
-          const mine = reservationsRes.reservations.filter(
-            (r) => (!r.userId || r.userId === userId || parts.includes(r.id)) && r.startsAt > Date.now(),
-          );
-          void syncMatchReminders(mine, state.remindersOn);
-        }
-      } catch {
-        // getSession a échoué (réseau) : on reste sur l'état local hydraté, sans crash.
       }
+      // Réservations : le serveur est la source de vérité → on remplace le miroir local
+      // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
+      // via RLS), l'occupation de TOUS (disponibilité), et les clubs ajoutés côté serveur.
+      const [reservationsRes, occ, parts, serverClubs] = await Promise.all([
+        fetchReservations(),
+        fetchOccupancy(),
+        fetchMyParticipations(userId),
+        fetchServerClubs(),
+      ]);
+      setState((s) => ({
+        ...s,
+        // En cas d'échec réseau on garde le miroir persisté (offline-friendly).
+        reservations: reservationsRes.ok ? reservationsRes.reservations : s.reservations,
+        occupancy: occ,
+        participantReservationIds: parts,
+        customClubs: mergeServerClubs(s.customClubs, serverClubs),
+      }));
+      // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses).
+      if (reservationsRes.ok) {
+        const mine = reservationsRes.reservations.filter(
+          (r) => (!r.userId || r.userId === userId || parts.includes(r.id)) && r.startsAt > Date.now(),
+        );
+        void syncMatchReminders(mine, remindersOnRef.current);
+      }
+    } catch {
+      // getSession a échoué (réseau) : on reste sur l'état local hydraté, sans crash.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!hydrated) return;
+    // IIFE asynchrone : les setState de loadSession surviennent APRÈS un await (jamais de
+    // façon synchrone dans le corps de l'effet) → pas de cascade de rendus.
+    void (async () => {
+      await loadSession();
     })();
-    // Effet de DÉMARRAGE uniquement (à l'hydratation) — on lit remindersOn tel qu'hydraté ;
-    // on ne veut pas relancer la session/les fetchs à chaque bascule de l'interrupteur.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated]);
+  }, [hydrated, loadSession]);
 
   // Retour au premier plan : on rafraîchit l'occupation (et mes résas) pour que la
   // disponibilité affichée ne reste pas figée si d'autres joueurs ont réservé entre-temps.
@@ -440,6 +490,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (res.ok) setState((s) => ({ ...s, reservations: res.reservations }));
       });
       void fetchMyParticipations(userId).then((parts) => setState((s) => ({ ...s, participantReservationIds: parts })));
+      void fetchServerClubs().then((serverClubs) => setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) })));
     });
     return () => sub.remove();
   }, [state.serverUserId]);
@@ -565,7 +616,46 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
         });
       },
-      // Création de compte serveur : téléphone + mot de passe (e-mail interne, sans SMS).
+      // ── Inscription par E-MAIL (parcours principal) ────────────────────────
+      // E-mail réel + mot de passe ; le téléphone est conservé (sans SMS). Avec la
+      // confirmation d'e-mail activée côté Supabase, le compte est créé mais SANS session :
+      // le profil est rempli automatiquement côté serveur (trigger handle_new_user) à
+      // partir des `data` ci-dessous, et la session s'ouvre quand l'utilisateur clique le
+      // lien de confirmation (deep link → refreshSession).
+      signUpWithEmail: async (email, password, phone, profile) => {
+        const cleanEmail = email.trim().toLowerCase();
+        const { data, error } = await supabase.auth.signUp({
+          email: cleanEmail,
+          password,
+          options: {
+            emailRedirectTo: Linking.createURL('auth-callback'),
+            data: {
+              first_name: profile.firstName.trim(),
+              last_name: profile.lastName.trim(),
+              phone: phone.trim(),
+              birth_date: profile.birthDate?.trim() || null,
+              gender: profile.gender ?? null,
+              level: clampLevel(profile.level ?? 3.0),
+              referred_by: profile.referralCode?.trim() || null,
+            },
+          },
+        });
+        if (error) return { ok: false, error: frAuthError(error.message) };
+        // Confirmation requise → pas encore de session : on invite à valider l'e-mail.
+        if (!data.session) return { ok: true, needsConfirm: true };
+        // Confirmation désactivée (selon config) → session immédiate : on charge tout.
+        await loadSession();
+        return { ok: true };
+      },
+      // Connexion par e-mail (compte déjà confirmé).
+      signInWithEmail: async (email, password) => {
+        const { error } = await supabase.auth.signInWithPassword({ email: email.trim().toLowerCase(), password });
+        if (error) return { ok: false, error: frAuthError(error.message) };
+        await loadSession();
+        return { ok: true };
+      },
+      refreshSession: loadSession,
+      // Création de compte serveur héritée : téléphone + mot de passe (e-mail interne, sans SMS).
       signUpWithPhone: async (phone, password, profile) => {
         const email = phoneToAuthEmail(phone);
         const { data, error } = await supabase.auth.signUp({ email, password });
@@ -656,6 +746,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           reservations: [],
           participantReservationIds: [],
           occupancy: [],
+          // Les clubs venus du serveur se rechargeront à la prochaine session ; on ne garde
+          // que d'éventuels clubs démo créés en local.
+          customClubs: s.customClubs.filter((c) => !c.fromServer),
           level: initialState.level,
           friends: [],
           favoriteClubIds: [],
@@ -997,6 +1090,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase.from('club_requests').update({ status }).eq('id', id);
         return { ok: !error };
       },
+      // Approbation serveur : crée le club + donne l'accès gérant au demandeur, puis
+      // recharge la liste des clubs serveur pour que le nouveau club apparaisse aussitôt.
+      approveClubRequest: async (requestId) => {
+        const res = await approveClubRequestRpc(requestId);
+        if (res.ok) {
+          const serverClubs = await fetchServerClubs();
+          setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
+        }
+        return res;
+      },
       // ── Aide / signalements (serveur) ──────────────────────────────────────
       submitSupportMessage: async (message, contactPhone) => {
         const {
@@ -1107,7 +1210,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState(initialState);
       },
     }),
-    [state, hydrated, stats, myReservations],
+    [state, hydrated, stats, myReservations, loadSession],
   );
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;

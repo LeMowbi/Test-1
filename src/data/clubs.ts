@@ -201,7 +201,49 @@ export type CustomClub = Club & {
   status: 'pending' | 'active'; // « pending » = en attente d'activation par l'opérateur
   contactPhone?: string;
   createdAt: number;
+  fromServer?: boolean; // true = club venu du serveur (table clubs), pas un club démo local
 };
+
+// Ligne serveur (table public.clubs) → club « custom » prêt à fusionner dans la liste.
+// Les clubs venus du serveur sont toujours actifs (l'opérateur les a déjà approuvés).
+export function serverRowToClub(row: {
+  id: string;
+  name: string;
+  area: string | null;
+  city: string | null;
+  type: string | null;
+  courts: number | null;
+  price_from: number | null;
+  contact_phone: string | null;
+  blurb: string | null;
+  amenities: string[] | null;
+  created_at: string | null;
+}): CustomClub {
+  const type = (['Couvert', 'Extérieur', 'Mixte'] as const).includes(row.type as Club['type'])
+    ? (row.type as Club['type'])
+    : 'Mixte';
+  // Accent stable dérivé de l'id (déterministe, pas de couleur qui « saute » au rechargement).
+  const accentIdx = Math.abs([...row.id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)) % ACCENTS.length;
+  return {
+    id: row.id,
+    name: row.name,
+    area: row.area ?? row.city ?? CITY,
+    city: row.city ?? CITY,
+    type,
+    courts: Math.max(1, row.courts ?? 1),
+    blurb: row.blurb ?? '',
+    amenities: row.amenities ?? [],
+    priceFrom: row.price_from ?? 10000,
+    rating: 0,
+    reviewsCount: 0,
+    mapsQuery: `${row.name} ${row.city ?? CITY}`,
+    accent: ACCENTS[accentIdx],
+    contactPhone: row.contact_phone ?? undefined,
+    status: 'active',
+    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    fromServer: true,
+  };
+}
 
 // Surcharges du gérant (nom, quartier, description, type, tarif, plages, WhatsApp).
 export type ClubOverrides = Record<

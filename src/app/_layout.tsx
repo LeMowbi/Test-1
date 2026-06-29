@@ -2,11 +2,12 @@ import { useFonts } from 'expo-font';
 import { Stack, useRouter, useSegments } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { View } from 'react-native';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { ToastProvider } from '@/components/Toast';
+import { ToastProvider, useToast } from '@/components/Toast';
+import { useEmailConfirmLink } from '@/lib/useEmailConfirmLink';
 import { AppProvider, useApp } from '@/store/AppContext';
 import { colors } from '@/theme';
 
@@ -52,9 +53,10 @@ export default function RootLayout() {
 }
 
 function RootNav() {
-  const { state, hydrated } = useApp();
+  const { state, hydrated, refreshSession } = useApp();
   const segments = useSegments();
   const router = useRouter();
+  const toast = useToast();
 
   // Sans compte → onboarding obligatoire ; avec compte → on quitte l'onboarding.
   useEffect(() => {
@@ -63,6 +65,22 @@ function RootNav() {
     if (!state.account && !onboarding) router.replace('/onboarding');
     else if (state.account && onboarding) router.replace('/');
   }, [hydrated, state.account, segments, router]);
+
+  // Confirmation d'e-mail : le lien reçu par mail rouvre l'app → on échange le code contre
+  // une session, on recharge le profil, puis on entre dans l'accueil.
+  const onConfirm = useCallback(
+    async (r: 'confirmed' | 'error') => {
+      if (r === 'error') {
+        toast.show('Lien de confirmation expiré — reconnecte-toi', { icon: 'alert-circle' });
+        return;
+      }
+      await refreshSession();
+      toast.show('E-mail confirmé — bienvenue ! 🎾');
+      router.replace('/');
+    },
+    [refreshSession, router, toast],
+  );
+  useEmailConfirmLink(onConfirm);
 
   return (
     <>

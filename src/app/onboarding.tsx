@@ -15,13 +15,18 @@ import { GENDERS, ageFrom, maskBirthDate, parseBirthDate, zodiacFor, type Gender
 import { useApp } from '@/store/AppContext';
 import { colors, font, gradients, radius, shadows, spacing } from '@/theme';
 
-type FieldKey = 'firstName' | 'lastName' | 'phone' | 'password' | 'birth' | 'gender';
+type FieldKey = 'firstName' | 'lastName' | 'email' | 'phone' | 'password' | 'birth' | 'gender';
+
+// Validation e-mail volontairement simple (présence d'un @ et d'un point) — la vraie
+// vérification, c'est le clic sur le lien de confirmation reçu par mail.
+const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 export default function Onboarding() {
   const router = useRouter();
-  const { signUpWithPhone, signInWithPhone, loadDemo } = useApp();
+  const { signUpWithEmail, signInWithEmail, signInWithPhone, loadDemo } = useApp();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
+  const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('+225 ');
   const [password, setPassword] = useState('');
   const [birth, setBirth] = useState('');
@@ -33,8 +38,12 @@ export default function Onboarding() {
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [busy, setBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  // Mode « Se connecter » (compte existant, ex. après réinstallation).
+  // E-mail de confirmation envoyé → on bascule sur l'écran « Vérifie ta boîte mail ».
+  const [sentTo, setSentTo] = useState<string | null>(null);
+  // Mode « Se connecter » (compte existant). Par e-mail (principal) ou téléphone (hérité).
   const [signInOpen, setSignInOpen] = useState(false);
+  const [siMode, setSiMode] = useState<'email' | 'phone'>('email');
+  const [siEmail, setSiEmail] = useState('');
   const [siPhone, setSiPhone] = useState('+225 ');
   const [siPass, setSiPass] = useState('');
   const [siBusy, setSiBusy] = useState(false);
@@ -52,8 +61,9 @@ export default function Onboarding() {
 
   const validate = (): Partial<Record<FieldKey, string>> => {
     const e: Partial<Record<FieldKey, string>> = {};
-    if (phone.replace(/\D/g, '').length < 8) e.phone = 'Numéro invalide — au moins 8 chiffres.';
+    if (!isEmail(email)) e.email = 'Adresse e-mail invalide.';
     if (password.length < 6) e.password = 'Mot de passe : 6 caractères minimum.';
+    if (phone.replace(/\D/g, '').length < 8) e.phone = 'Numéro invalide — au moins 8 chiffres.';
     if (firstName.trim().length < 2) e.firstName = 'Indique ton prénom (2 lettres minimum).';
     if (lastName.trim().length < 1) e.lastName = 'Indique ton nom.';
     // Date de naissance optionnelle : on ne signale une erreur QUE si elle est mal saisie.
@@ -67,14 +77,14 @@ export default function Onboarding() {
     const e = validate();
     setErrors(e);
     setAuthError(null);
-    const first = (['phone', 'password', 'firstName', 'lastName', 'birth', 'gender'] as FieldKey[]).find((k) => e[k]);
+    const first = (['email', 'password', 'phone', 'firstName', 'lastName', 'birth', 'gender'] as FieldKey[]).find((k) => e[k]);
     if (first) {
       // Scroll automatique vers le premier champ en erreur.
       scrollRef.current?.scrollTo({ y: Math.max(0, (positions.current[first] ?? 0) - 24), animated: true });
       return;
     }
     setBusy(true);
-    const res = await signUpWithPhone(phone, password, {
+    const res = await signUpWithEmail(email, password, phone, {
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       birthDate: birth.trim() || undefined,
@@ -83,19 +93,21 @@ export default function Onboarding() {
       referralCode: referralCode.trim() || undefined,
     });
     setBusy(false);
-    if (res.ok) router.replace('/');
+    if (res.needsConfirm) setSentTo(email.trim().toLowerCase()); // → écran « Vérifie ta boîte mail »
+    else if (res.ok) router.replace('/');
     else setAuthError(res.error ?? 'Inscription impossible. Réessaie.');
   };
 
   const signIn = async () => {
     if (siBusy) return; // garde anti double-tap
-    if (siPhone.replace(/\D/g, '').length < 8 || siPass.length < 6) {
-      setSiError('Numéro et mot de passe requis.');
+    const byEmail = siMode === 'email';
+    if ((byEmail ? !isEmail(siEmail) : siPhone.replace(/\D/g, '').length < 8) || siPass.length < 6) {
+      setSiError(byEmail ? 'E-mail et mot de passe requis.' : 'Numéro et mot de passe requis.');
       return;
     }
     setSiBusy(true);
     setSiError(null);
-    const res = await signInWithPhone(siPhone, siPass);
+    const res = byEmail ? await signInWithEmail(siEmail, siPass) : await signInWithPhone(siPhone, siPass);
     setSiBusy(false);
     if (res.ok) {
       setSignInOpen(false);
@@ -109,6 +121,69 @@ export default function Onboarding() {
   };
 
   const clearError = (k: FieldKey) => setErrors((cur) => (cur[k] ? { ...cur, [k]: undefined } : cur));
+
+  // Écran « Vérifie ta boîte mail » — après l'envoi du lien de confirmation. Le clic sur
+  // le lien rouvre l'app et connecte automatiquement (cf. useEmailConfirmLink).
+  if (sentTo) {
+    return (
+      <View style={styles.root}>
+        <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
+          <Logo size={40} />
+        </LinearGradient>
+        <View style={[styles.body, { alignItems: 'center' }]}>
+          <View style={styles.confirmIcon}>
+            <Ionicons name="mail-unread-outline" size={40} color={colors.signature} />
+          </View>
+          <Txt variant="display" style={{ textAlign: 'center', marginTop: spacing.lg }}>
+            Vérifie ta boîte mail
+          </Txt>
+          <Txt variant="body" color={colors.textMuted} style={{ textAlign: 'center', marginTop: spacing.sm }}>
+            On a envoyé un lien de confirmation à{'\n'}
+            <Txt variant="body" color={colors.text} style={{ fontWeight: '700' }}>
+              {sentTo}
+            </Txt>
+          </Txt>
+          <View style={styles.confirmHint}>
+            <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
+            <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+              Ouvre-le pour activer ton compte — il te ramènera ici automatiquement. Pense à regarder dans les spams.
+            </Txt>
+          </View>
+          <View style={{ width: '100%', marginTop: spacing.xl, gap: spacing.sm }}>
+            <Button
+              label="J'ai confirmé — me connecter"
+              icon="log-in"
+              onPress={() => {
+                setSiMode('email');
+                setSiEmail(sentTo);
+                setSignInOpen(true);
+              }}
+              full
+            />
+            <Button label="Modifier l'adresse" variant="ghost" onPress={() => setSentTo(null)} full />
+          </View>
+        </View>
+
+        {/* Connexion (réutilise la même feuille que l'écran d'inscription). */}
+        <SignInSheet
+          visible={signInOpen}
+          mode={siMode}
+          setMode={setSiMode}
+          email={siEmail}
+          setEmail={setSiEmail}
+          phone={siPhone}
+          setPhone={setSiPhone}
+          pass={siPass}
+          setPass={setSiPass}
+          busy={siBusy}
+          error={siError}
+          onClose={() => setSignInOpen(false)}
+          onSubmit={signIn}
+          clearError={() => setSiError(null)}
+        />
+      </View>
+    );
+  }
 
   return (
     <View style={styles.root}>
@@ -134,7 +209,24 @@ export default function Onboarding() {
             </Txt>
           </View>
 
-          {/* Téléphone d'abord (brief) — c'est l'identifiant clé pour les réservations. */}
+          {/* E-mail : identifiant de connexion (confirmé par un lien envoyé par mail). */}
+          <Field
+            label="Adresse e-mail"
+            value={email}
+            onChangeText={(t) => {
+              setEmail(t);
+              clearError('email');
+            }}
+            placeholder="ex. moustapha@email.com"
+            keyboardType="email-address"
+            autoCapitalize="none"
+            error={errors.email}
+            onLayout={(y) => {
+              positions.current.email = y;
+            }}
+            autoFocus
+          />
+          {/* Téléphone : conservé (sans SMS) pour que les clubs puissent joindre les joueurs. */}
           <Field
             label="Numéro de téléphone"
             value={phone}
@@ -148,7 +240,6 @@ export default function Onboarding() {
             onLayout={(y) => {
               positions.current.phone = y;
             }}
-            autoFocus
           />
           <Field
             label="Mot de passe"
@@ -322,46 +413,120 @@ export default function Onboarding() {
         </View>
       </ScrollView>
 
-      {/* Se connecter à un compte existant (ex. après réinstallation). */}
-      <BottomSheet
+      {/* Se connecter à un compte existant (par e-mail, ou téléphone pour les comptes hérités). */}
+      <SignInSheet
         visible={signInOpen}
-        title="Se connecter"
-        subtitle="Ton compte est enregistré — retrouve-le avec ton numéro et ton mot de passe."
+        mode={siMode}
+        setMode={setSiMode}
+        email={siEmail}
+        setEmail={setSiEmail}
+        phone={siPhone}
+        setPhone={setSiPhone}
+        pass={siPass}
+        setPass={setSiPass}
+        busy={siBusy}
+        error={siError}
         onClose={() => setSignInOpen(false)}
-      >
-        <View style={{ gap: spacing.md }}>
+        onSubmit={signIn}
+        clearError={() => setSiError(null)}
+      />
+    </View>
+  );
+}
+
+// Feuille de connexion — e-mail (principal) ou téléphone (comptes créés avant l'e-mail).
+function SignInSheet({
+  visible,
+  mode,
+  setMode,
+  email,
+  setEmail,
+  phone,
+  setPhone,
+  pass,
+  setPass,
+  busy,
+  error,
+  onClose,
+  onSubmit,
+  clearError,
+}: {
+  visible: boolean;
+  mode: 'email' | 'phone';
+  setMode: (m: 'email' | 'phone') => void;
+  email: string;
+  setEmail: (v: string) => void;
+  phone: string;
+  setPhone: (v: string) => void;
+  pass: string;
+  setPass: (v: string) => void;
+  busy: boolean;
+  error: string | null;
+  onClose: () => void;
+  onSubmit: () => void;
+  clearError: () => void;
+}) {
+  const byEmail = mode === 'email';
+  return (
+    <BottomSheet
+      visible={visible}
+      title="Se connecter"
+      subtitle={byEmail ? 'Retrouve ton compte avec ton e-mail et ton mot de passe.' : 'Connexion par numéro (comptes créés avant l’e-mail).'}
+      onClose={onClose}
+    >
+      <View style={{ gap: spacing.md }}>
+        {byEmail ? (
           <TextInput
-            value={siPhone}
+            value={email}
             onChangeText={(t) => {
-              setSiPhone(t);
-              setSiError(null);
+              setEmail(t);
+              clearError();
+            }}
+            placeholder="ton@email.com"
+            placeholderTextColor={colors.textFaint}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
+        ) : (
+          <TextInput
+            value={phone}
+            onChangeText={(t) => {
+              setPhone(t);
+              clearError();
             }}
             placeholder="+225 07 00 00 00 00"
             placeholderTextColor={colors.textFaint}
             keyboardType="phone-pad"
             style={styles.input}
           />
-          <TextInput
-            value={siPass}
-            onChangeText={(t) => {
-              setSiPass(t);
-              setSiError(null);
-            }}
-            placeholder="Mot de passe"
-            placeholderTextColor={colors.textFaint}
-            secureTextEntry
-            autoCapitalize="none"
-            style={styles.input}
-          />
-          {siError ? (
-            <Txt variant="small" color={colors.danger}>
-              {siError}
-            </Txt>
-          ) : null}
-          <Button label={siBusy ? 'Connexion…' : 'Se connecter'} icon="log-in" onPress={signIn} disabled={siBusy} full />
-        </View>
-      </BottomSheet>
-    </View>
+        )}
+        <TextInput
+          value={pass}
+          onChangeText={(t) => {
+            setPass(t);
+            clearError();
+          }}
+          placeholder="Mot de passe"
+          placeholderTextColor={colors.textFaint}
+          secureTextEntry
+          autoCapitalize="none"
+          style={styles.input}
+        />
+        {error ? (
+          <Txt variant="small" color={colors.danger}>
+            {error}
+          </Txt>
+        ) : null}
+        <Button label={busy ? 'Connexion…' : 'Se connecter'} icon="log-in" onPress={onSubmit} disabled={busy} full />
+        <Pressable onPress={() => setMode(byEmail ? 'phone' : 'email')} style={{ alignItems: 'center', paddingVertical: spacing.xs }}>
+          <Txt variant="small" color={colors.signature}>
+            {byEmail ? 'Se connecter par téléphone' : 'Se connecter par e-mail'}
+          </Txt>
+        </Pressable>
+      </View>
+    </BottomSheet>
   );
 }
 
@@ -382,7 +547,7 @@ function Field({
   value: string;
   onChangeText: (t: string) => void;
   placeholder: string;
-  keyboardType?: 'default' | 'phone-pad' | 'number-pad';
+  keyboardType?: 'default' | 'phone-pad' | 'number-pad' | 'email-address';
   maxLength?: number;
   error?: string;
   onLayout?: (y: number) => void;
@@ -429,6 +594,24 @@ const styles = StyleSheet.create({
     ...shadows.e2,
   },
   heroTitle: { marginTop: spacing.xl, lineHeight: 38 },
+  confirmIcon: {
+    width: 84,
+    height: 84,
+    borderRadius: radius.pill,
+    backgroundColor: colors.signatureSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: spacing.xxl,
+  },
+  confirmHint: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.xl,
+  },
   fieldLabel: { marginTop: spacing.lg },
   authError: {
     flexDirection: 'row',

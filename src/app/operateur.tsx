@@ -1,7 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { BottomSheet } from '@/components/BottomSheet';
 import { Screen } from '@/components/Screen';
+import { useToast } from '@/components/Toast';
 import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { canAccessOperator } from '@/lib/access';
@@ -24,9 +26,11 @@ export default function Operateur() {
     removeOperatorNews,
     fetchClubRequests,
     setClubRequestStatus,
+    approveClubRequest,
     fetchSupportMessages,
     setSupportMessageStatus,
   } = useApp();
+  const toast = useToast();
 
   // Messages d'aide / signalements (table support_messages, RLS opérateur).
   const [support, setSupport] = useState<ServerSupportMessage[]>([]);
@@ -79,6 +83,23 @@ export default function Operateur() {
     if (!ok) setRequests(prev); // échec serveur → on annule l'affichage optimiste
   };
   const pendingRequests = requests.filter((r) => r.status === 'new' || r.status === 'contacted').length;
+
+  // Approbation : demande de confirmation (action forte : crée le club + donne l'accès).
+  const [approveTarget, setApproveTarget] = useState<ServerClubRequest | null>(null);
+  const [approving, setApproving] = useState(false);
+  const confirmApprove = async () => {
+    if (!approveTarget || approving) return;
+    setApproving(true);
+    const { ok } = await approveClubRequest(approveTarget.id);
+    setApproving(false);
+    if (ok) {
+      setRequests((cur) => cur.map((r) => (r.id === approveTarget.id ? { ...r, status: 'approved' } : r)));
+      setApproveTarget(null);
+      toast.show('Club créé et accès accordé ✅');
+    } else {
+      toast.show('Approbation impossible — réessaie', { icon: 'alert-circle' });
+    }
+  };
 
   // Le décompte est HEBDOMADAIRE (semaine calendaire lundi → dimanche).
   const thisWeek = weekKeyOf(Date.now());
@@ -418,7 +439,7 @@ export default function Operateur() {
                   <Button size="sm" label="Rouvrir" icon="arrow-undo" variant="ghost" onPress={() => markRequest(r.id, 'contacted')} />
                 ) : (
                   <>
-                    <Button size="sm" label="Approuver" icon="checkmark" onPress={() => markRequest(r.id, 'approved')} />
+                    <Button size="sm" label="Approuver" icon="checkmark" onPress={() => setApproveTarget(r)} />
                     {r.status !== 'rejected' ? (
                       <Button size="sm" label="Écarter" icon="close" variant="ghost" onPress={() => markRequest(r.id, 'rejected')} />
                     ) : null}
@@ -599,6 +620,32 @@ export default function Operateur() {
           ))}
         </Card>
       </View>
+
+      {/* Confirmation d'approbation — action forte : crée le club + donne l'accès gérant. */}
+      <BottomSheet
+        visible={approveTarget !== null}
+        title={approveTarget ? `Approuver « ${approveTarget.name} » ?` : 'Approuver ce club ?'}
+        subtitle="Le club sera créé et visible par tous les joueurs."
+        onClose={() => (approving ? null : setApproveTarget(null))}
+      >
+        <View style={styles.approveBox}>
+          <Ionicons name="sparkles" size={18} color={colors.signature} />
+          <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+            Le demandeur obtiendra l'accès à <Txt variant="small" style={{ fontWeight: '700' }}>son Espace Club</Txt> dès sa prochaine
+            ouverture de l'app. Aucune manipulation technique de ta part.
+          </Txt>
+        </View>
+        <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
+          <Button
+            label={approving ? 'Création…' : 'Oui, créer le club'}
+            icon="checkmark-circle"
+            onPress={confirmApprove}
+            disabled={approving}
+            full
+          />
+          <Button label="Annuler" variant="secondary" onPress={() => setApproveTarget(null)} disabled={approving} full />
+        </View>
+      </BottomSheet>
     </Screen>
   );
 }
@@ -694,6 +741,14 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   hero: { ...shadows.e2, marginBottom: spacing.md, alignItems: 'flex-start', gap: 2 },
+  approveBox: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.signatureSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+  },
   heroValue: {
     fontSize: 36, // chiffre vitrine (gros) — lineHeight explicite pour éviter le débordement
     lineHeight: 44,

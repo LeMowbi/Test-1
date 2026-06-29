@@ -13,7 +13,8 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
     storage: AsyncStorage, // session persistée sur l'appareil (reste connecté)
     autoRefreshToken: true,
     persistSession: true,
-    detectSessionInUrl: false, // app native, pas de redirection navigateur
+    detectSessionInUrl: false, // app native : on traite le deep link nous-mêmes (cf. useEmailConfirmLink)
+    flowType: 'pkce', // confirmation d'e-mail : le lien renvoie un `code` échangé contre une session
   },
 });
 
