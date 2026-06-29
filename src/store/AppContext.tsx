@@ -17,6 +17,7 @@ import {
   setClubConfirmedRow,
   type SlotOccupancy,
 } from '@/lib/reservations';
+import { claimReferral, referralCodeForUser } from '@/lib/referrals';
 import { phoneToAuthEmail, supabase } from '@/lib/supabase';
 import { ACCENTS } from '@/theme';
 
@@ -231,7 +232,7 @@ type AppContextType = {
   signUpWithPhone: (
     phone: string,
     password: string,
-    profile: { firstName: string; lastName: string; birthDate?: string; gender?: Account['gender']; level?: number },
+    profile: { firstName: string; lastName: string; birthDate?: string; gender?: Account['gender']; level?: number; referralCode?: string },
   ) => Promise<{ ok: boolean; error?: string }>;
   signInWithPhone: (phone: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => void;
@@ -521,9 +522,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           birth_date: profile.birthDate?.trim() || null,
           gender: profile.gender ?? null,
           level,
+          referral_code: referralCodeForUser(userId), // mon code de parrainage (stable)
           updated_at: new Date().toISOString(),
         });
         if (pErr) return { ok: false, error: 'Profil non enregistré — réessaie.' };
+        // Parrainage : si un code a été saisi à l'inscription, on crée le lien parrain→filleul.
+        if (profile.referralCode?.trim()) await claimReferral(profile.referralCode);
         const occ = await fetchOccupancy();
         setState((s) => ({
           ...s,

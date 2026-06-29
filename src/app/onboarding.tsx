@@ -28,6 +28,7 @@ export default function Onboarding() {
   const [gender, setGender] = useState<Gender | null>(null);
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [lvl, setLvl] = useState(3.0);
+  const [referralCode, setReferralCode] = useState(''); // parrainage (facultatif)
   // Erreurs par champ — affichées au tap sur « Créer mon profil » (aucun tap silencieux).
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [busy, setBusy] = useState(false);
@@ -79,6 +80,7 @@ export default function Onboarding() {
       birthDate: birth.trim() || undefined,
       gender: gender!,
       level: lvl,
+      referralCode: referralCode.trim() || undefined,
     });
     setBusy(false);
     if (res.ok) router.replace('/');
@@ -265,6 +267,15 @@ export default function Onboarding() {
               {levelLabel(lvl)} · évoluera selon tes tournois officiels
             </Txt>
           </View>
+
+          {/* Parrainage (facultatif) : code d'un ami qui t'a invité. */}
+          <Field
+            label="Code de parrainage (facultatif)"
+            value={referralCode}
+            onChangeText={(t) => setReferralCode(t.toUpperCase())}
+            placeholder="Ex. A1B2C3D4"
+            autoCapitalize="characters"
+          />
 
           {authError ? (
             <View style={styles.authError}>

@@ -1,19 +1,46 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, View } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Pressable, Share, StyleSheet, View } from 'react-native';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
+import { useToast } from '@/components/Toast';
 import { Button, Card, IconCircle, StatTile, Txt } from '@/components/ui';
 import { openWhatsApp } from '@/lib/contact';
+import { fetchReferralCount, referralCodeForUser } from '@/lib/referrals';
+import { useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
 const APP_URL = 'https://lemowbi.github.io/PadelConnect/';
 
-// Parrainage : l'invitation WhatsApp FONCTIONNE déjà (partage client). Le compteur
-// d'amis ayant rejoint, lui, se synchronisera avec la version connectée (§B serveur).
+// Parrainage : chaque joueur connecté a un CODE unique. Son filleul le saisit à
+// l'inscription → le lien parrain→filleul est créé côté serveur, et le compteur ci-dessous
+// reflète le nombre RÉEL de filleuls (table referrals, RLS). En démo (hors session) : code
+// indisponible, on garde l'invitation simple.
 export default function ParrainageScreen() {
-  const invite = () =>
-    openWhatsApp('', `Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes.\n${APP_URL}`);
+  const { state } = useApp();
+  const toast = useToast();
+  const myCode = state.serverUserId ? referralCodeForUser(state.serverUserId) : null;
+  const [count, setCount] = useState<number | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    if (!state.serverUserId) return;
+    fetchReferralCount().then((n) => {
+      if (alive) setCount(n);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [state.serverUserId]);
+
+  const message =
+    `Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes.` +
+    (myCode ? `\nÀ l'inscription, mets mon code de parrainage : ${myCode}` : '') +
+    `\n${APP_URL}`;
+
+  const invite = () => openWhatsApp('', message);
+  const shareMore = () => Share.share({ message }).catch(() => {});
 
   return (
     <Screen back title="Parrainage" subtitle="Invite tes amis à jouer">
@@ -30,19 +57,55 @@ export default function ParrainageScreen() {
           </Txt>
         </LinearGradient>
 
+        {/* Mon code de parrainage — à partager, tape pour copier dans le message */}
+        {myCode ? (
+          <Pressable onPress={invite} style={styles.codeCard} accessibilityLabel="Partager mon code de parrainage">
+            <View style={{ flex: 1 }}>
+              <Txt variant="label" color={colors.textFaint}>
+                MON CODE DE PARRAINAGE
+              </Txt>
+              <Txt variant="display" color={colors.signature} style={styles.code}>
+                {myCode}
+              </Txt>
+            </View>
+            <View style={styles.shareBtn}>
+              <Ionicons name="share-social" size={18} color={colors.signature} />
+            </View>
+          </Pressable>
+        ) : (
+          <Card style={{ marginTop: spacing.lg, flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
+            <IconCircle icon="information-circle-outline" color={colors.purple} bg={colors.purpleSoft} />
+            <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+              Connecte-toi pour obtenir ton code de parrainage personnel.
+            </Txt>
+          </Card>
+        )}
+
         <View style={styles.stats}>
-          <StatTile value="0" label="Amis rejoints" color={colors.signature} bg={colors.signatureSoft} />
-          <StatTile value="∞" label="Invitations" color={colors.blue} bg={colors.blueSoft} />
+          <StatTile value={count == null ? '—' : `${count}`} label="Amis rejoints" color={colors.signature} bg={colors.signatureSoft} />
+          <StatTile value="∞" label="Invitations" color={colors.amber} bg={colors.amberSoft} />
         </View>
 
-        <View style={{ marginTop: spacing.lg }}>
+        <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
           <Button label="Inviter par WhatsApp" icon="logo-whatsapp" onPress={invite} full pill />
+          {myCode ? (
+            <Button
+              label="Copier mon code"
+              icon="copy-outline"
+              variant="secondary"
+              onPress={() => {
+                shareMore();
+                toast.show(`Ton code : ${myCode}`);
+              }}
+              full
+            />
+          ) : null}
         </View>
 
         <Card style={{ marginTop: spacing.lg, flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
           <IconCircle icon="people-outline" color={colors.purple} bg={colors.purpleSoft} />
           <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-            Le compteur d'amis ayant rejoint se synchronisera avec la version connectée. L'invitation WhatsApp, elle, fonctionne déjà.
+            Ton filleul saisit ton code à l'inscription : il apparaît alors dans ton compteur « Amis rejoints ».
           </Txt>
         </Card>
       </Reveal>
@@ -57,6 +120,26 @@ const styles = StyleSheet.create({
     height: 48,
     borderRadius: radius.md,
     backgroundColor: colors.onPhotoSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  codeCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    marginTop: spacing.lg,
+  },
+  code: { fontSize: 30, letterSpacing: 4, marginTop: 2 },
+  shareBtn: {
+    width: 44,
+    height: 44,
+    borderRadius: radius.pill,
+    backgroundColor: colors.signatureSoft,
     alignItems: 'center',
     justifyContent: 'center',
   },
