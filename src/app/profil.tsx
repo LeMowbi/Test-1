@@ -249,7 +249,7 @@ export default function ProfilScreen() {
               Rappels de match
             </Txt>
             <Txt variant="small" color={colors.textMuted}>
-              Une notification ~2 h avant chaque partie. Tu peux la désactiver ici quand tu veux.
+              Garde cette option activée : les rappels par notification arrivent dans une prochaine mise à jour.
             </Txt>
           </View>
           <Switch

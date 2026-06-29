@@ -48,8 +48,7 @@
           "cameraPermission": false
         }
       ],
-      "expo-image",
-      "expo-notifications"
+      "expo-image"
     ],
     "experiments": {
       "typedRoutes": false,
