@@ -43,8 +43,8 @@ const GROUPS: Group[] = [
     items: [
       {
         icon: 'notifications-outline',
-        title: 'Notifications',
-        text: 'Rappel de match sur ton téléphone, réservation confirmée par le club, place libérée, résultat de tournoi.',
+        title: 'Notifications sociales',
+        text: 'Réservation confirmée par le club, place libérée, résultat de tournoi.',
         tint: colors.purple,
         bg: colors.purpleSoft,
       },

@@ -12,7 +12,7 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "ci.padelco.app",
-      "buildNumber": "13",
+      "buildNumber": "15",
       "config": {
         "usesNonExemptEncryption": false
       }
@@ -48,7 +48,8 @@
           "cameraPermission": false
         }
       ],
-      "expo-image"
+      "expo-image",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": false,
