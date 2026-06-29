@@ -17,6 +17,7 @@ import {
   setClubConfirmedRow,
   type SlotOccupancy,
 } from '@/lib/reservations';
+import { cancelMatchReminder, scheduleMatchReminder, syncMatchReminders } from '@/lib/notifications';
 import { claimReferral, referralCodeForUser } from '@/lib/referrals';
 import { phoneToAuthEmail, supabase } from '@/lib/supabase';
 import { ACCENTS } from '@/theme';
@@ -390,10 +391,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           reservations: reservationsRes.ok ? reservationsRes.reservations : s.reservations,
           occupancy: occ,
         }));
+        // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses).
+        if (reservationsRes.ok) {
+          const mine = reservationsRes.reservations.filter((r) => (!r.userId || r.userId === userId) && r.startsAt > Date.now());
+          void syncMatchReminders(mine, state.remindersOn);
+        }
       } catch {
         // getSession a échoué (réseau) : on reste sur l'état local hydraté, sans crash.
       }
     })();
+    // Effet de DÉMARRAGE uniquement (à l'hydratation) — on lit remindersOn tel qu'hydraté ;
+    // on ne veut pas relancer la session/les fetchs à chaque bascule de l'interrupteur.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
   useEffect(() => {
@@ -623,7 +632,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ],
           };
         }),
-      setRemindersOn: (on) => setState((s) => ({ ...s, remindersOn: on })),
+      setRemindersOn: (on) => {
+        setState((s) => ({ ...s, remindersOn: on }));
+        // (Dé)programme les rappels locaux pour toutes mes résas à venir selon l'interrupteur.
+        const upcoming = state.reservations.filter((r) => r.startsAt > Date.now());
+        void syncMatchReminders(upcoming, on);
+      },
       setReserverView: (v) => setState((s) => ({ ...s, reserverView: v })),
       addReview: (clubId, rating, text) =>
         setState((s) => ({
@@ -678,14 +692,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             reservations: [created, ...s.reservations.filter((x) => x.id !== created.id)],
             occupancy: [...s.occupancy, { clubId: created.clubId, dateKey: created.dateKey, time: created.time, court: created.court }],
           }));
+          if (state.remindersOn) void scheduleMatchReminder(created); // rappel local ~2 h avant
           return true;
         }
 
         // Mode LOCAL (démo, hors session) : comportement d'origine.
+        const localId = uid();
         setState((s) => {
           if (s.reservations.some(sameSlot)) return s;
-          return { ...s, reservations: [{ ...r, bookedBy, id: uid(), createdAt: Date.now() }, ...s.reservations] };
+          return { ...s, reservations: [{ ...r, bookedBy, id: localId, createdAt: Date.now() }, ...s.reservations] };
         });
+        if (state.remindersOn) void scheduleMatchReminder({ ...r, id: localId });
         return true;
       },
       cancelReservation: async (id) => {
@@ -695,6 +712,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const ok = await deleteReservationRow(id);
           if (!ok) return;
         }
+        void cancelMatchReminder(id); // on retire son rappel local
+
         setState((s) => ({
           ...s,
           reservations: s.reservations.filter((r) => r.id !== id),

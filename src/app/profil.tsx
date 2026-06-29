@@ -249,7 +249,7 @@ export default function ProfilScreen() {
               Rappels de match
             </Txt>
             <Txt variant="small" color={colors.textMuted}>
-              Carte de rappel avant chaque partie. (Les notifications téléphone arrivent avec l'app installée.)
+              Une notification ~2 h avant chaque partie. Tu peux la désactiver ici quand tu veux.
             </Txt>
           </View>
           <Switch

@@ -23,13 +23,6 @@ const GROUPS: Group[] = [
     title: 'Confiance & qualité',
     items: [
       {
-        icon: 'shield-checkmark-outline',
-        title: 'Avis vérifiés',
-        text: 'Noter un club seulement après une partie réellement jouée.',
-        tint: colors.green,
-        bg: colors.greenSoft,
-      },
-      {
         icon: 'ribbon-outline',
         title: 'Score de fiabilité',
         text: 'Présences/annulations, visible par le club uniquement — jamais public.',
@@ -50,24 +43,10 @@ const GROUPS: Group[] = [
     items: [
       {
         icon: 'notifications-outline',
-        title: 'Notifications',
-        text: 'Réservation confirmée, place libérée, rappel de match, résultat de tournoi.',
+        title: 'Notifications sociales',
+        text: 'Réservation confirmée par le club, place libérée, résultat de tournoi.',
         tint: colors.purple,
         bg: colors.purpleSoft,
-      },
-      {
-        icon: 'time-outline',
-        title: 'Rappel + itinéraire',
-        text: 'Rappel la veille et 2 h avant, avec l’itinéraire vers le club.',
-        tint: colors.blue,
-        bg: colors.blueSoft,
-      },
-      {
-        icon: 'logo-whatsapp',
-        title: 'Parrainage',
-        text: 'Invite tes amis par WhatsApp et suis combien t’ont rejoint.',
-        tint: colors.green,
-        bg: colors.greenSoft,
       },
       {
         icon: 'hand-left-outline',
