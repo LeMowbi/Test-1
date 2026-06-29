@@ -26,16 +26,8 @@ const CLUB_TYPES: Club['type'][] = ['Couvert', 'Extérieur', 'Mixte'];
 
 export default function ClubAdmin() {
   const router = useRouter();
-  const {
-    state,
-    setManagedClub,
-    requestClub,
-    cancelOwnClubRequest,
-    closeCompetition,
-    deleteCompetition,
-    blockSlot,
-    unblockSlot,
-  } = useApp();
+  const { state, setManagedClub, requestClub, cancelOwnClubRequest, closeCompetition, deleteCompetition, blockSlot, unblockSlot } =
+    useApp();
   const toast = useToast();
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
@@ -53,9 +45,10 @@ export default function ClubAdmin() {
   const [ncPhone, setNcPhone] = useState('');
 
   const manageable = manageableClubs(state.customClubs, state.clubInfo);
-  // Un compte 'club' gère le club que le serveur lui a attribué (serverManagedClubId).
-  // L'opérateur peut basculer librement (managedClubId local).
-  const managedId = state.role === 'club' ? (state.serverManagedClubId ?? state.managedClubId) : state.managedClubId;
+  // Un compte 'club' gère UNIQUEMENT le club que le serveur lui a attribué
+  // (serverManagedClubId). L'opérateur, lui, peut basculer librement.
+  const isOperator = state.role === 'operator';
+  const managedId = isOperator ? state.managedClubId : (state.serverManagedClubId ?? undefined);
   const club = findClub(managedId, state.customClubs, state.clubInfo) ?? clubsByName[0];
   const pendingOwn = state.customClubs.find((c) => c.id === club.id)?.status === 'pending';
 
@@ -112,26 +105,58 @@ export default function ClubAdmin() {
     );
   }
 
+  // Compte 'club' sans club rattaché (serverManagedClubId nul) : on NE retombe PAS sur
+  // un club réel par défaut — on bloque proprement (sinon il éditerait le club d'un autre).
+  if (!isOperator && !state.serverManagedClubId) {
+    return (
+      <Screen back title="Espace Club">
+        <Card style={{ marginTop: spacing.md, alignItems: 'center', paddingVertical: spacing.xl }}>
+          <Ionicons name="business-outline" size={28} color={colors.textFaint} />
+          <Txt variant="h3" style={{ marginTop: spacing.sm }}>
+            Aucun club rattaché
+          </Txt>
+          <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
+            Ton compte n'est rattaché à aucun club pour l'instant. Contacte PadelConnect pour activer ton club.
+          </Txt>
+        </Card>
+      </Screen>
+    );
+  }
+
   return (
     <Screen back title="Espace Club" subtitle="Gérez votre club">
       {header}
 
-      {/* Club géré */}
+      {/* Mode démo : tant que créneaux/photos/infos vivent en local, on le dit clairement. */}
+      <View style={styles.demoBanner}>
+        <Ionicons name="flask-outline" size={15} color={colors.amberDark} />
+        <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+          Démo de l'interface gérant — tes modifications restent sur cet appareil pour l'instant.
+        </Txt>
+      </View>
+
+      {/* Club géré — l'opérateur peut basculer entre clubs ; un compte club voit le sien. */}
       <View style={{ marginTop: spacing.lg }}>
         <SectionHeader title="Club géré" />
-        <View style={styles.wrap}>
-          {manageable.map((c) => {
-            const isPending = state.customClubs.find((x) => x.id === c.id)?.status === 'pending';
-            return (
-              <Chip
-                key={c.id}
-                label={isPending ? `${c.name} · en attente` : c.name}
-                active={c.id === club.id}
-                onPress={() => setManagedClub(c.id)}
-              />
-            );
-          })}
-        </View>
+        {isOperator ? (
+          <View style={styles.wrap}>
+            {manageable.map((c) => {
+              const isPending = state.customClubs.find((x) => x.id === c.id)?.status === 'pending';
+              return (
+                <Chip
+                  key={c.id}
+                  label={isPending ? `${c.name} · en attente` : c.name}
+                  active={c.id === club.id}
+                  onPress={() => setManagedClub(c.id)}
+                />
+              );
+            })}
+          </View>
+        ) : (
+          <View style={styles.wrap}>
+            <Chip label={club.name} active onPress={() => {}} />
+          </View>
+        )}
 
         {/* Inscription d'un nouveau club — validée par PadelConnect */}
         <Pressable onPress={() => setShowSignup((v) => !v)} style={styles.signupLink}>
@@ -320,7 +345,10 @@ export default function ClubAdmin() {
                                 cellTs,
                               );
                               setBlockingCourt(null);
-                              toast.show(ok ? 'Créneau bloqué' : 'Impossible de bloquer ce créneau', ok ? undefined : { icon: 'alert-circle' });
+                              toast.show(
+                                ok ? 'Créneau bloqué' : 'Impossible de bloquer ce créneau',
+                                ok ? undefined : { icon: 'alert-circle' },
+                              );
                             }}
                           />
                         ))}
@@ -369,6 +397,15 @@ export default function ClubAdmin() {
 
 const styles = StyleSheet.create({
   note: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.md },
+  demoBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.amberSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',

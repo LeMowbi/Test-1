@@ -8,7 +8,7 @@ export function Logo({ size = 30, tagline }: { size?: number; tagline?: string }
       <Image source={require('../../assets/images/brand-mark.png')} style={{ width: size, height: size }} resizeMode="contain" />
       <View>
         <Text style={styles.word}>
-          Padel<Text style={{ color: colors.signature }}>Connect</Text>
+          Padel<Text style={{ color: colors.signature, fontFamily: font.family.heavy }}>Connect</Text>
         </Text>
         {tagline ? <Text style={styles.tagline}>{tagline}</Text> : null}
       </View>
@@ -28,6 +28,7 @@ const styles = StyleSheet.create({
   tagline: {
     color: colors.textFaint,
     fontSize: 10,
+    fontFamily: font.family.bodySemi,
     fontWeight: font.weight.semibold,
     letterSpacing: 1.2,
     textTransform: 'uppercase',

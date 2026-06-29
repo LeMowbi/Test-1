@@ -14,7 +14,7 @@ import { clubGallery, defaultCourts, findClub, offersForClub } from '@/data/club
 import { coaches } from '@/data/coaches';
 import { isTournamentPublic, seedCompetitions } from '@/data/competitions';
 import { ratingFor, reviewsFor } from '@/data/reviews';
-import { useApp } from '@/store/AppContext';
+import { isPlayed, useApp } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
 import { fcfa, initials } from '@/lib/format';
 import { groupTiersByLabel, minPrice, priceTiersFor } from '@/lib/pricing';
@@ -73,7 +73,12 @@ export default function ClubDetail() {
   const tierGroups = groupTiersByLabel(tiers);
   const activeTier = tierGroups.length ? tierGroups[Math.min(tierTab, tierGroups.length - 1)] : null;
 
+  // Avis VÉRIFIÉ : on ne peut noter un club qu'après y avoir réellement joué (une résa
+  // passée à ce club). Sinon, le formulaire laisse place à une invitation à jouer d'abord.
+  const hasPlayedHere = state.reservations.some((r) => r.clubId === club.id && isPlayed(r));
+
   const submit = () => {
+    if (!hasPlayedHere) return; // garde-fou : pas de note sans partie jouée
     if (rating === 0) {
       setNoteError(true); // plus de tap silencieux : on demande la note
       return;
@@ -419,6 +424,16 @@ export default function ClubDetail() {
                 Merci pour ton avis !
               </Txt>
               <Button label="Ajouter un autre avis" variant="ghost" onPress={() => setSent(false)} />
+            </View>
+          ) : !hasPlayedHere ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+              <IconCircle icon="shield-checkmark" color={colors.green} bg={colors.greenSoft} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3" style={{ fontSize: 15 }}>
+                  Avis vérifiés
+                </Txt>
+                <Txt variant="muted">Joue une première fois ici pour pouvoir laisser ton avis.</Txt>
+              </View>
             </View>
           ) : (
             <>

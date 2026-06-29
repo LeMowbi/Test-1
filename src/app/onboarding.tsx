@@ -62,6 +62,7 @@ export default function Onboarding() {
   };
 
   const create = async () => {
+    if (busy) return; // garde anti double-tap (évite deux signUp → « déjà un compte »)
     const e = validate();
     setErrors(e);
     setAuthError(null);
@@ -85,6 +86,7 @@ export default function Onboarding() {
   };
 
   const signIn = async () => {
+    if (siBusy) return; // garde anti double-tap
     if (siPhone.replace(/\D/g, '').length < 8 || siPass.length < 6) {
       setSiError('Numéro et mot de passe requis.');
       return;

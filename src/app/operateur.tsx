@@ -30,17 +30,21 @@ export default function Operateur() {
   // seul opérateur via RLS). Un joueur les envoie depuis « Inscrire mon club ».
   const [requests, setRequests] = useState<ServerClubRequest[]>([]);
   const [loadingReq, setLoadingReq] = useState(true);
+  const [reqError, setReqError] = useState(false);
   const loadRequests = useCallback(async () => {
     setLoadingReq(true);
-    setRequests(await fetchClubRequests());
+    const { ok, requests: rows } = await fetchClubRequests();
+    setReqError(!ok);
+    setRequests(rows);
     setLoadingReq(false);
   }, [fetchClubRequests]);
   // Chargement initial : on n'appelle setState que DANS le callback async (après await),
   // jamais de façon synchrone dans le corps de l'effet (cf. react-hooks/set-state-in-effect).
   useEffect(() => {
     let alive = true;
-    fetchClubRequests().then((rows) => {
+    fetchClubRequests().then(({ ok, requests: rows }) => {
       if (!alive) return;
+      setReqError(!ok);
       setRequests(rows);
       setLoadingReq(false);
     });
@@ -50,8 +54,10 @@ export default function Operateur() {
   }, [fetchClubRequests]);
 
   const markRequest = async (id: string, status: ServerClubRequest['status']) => {
+    const prev = requests;
     setRequests((cur) => cur.map((r) => (r.id === id ? { ...r, status } : r)));
-    await setClubRequestStatus(id, status);
+    const { ok } = await setClubRequestStatus(id, status);
+    if (!ok) setRequests(prev); // échec serveur → on annule l'affichage optimiste
   };
   const pendingRequests = requests.filter((r) => r.status === 'new' || r.status === 'contacted').length;
 
@@ -61,16 +67,20 @@ export default function Operateur() {
 
   // La commission se calcule UNIQUEMENT sur les parties JOUÉES de la semaine
   // (une résa à venir peut encore être annulée — le club contesterait).
+  // Prix d'une résa — MÊME règle partout (hebdo et cumulé) pour que le chiffre vitrine
+  // ne sous-estime jamais la somme des semaines : prix figé, sinon tarif actuel du club.
+  const priceOf = (r: (typeof state.reservations)[number]) =>
+    r.price ?? findClub(r.clubId, state.customClubs, state.clubInfo)?.priceFrom ?? 0;
+
   const weekAll = state.reservations.filter((r) => weekKeyOf(r.startsAt) === week);
   const weekPlayed = weekAll.filter((r) => isPlayed(r));
   const weekUpcoming = weekAll.length - weekPlayed.length;
   const groups = new Map<string, { clubName: string; count: number; revenue: number; items: typeof state.reservations }>();
   for (const r of weekPlayed) {
     // Volume = somme des PRIX RÉELS des créneaux réservés (figés à la réservation).
-    const price = r.price ?? findClub(r.clubId, state.customClubs, state.clubInfo)?.priceFrom ?? 0;
     const g = groups.get(r.clubId) ?? { clubName: r.clubName, count: 0, revenue: 0, items: [] };
     g.count += 1;
-    g.revenue += price;
+    g.revenue += priceOf(r);
     g.items.push(r);
     groups.set(r.clubId, g);
   }
@@ -81,7 +91,7 @@ export default function Operateur() {
   // Commission cumulée DEPUIS LE LANCEMENT (toutes semaines) — chiffre vitrine.
   const allTimePlayedRes = state.reservations.filter((r) => isPlayed(r));
   const allTimePlayed = allTimePlayedRes.length;
-  const allTimeCommission = Math.round(allTimePlayedRes.reduce((s, r) => s + (r.price ?? 0), 0) * COMMISSION_RATE);
+  const allTimeCommission = Math.round(allTimePlayedRes.reduce((s, r) => s + priceOf(r), 0) * COMMISSION_RATE);
 
   const totalCount = rows.reduce((s, r) => s + r.count, 0);
   const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
@@ -312,6 +322,13 @@ export default function Operateur() {
           <Card>
             <Txt variant="muted">Chargement des demandes…</Txt>
           </Card>
+        ) : reqError ? (
+          <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <Ionicons name="cloud-offline-outline" size={20} color={colors.coral} />
+            <Txt variant="muted" style={{ flex: 1 }}>
+              Impossible de charger les demandes (réseau ou session). Touche ⟳ pour réessayer.
+            </Txt>
+          </Card>
         ) : requests.length === 0 ? (
           <Card>
             <Txt variant="muted">
@@ -399,13 +416,15 @@ export default function Operateur() {
         )}
       </View>
 
-      {/* Clubs en démo locale — flux gérant historique (sans serveur). */}
+      {/* Clubs en démo locale — flux gérant historique (sans serveur). À ne pas confondre
+          avec « Demandes reçues » ci-dessus, qui vient du serveur. */}
       <View style={{ marginTop: spacing.xl }}>
-        <SectionHeader title={`Nouveaux clubs · ${state.customClubs.length}`} />
+        <SectionHeader title={`Clubs démo (local) · ${state.customClubs.length}`} />
         {state.customClubs.length === 0 ? (
           <Card>
             <Txt variant="muted">
-              Quand un gérant inscrit son club depuis l'Espace Club, sa demande arrive ici : c'est toi qui actives sa visibilité.
+              Clubs créés en local depuis l'Espace Club (démo). Les vraies demandes d'inscription arrivent dans « Demandes reçues »
+              ci-dessus. Ici, « Activer » rend un club démo visible des joueurs.
             </Txt>
           </Card>
         ) : (

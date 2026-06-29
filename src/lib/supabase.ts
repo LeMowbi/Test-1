@@ -17,12 +17,28 @@ export const supabase = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
   },
 });
 
+// ─── Normalisation du numéro (Côte d'Ivoire) ─────────────────────────────────
+// Un même numéro peut être saisi de plusieurs façons : « 0707070707 »,
+// « +225 07 07 07 07 07 », « 00225 0707070707 »… Sans canonicalisation, chaque
+// variante crée un compte DIFFÉRENT (ou pire, deux numéros se confondent). On
+// ramène tout à une forme unique « 225 + numéro local 10 chiffres » avant de
+// construire l'e-mail interne, pour que connexion et inscription tombent juste.
+// Numéros mobiles ivoiriens : 10 chiffres locaux (le 0 de tête fait partie du
+// numéro), indicatif pays 225. On NE retire JAMAIS le 0 local (il porte le préfixe
+// opérateur 07/05/01…). On ne touche pas aux numéros étrangers (autre indicatif).
+export function normalizePhone(phone: string): string {
+  let d = phone.replace(/\D/g, '');
+  if (d.startsWith('00')) d = d.slice(2); // préfixe international « 00 » → retiré
+  if (d.startsWith('225') && d.length === 13) return d; // déjà 225 + 10 chiffres
+  if (d.length === 10) return `225${d}`; // numéro local → on préfixe l'indicatif
+  return d; // tout le reste (étranger, format inhabituel) : laissé tel quel
+}
+
 // ─── Connexion « téléphone + mot de passe » SANS SMS ─────────────────────────
 // Supabase n'autorise le canal « téléphone » qu'avec un fournisseur SMS payant.
 // Astuce : on mappe le numéro vers un e-mail interne non routable et on s'appuie sur
 // l'auth e-mail/mot de passe (confirmation d'e-mail désactivée côté Supabase).
 // L'utilisateur ne voit JAMAIS cet e-mail : il saisit seulement son numéro.
 export function phoneToAuthEmail(phone: string): string {
-  const digits = phone.replace(/\D/g, '');
-  return `p${digits}@phone.padelconnect.app`;
+  return `p${normalizePhone(phone)}@phone.padelconnect.app`;
 }

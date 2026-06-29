@@ -5,9 +5,28 @@
 alter table public.profiles add column if not exists role text not null default 'player';
 alter table public.profiles add column if not exists managed_club_id text; -- club géré (compte club)
 
--- Empêche un utilisateur de se PROMOUVOIR lui-même : si quelqu'un tente de changer
--- son propre role / managed_club_id depuis l'app, on rétablit l'ancienne valeur.
--- (Seules les modifs faites côté serveur — SQL Editor, où auth.uid() est nul — passent.)
+-- Empêche un utilisateur de se PROMOUVOIR lui-même.
+-- IMPORTANT : il faut couvrir l'INSERT *et* l'UPDATE. À l'inscription, l'app fait un
+-- `upsert` → la 1ʳᵉ fois c'est un INSERT : un client malveillant pourrait y glisser
+-- `role:'operator'`. On force donc, pour toute écriture faite par le propriétaire du
+-- compte (auth.uid() = new.id), role='player' et managed_club_id=null.
+-- Seules les modifs côté serveur (SQL Editor / service role, où auth.uid() est nul)
+-- peuvent attribuer un rôle 'club' ou 'operator'.
+create or replace function public.protect_role_ins()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if auth.uid() = new.id then
+    new.role := 'player';
+    new.managed_club_id := null;
+  end if;
+  return new;
+end;
+$$;
+
 create or replace function public.protect_role()
 returns trigger
 language plpgsql
@@ -23,6 +42,11 @@ begin
   return new;
 end;
 $$;
+
+drop trigger if exists protect_role_ins_trg on public.profiles;
+create trigger protect_role_ins_trg
+  before insert on public.profiles
+  for each row execute function public.protect_role_ins();
 
 drop trigger if exists protect_role_trg on public.profiles;
 create trigger protect_role_trg

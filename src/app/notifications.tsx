@@ -3,7 +3,7 @@ import { View } from 'react-native';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
-import { colors, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
 // APERÇU §B (version connectée) — écran STATIQUE de démonstration, NON câblé.
 // Les notifications réelles (push, état partagé) relèvent du serveur (cf. « La suite »).
@@ -123,7 +123,7 @@ const styles_note = {
   alignItems: 'center' as const,
   gap: spacing.sm,
   backgroundColor: colors.surfaceAlt,
-  borderRadius: 14,
+  borderRadius: radius.md,
   padding: spacing.md,
   marginTop: spacing.sm,
 };

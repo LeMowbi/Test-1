@@ -110,7 +110,7 @@ export default function ReserverScreen() {
             Terrain réservé !
           </Txt>
           <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
-            Le club la reçoit dans son Espace Club et la confirme. Tu recevras un rappel avant le match.
+            Le club la reçoit dans son Espace Club et la confirme. Retrouve-la à tout moment dans « Mes réservations ».
           </Txt>
           <View style={styles.summary}>
             <Row label="Club" value={club.name} />

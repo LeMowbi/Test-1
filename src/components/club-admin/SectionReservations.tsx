@@ -73,7 +73,7 @@ export function SectionReservations({
       {/* Vue d'ensemble */}
       <View style={styles.stats}>
         <StatTile value={upcomingRes.length} label="À venir" color={colors.signature} bg={colors.signatureSoft} />
-        <StatTile value={pastRes.length} label="Jouées" color={colors.blue} bg={colors.blueSoft} />
+        <StatTile value={pastRes.length} label="Jouées" color={colors.amber} bg={colors.amberSoft} />
         <StatTile value={clubRes.length} label="Total" color={colors.green} bg={colors.greenSoft} />
       </View>
 

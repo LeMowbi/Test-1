@@ -233,7 +233,7 @@ const tag = StyleSheet.create({
     borderRadius: radius.pill,
     alignSelf: 'flex-start',
   },
-  text: { fontSize: font.size.xs, fontWeight: font.weight.semibold },
+  text: { fontSize: font.size.xs, fontFamily: font.family.bodySemi, fontWeight: font.weight.semibold },
 });
 
 /* ----------------------------- Section / divers --------------------------- */

@@ -168,7 +168,10 @@ const initialState: AppState = {
   myCompetitions: [],
   reservations: [],
   favoriteClubIds: [],
-  friends: seedFriends,
+  // Un compte RÉEL démarre sans ami (les amis de démo ne vivent que dans loadDemo).
+  // Sinon « Mes amis · 4 », le trophée « 5 amis » à 4/5 et la relance « 0 ami »
+  // seraient faux dès l'inscription.
+  friends: [],
   officialResults: [],
   compRegistrations: {},
   compResults: {},
@@ -272,8 +275,9 @@ type AppContextType = {
     message?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
   // L'opérateur lit toutes les demandes (RLS) ; setStatus met à jour une demande.
-  fetchClubRequests: () => Promise<ServerClubRequest[]>;
-  setClubRequestStatus: (id: string, status: ServerClubRequest['status']) => Promise<void>;
+  // On renvoie un drapeau ok pour distinguer « vide » d'un échec réseau/RLS.
+  fetchClubRequests: () => Promise<{ ok: boolean; requests: ServerClubRequest[] }>;
+  setClubRequestStatus: (id: string, status: ServerClubRequest['status']) => Promise<{ ok: boolean }>;
   approveClub: (id: string) => void;
   rejectClub: (id: string) => void;
   unlockClub: (clubId: string, code: string) => boolean;
@@ -334,27 +338,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!hydrated) return;
     (async () => {
-      const {
-        data: { session },
-      } = await supabase.auth.getSession();
-      const userId = session?.user?.id;
-      if (!userId) return;
-      const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-      if (!prof) return;
-      setState((s) => ({
-        ...s,
-        account: {
-          firstName: prof.first_name ?? s.account?.firstName ?? '',
-          lastName: prof.last_name ?? s.account?.lastName ?? '',
-          phone: prof.phone ?? s.account?.phone ?? '',
-          photoUri: prof.photo_uri ?? s.account?.photoUri,
-          birthDate: prof.birth_date ?? s.account?.birthDate,
-          gender: prof.gender ?? s.account?.gender,
-        },
-        role: (prof.role as AppState['role']) ?? 'player',
-        serverManagedClubId: prof.managed_club_id ?? null,
-        level: clampLevel(Number(prof.level ?? s.level)),
-      }));
+      try {
+        const {
+          data: { session },
+        } = await supabase.auth.getSession();
+        const userId = session?.user?.id;
+        if (!userId) return;
+        const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
+        // Hors-ligne / erreur réseau : on GARDE le profil et le rôle persistés localement
+        // (pas de rétrogradation silencieuse d'un gérant/opérateur qui ouvre l'app sans réseau).
+        if (error || !prof) return;
+        setState((s) => ({
+          ...s,
+          account: {
+            firstName: prof.first_name ?? s.account?.firstName ?? '',
+            lastName: prof.last_name ?? s.account?.lastName ?? '',
+            phone: prof.phone ?? s.account?.phone ?? '',
+            photoUri: prof.photo_uri ?? s.account?.photoUri,
+            birthDate: prof.birth_date ?? s.account?.birthDate,
+            gender: prof.gender ?? s.account?.gender,
+          },
+          role: (prof.role as AppState['role']) ?? 'player',
+          serverManagedClubId: prof.managed_club_id ?? null,
+          level: clampLevel(Number(prof.level ?? s.level)),
+        }));
+      } catch {
+        // getSession a échoué (réseau) : on reste sur l'état local hydraté, sans crash.
+      }
     })();
   }, [hydrated]);
 
@@ -403,6 +413,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ...initialState,
             account: { firstName: 'Invité', lastName: 'Démo', phone: '+225 07 00 00 00 00', birthDate: '12/08/1998', gender: 'nd' },
             level: 3.5,
+            friends: seedFriends, // les amis de démo n'existent que dans ce parcours « Invité »
             favoriteClubIds: ['padelta'],
             reservations: [
               {
@@ -774,11 +785,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       fetchClubRequests: async () => {
         const { data, error } = await supabase.from('club_requests').select('*').order('created_at', { ascending: false });
-        if (error) return [];
-        return (data ?? []) as ServerClubRequest[];
+        // On distingue « rien à traiter » d'un échec (réseau / RLS) : l'opérateur ne doit
+        // pas croire qu'il n'y a aucune demande alors que le chargement a juste échoué.
+        if (error) return { ok: false, requests: [] };
+        return { ok: true, requests: (data ?? []) as ServerClubRequest[] };
       },
       setClubRequestStatus: async (id, status) => {
-        await supabase.from('club_requests').update({ status }).eq('id', id);
+        const { error } = await supabase.from('club_requests').update({ status }).eq('id', id);
+        return { ok: !error };
       },
       approveClub: (id) =>
         setState((s) => ({
