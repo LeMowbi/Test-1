@@ -7,8 +7,6 @@ import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
 import { Button, Card, IconCircle, Txt } from '@/components/ui';
 import { type Club } from '@/data/clubs';
-import { openWhatsApp } from '@/lib/contact';
-import { hasOperatorContact, OPERATOR_WHATSAPP } from '@/lib/operator';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -56,13 +54,6 @@ export default function InscrireClub() {
     }
   };
 
-  // Message pré-rempli pour le contact direct WhatsApp (canal n°1 en Côte d'Ivoire).
-  const waMessage =
-    `Bonjour PadelConnect 👋\n` +
-    `Je gère un club de padel et j'aimerais le référencer.\n` +
-    (name ? `Club : ${name}\n` : '') +
-    (area ? `Quartier : ${area}\n` : '');
-
   if (sent) {
     return (
       <Screen back title="Inscrire mon club">
@@ -73,17 +64,8 @@ export default function InscrireClub() {
           </Txt>
           <Txt variant="muted" style={{ textAlign: 'center' }}>
             PadelConnect a bien reçu ta demande pour <Txt style={{ fontWeight: '700' }}>{name.trim()}</Txt>. Nous te recontactons rapidement
-            pour activer ta page club.
+            au numéro indiqué pour activer ta page club.
           </Txt>
-          {hasOperatorContact ? (
-            <Button
-              label="Nous écrire sur WhatsApp"
-              icon="logo-whatsapp"
-              variant="secondary"
-              onPress={() => openWhatsApp(OPERATOR_WHATSAPP, waMessage)}
-              full
-            />
-          ) : null}
           <Button label="Revenir à mon profil" icon="arrow-back" variant="ghost" onPress={() => router.back()} full />
         </Card>
       </Screen>
@@ -161,29 +143,11 @@ export default function InscrireClub() {
 
       <View style={{ marginTop: spacing.lg, gap: spacing.sm }}>
         <Button label={sending ? 'Envoi…' : 'Envoyer ma demande'} icon="paper-plane" onPress={submit} disabled={!ready || sending} full />
-        {hasOperatorContact ? (
-          <>
-            <View style={styles.or}>
-              <View style={styles.orLine} />
-              <Txt variant="small" color={colors.textFaint}>
-                ou
-              </Txt>
-              <View style={styles.orLine} />
-            </View>
-            <Button
-              label="Nous contacter directement sur WhatsApp"
-              icon="logo-whatsapp"
-              variant="secondary"
-              onPress={() => openWhatsApp(OPERATOR_WHATSAPP, waMessage)}
-              full
-            />
-          </>
-        ) : null}
         <View style={styles.privacy}>
           <Ionicons name="lock-closed-outline" size={13} color={colors.textFaint} />
           <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
             Tes infos servent uniquement à te recontacter. Inscrire un club ne donne pas accès à l'espace gérant tant que PadelConnect ne
-            l'a pas activé.
+            l'a pas activé. Tu pourras nous contacter directement après l'envoi.
           </Txt>
         </View>
       </View>
@@ -204,7 +168,5 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
-  or: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginVertical: spacing.xs },
-  orLine: { flex: 1, height: 1, backgroundColor: colors.border },
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginTop: spacing.sm },
 });

@@ -305,13 +305,21 @@ export default function ProfilScreen() {
         </View>
       ) : null}
 
-      {/* Parrainage — invite tes amis (fonction réelle) */}
-      <View style={{ marginTop: spacing.xl }}>
+      {/* Parrainage + Aide */}
+      <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
         <Card onPress={() => router.push('/parrainage')} style={styles.cta}>
           <IconCircle icon="gift-outline" color={colors.green} bg={colors.greenSoft} />
           <View style={{ flex: 1 }}>
             <Txt variant="h3">Parrainage</Txt>
             <Txt variant="muted">Invite tes amis et suis tes filleuls.</Txt>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </Card>
+        <Card onPress={() => router.push('/support')} style={styles.cta}>
+          <IconCircle icon="help-buoy-outline" color={colors.purple} bg={colors.purpleSoft} />
+          <View style={{ flex: 1 }}>
+            <Txt variant="h3">Aide & support</Txt>
+            <Txt variant="muted">Un souci ? Signale-le ou inscris ton club.</Txt>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </Card>

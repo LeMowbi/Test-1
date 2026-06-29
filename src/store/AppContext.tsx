@@ -47,6 +47,16 @@ export type ServerClubRequest = {
   created_at: string;
 };
 
+// Message d'aide / signalement envoyé par un joueur (table public.support_messages).
+export type ServerSupportMessage = {
+  id: string;
+  name: string | null;
+  contact_phone: string | null;
+  message: string;
+  status: 'new' | 'read' | 'resolved';
+  created_at: string;
+};
+
 export type Reservation = {
   id: string;
   userId?: string; // auteur côté serveur (sert à filtrer « mes » résas en mode club/opérateur)
@@ -296,6 +306,10 @@ type AppContextType = {
   // On renvoie un drapeau ok pour distinguer « vide » d'un échec réseau/RLS.
   fetchClubRequests: () => Promise<{ ok: boolean; requests: ServerClubRequest[] }>;
   setClubRequestStatus: (id: string, status: ServerClubRequest['status']) => Promise<{ ok: boolean }>;
+  // Aide / signalements : le joueur envoie un message, l'opérateur les lit/traite.
+  submitSupportMessage: (message: string, contactPhone?: string) => Promise<{ ok: boolean; error?: string }>;
+  fetchSupportMessages: () => Promise<{ ok: boolean; messages: ServerSupportMessage[] }>;
+  setSupportMessageStatus: (id: string, status: ServerSupportMessage['status']) => Promise<{ ok: boolean }>;
   approveClub: (id: string) => void;
   rejectClub: (id: string) => void;
   unlockClub: (clubId: string, code: string) => boolean;
@@ -955,6 +969,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       setClubRequestStatus: async (id, status) => {
         const { error } = await supabase.from('club_requests').update({ status }).eq('id', id);
+        return { ok: !error };
+      },
+      // ── Aide / signalements (serveur) ──────────────────────────────────────
+      submitSupportMessage: async (message, contactPhone) => {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) return { ok: false, error: 'Connecte-toi pour nous écrire.' };
+        const body = message.trim();
+        if (body.length < 5) return { ok: false, error: 'Décris un peu plus ton problème.' };
+        const name = state.account ? `${state.account.firstName} ${state.account.lastName}`.trim() : null;
+        const { error } = await supabase.from('support_messages').insert({
+          user_id: user.id,
+          name,
+          contact_phone: contactPhone?.trim() || state.account?.phone || null,
+          message: body,
+        });
+        if (error) return { ok: false, error: 'Envoi impossible — réessaie.' };
+        return { ok: true };
+      },
+      fetchSupportMessages: async () => {
+        const { data, error } = await supabase.from('support_messages').select('*').order('created_at', { ascending: false });
+        if (error) return { ok: false, messages: [] };
+        return { ok: true, messages: (data ?? []) as ServerSupportMessage[] };
+      },
+      setSupportMessageStatus: async (id, status) => {
+        const { error } = await supabase.from('support_messages').update({ status }).eq('id', id);
         return { ok: !error };
       },
       approveClub: (id) =>

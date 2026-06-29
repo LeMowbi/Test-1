@@ -1,8 +1,5 @@
-// Coordonnées de contact de PadelConnect (l'opérateur = Moustapha).
-// 👉 Renseigne ici TON numéro WhatsApp au format international SANS « + » ni espaces
-//    (ex. Côte d'Ivoire : 225XXXXXXXXXX). Laisse vide tant que tu ne veux pas l'exposer :
-//    le bouton « Contacter PadelConnect » disparaît alors et seul l'envoi de demande
-//    (via le serveur) reste proposé.
-export const OPERATOR_WHATSAPP = '+2250504001124';
-
-export const hasOperatorContact = OPERATOR_WHATSAPP.replace(/\D/g, '').length >= 8;
+// Contact PadelConnect (côté joueur).
+// On n'expose PAS le numéro de l'opérateur : pour une inscription de club, c'est PadelConnect
+// qui rappelle le demandeur (au numéro qu'il a laissé). Pour le support général, on donne
+// uniquement l'adresse e-mail ci-dessous.
+export const SUPPORT_EMAIL = 'padelconnect.civ@gmail.com';

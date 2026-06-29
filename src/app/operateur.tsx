@@ -5,7 +5,7 @@ import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { canAccessOperator } from '@/lib/access';
-import { COMMISSION_RATE, isPlayed, useApp, type ServerClubRequest } from '@/store/AppContext';
+import { COMMISSION_RATE, isPlayed, useApp, type ServerClubRequest, type ServerSupportMessage } from '@/store/AppContext';
 import { addWeeks, dateKeyLabel, weekKeyOf, weekLabel } from '@/lib/days';
 import { fcfa } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
@@ -24,7 +24,26 @@ export default function Operateur() {
     removeOperatorNews,
     fetchClubRequests,
     setClubRequestStatus,
+    fetchSupportMessages,
+    setSupportMessageStatus,
   } = useApp();
+
+  // Messages d'aide / signalements (table support_messages, RLS opérateur).
+  const [support, setSupport] = useState<ServerSupportMessage[]>([]);
+  useEffect(() => {
+    let alive = true;
+    fetchSupportMessages().then(({ messages }) => {
+      if (alive) setSupport(messages);
+    });
+    return () => {
+      alive = false;
+    };
+  }, [fetchSupportMessages]);
+  const markSupport = async (id: string, status: ServerSupportMessage['status']) => {
+    setSupport((cur) => cur.map((m) => (m.id === id ? { ...m, status } : m)));
+    await setSupportMessageStatus(id, status);
+  };
+  const newSupport = support.filter((m) => m.status === 'new').length;
 
   // Demandes d'inscription reçues sur le SERVEUR (table club_requests, lisible par le
   // seul opérateur via RLS). Un joueur les envoie depuis « Inscrire mon club ».
@@ -411,6 +430,61 @@ export default function Operateur() {
                   {r.contact_phone}
                 </Txt>
               ) : null}
+            </Card>
+          ))
+        )}
+      </View>
+
+      {/* Signalements / messages d'aide envoyés par les joueurs (serveur). */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title={`Signalements · ${newSupport}`} />
+        {support.length === 0 ? (
+          <Card>
+            <Txt variant="muted">Aucun message pour l'instant. Les signalements des joueurs (Profil → Aide & support) arrivent ici.</Txt>
+          </Card>
+        ) : (
+          support.map((m) => (
+            <Card key={m.id} style={{ marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+                <IconCircle icon="chatbubble-ellipses" color={colors.coral} bg={colors.coralSoft} size={40} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="h3" style={{ fontSize: 15 }}>
+                    {m.name || 'Joueur'}
+                  </Txt>
+                  {m.contact_phone ? (
+                    <Txt variant="small" color={colors.textFaint}>
+                      {m.contact_phone}
+                    </Txt>
+                  ) : null}
+                </View>
+                <Tag
+                  label={m.status === 'resolved' ? 'Résolu ✓' : m.status === 'read' ? 'Lu' : 'Nouveau'}
+                  tone={m.status === 'resolved' ? 'green' : m.status === 'read' ? 'blue' : 'coral'}
+                />
+              </View>
+              <Txt variant="body" style={{ marginTop: spacing.sm }}>
+                {m.message}
+              </Txt>
+              <Divider style={{ marginVertical: spacing.md }} />
+              <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+                {m.contact_phone ? (
+                  <Button
+                    size="sm"
+                    label="WhatsApp"
+                    icon="logo-whatsapp"
+                    variant="secondary"
+                    onPress={() => {
+                      openWhatsApp(m.contact_phone ?? '', `Bonjour 👋 PadelConnect — à propos de ton message.`);
+                      if (m.status === 'new') markSupport(m.id, 'read');
+                    }}
+                  />
+                ) : null}
+                {m.status !== 'resolved' ? (
+                  <Button size="sm" label="Marquer résolu" icon="checkmark" onPress={() => markSupport(m.id, 'resolved')} />
+                ) : (
+                  <Button size="sm" label="Rouvrir" icon="arrow-undo" variant="ghost" onPress={() => markSupport(m.id, 'read')} />
+                )}
+              </View>
             </Card>
           ))
         )}
