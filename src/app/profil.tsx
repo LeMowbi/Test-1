@@ -25,6 +25,7 @@ export default function ProfilScreen() {
   const [deleteSheet, setDeleteSheet] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [signOutSheet, setSignOutSheet] = useState(false);
 
   const confirmDelete = async () => {
     if (deleting) return;
@@ -33,8 +34,7 @@ export default function ProfilScreen() {
     const res = await deleteAccount();
     setDeleting(false);
     if (res.ok) {
-      setDeleteSheet(false);
-      router.replace('/onboarding');
+      setDeleteSheet(false); // compte = null → _layout renvoie vers l'onboarding
     } else setDeleteError(res.error ?? 'Suppression impossible — réessaie.');
   };
 
@@ -341,7 +341,7 @@ export default function ProfilScreen() {
 
       <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
         <Button label="Mentions légales & CGU" icon="document-text-outline" variant="ghost" onPress={() => router.push('/legal')} />
-        <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={signOut} />
+        <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={() => setSignOutSheet(true)} />
         {/* Suppression de compte — exigence App Store / Google Play (accessible depuis l'app). */}
         <Button label="Supprimer mon compte" icon="trash-outline" variant="ghost" onPress={() => setDeleteSheet(true)} />
       </View>
@@ -363,6 +363,26 @@ export default function ProfilScreen() {
             />
           ) : null}
           <Button label="Annuler" variant="ghost" onPress={() => setPhotoSheet(false)} full />
+        </View>
+      </BottomSheet>
+
+      {/* Déconnexion : confirmation pour éviter le tap accidentel (re-saisie du mot de passe ensuite). */}
+      <BottomSheet visible={signOutSheet} title="Se déconnecter ?" onClose={() => setSignOutSheet(false)}>
+        <Txt variant="body" color={colors.textMuted}>
+          Tu devras ressaisir ton e-mail et ton mot de passe pour te reconnecter.
+        </Txt>
+        <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
+          <Button
+            label="Se déconnecter"
+            icon="log-out-outline"
+            variant="danger"
+            onPress={() => {
+              setSignOutSheet(false);
+              signOut(); // _layout renvoie automatiquement vers l'onboarding (compte = null)
+            }}
+            full
+          />
+          <Button label="Annuler" variant="ghost" onPress={() => setSignOutSheet(false)} full />
         </View>
       </BottomSheet>
 
