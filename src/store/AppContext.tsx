@@ -621,6 +621,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [state.serverUserId]);
 
+  // Expiration AUTOMATIQUE des boosts « Sponsorisé » : à l'ouverture et à chaque retour au
+  // premier plan, on retire ceux dont la date est dépassée — aucun badge doré ne traîne
+  // après son terme, sans intervention de l'opérateur.
+  useEffect(() => {
+    if (!hydrated) return;
+    const sweep = () =>
+      setState((s) => {
+        const now = Date.now();
+        const expired = s.boostedClubIds.filter((id) => s.boostExpiry[id] && s.boostExpiry[id] <= now);
+        if (expired.length === 0) return s;
+        const boostExpiry = { ...s.boostExpiry };
+        expired.forEach((id) => delete boostExpiry[id]);
+        return { ...s, boostedClubIds: s.boostedClubIds.filter((id) => !expired.includes(id)), boostExpiry };
+      });
+    sweep();
+    const sub = RNAppState.addEventListener('change', (st) => st === 'active' && sweep());
+    return () => sub.remove();
+  }, [hydrated]);
+
   useEffect(() => {
     if (!hydrated) return;
     (async () => {

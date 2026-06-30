@@ -683,6 +683,7 @@ export default function Operateur() {
                       « Arrêter » apparaît quand le boost est actif. */}
                   <View style={{ flexDirection: 'row', gap: spacing.sm, alignItems: 'center' }}>
                     <Button size="sm" label="7 j" variant="secondary" onPress={() => setBoost(c.id, 7)} />
+                    <Button size="sm" label="14 j" variant="secondary" onPress={() => setBoost(c.id, 14)} />
                     <Button size="sm" label="30 j" onPress={() => setBoost(c.id, 30)} />
                     {on ? <Button size="sm" label="Arrêter" icon="close" variant="ghost" onPress={() => setBoost(c.id, 0)} /> : null}
                   </View>
