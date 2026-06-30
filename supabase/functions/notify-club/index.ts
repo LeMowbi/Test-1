@@ -32,8 +32,8 @@ Deno.serve(async (req) => {
     let title = '';
     let body = '';
 
-    if (table === 'reservations' && type !== 'UPDATE') {
-      // Nouvelle réservation (INSERT) → prévenir le(s) gérant(s) du club.
+    if (table === 'reservations' && type === 'INSERT') {
+      // Nouvelle réservation (INSERT uniquement — jamais un DELETE) → prévenir le(s) gérant(s).
       const clubId = record.club_id;
       const { data: managers } = await supabase
         .from('profiles')

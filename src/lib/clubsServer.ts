@@ -143,9 +143,9 @@ export async function setClubStatus(clubId: string, status: 'active' | 'coming_s
 }
 
 // Statut piloté par l'opérateur pour N'IMPORTE QUEL club (y compris les 9 de base) → clubId → statut.
-export async function fetchClubStatus(): Promise<Record<string, 'active' | 'coming_soon' | 'hidden'>> {
+export async function fetchClubStatus(): Promise<Record<string, 'active' | 'coming_soon' | 'hidden'> | null> {
   const { data, error } = await supabase.from('club_status').select('club_id, status');
-  if (error) return {};
+  if (error) return null; // échec réseau ≠ « aucun statut » → l'appelant garde l'existant
   const out: Record<string, 'active' | 'coming_soon' | 'hidden'> = {};
   for (const r of (data ?? []) as { club_id: string; status: 'active' | 'coming_soon' | 'hidden' }[]) out[r.club_id] = r.status;
   return out;
@@ -164,9 +164,9 @@ export async function deleteClub(clubId: string): Promise<boolean> {
 }
 
 // Commission propre à chaque club (lue par l'opérateur) → { clubId: taux } (0.10 = 10 %).
-export async function fetchClubCommissions(): Promise<Record<string, number>> {
+export async function fetchClubCommissions(): Promise<Record<string, number> | null> {
   const { data, error } = await supabase.from('club_commission').select('club_id, rate');
-  if (error) return {};
+  if (error) return null; // échec réseau ≠ « aucune commission » → l'appelant garde l'existant
   const out: Record<string, number> = {};
   for (const r of (data ?? []) as { club_id: string; rate: number }[]) out[r.club_id] = r.rate;
   return out;

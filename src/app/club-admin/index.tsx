@@ -127,13 +127,17 @@ export default function ClubAdmin() {
     <Screen back title="Espace Club" subtitle="Gérez votre club" refreshControl={refreshControl}>
       {header}
 
-      {/* Bandeau démo (vert tint, fidèle au prototype) : l'accès serait réservé au club connecté. */}
-      <View style={styles.demoBanner}>
-        <Ionicons name="information-circle" size={16} color={colors.signatureDark} />
-        <Txt variant="small" color={colors.signatureDark} style={{ flex: 1 }}>
-          Démo de l'interface gérant — tes modifications restent sur cet appareil. En production, l'accès est réservé au club connecté.
-        </Txt>
-      </View>
+      {/* Mode HORS-LIGNE uniquement : sans session serveur, les modifs restent locales. Connecté,
+          tout (config, photos, offres, coachs, confirmations) est enregistré côté serveur. */}
+      {!state.serverUserId ? (
+        <View style={styles.demoBanner}>
+          <Ionicons name="information-circle" size={16} color={colors.signatureDark} />
+          <Txt variant="small" color={colors.signatureDark} style={{ flex: 1 }}>
+            Tu n'es pas connecté : tes modifications restent sur cet appareil. Connecte-toi pour qu'elles soient enregistrées et visibles
+            par les joueurs.
+          </Txt>
+        </View>
+      ) : null}
 
       {/* Club géré — l'opérateur peut basculer entre clubs ; un compte club voit le sien. */}
       <View style={{ marginTop: spacing.lg }}>

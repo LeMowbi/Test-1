@@ -466,17 +466,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       const { active: activeParts, pending: pendingParts } = splitParticipations(parts);
-      setClubStatusMap(clubStatus); // registre lu dans data/clubs → statut « Bientôt » appliqué partout
+      // null = échec réseau pour ce fetch → on garde l'existant (≠ tableau/objet vide = succès).
+      if (clubStatus) setClubStatusMap(clubStatus); // registre lu dans data/clubs (badge « Bientôt »)
       setState((s) => ({
         ...s,
         // En cas d'échec réseau on garde le miroir persisté (offline-friendly).
         reservations: reservationsRes.ok ? reservationsRes.reservations : s.reservations,
-        occupancy: occ,
+        occupancy: occ ?? s.occupancy,
         participantReservationIds: activeParts,
         pendingInvitationIds: pendingParts,
         customClubs: mergeServerClubs(s.customClubs, serverClubs),
-        clubStatus,
-        clubCommission: commissions, // vide pour les non-opérateurs (RLS)
+        clubStatus: clubStatus ?? s.clubStatus,
+        clubCommission: commissions ?? s.clubCommission, // vide pour les non-opérateurs (RLS)
         // Pages club éditées par les gérants (serveur) → visibles par tous. On fusionne au-dessus
         // des éventuelles surcharges locales (le serveur fait foi pour les clubs qu'il connaît).
         clubInfo: { ...s.clubInfo, ...overrides },
@@ -530,7 +531,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // requêtes, leurs résultats tardifs ne réécriront pas les données du compte sortant.
       const epoch = sessionEpochRef.current;
       const ok = () => sessionEpochRef.current === epoch;
-      void fetchOccupancy().then((occ) => ok() && setState((s) => ({ ...s, occupancy: occ })));
+      void fetchOccupancy().then((occ) => occ && ok() && setState((s) => ({ ...s, occupancy: occ })));
       void fetchReservations().then((res) => {
         if (res.ok && ok()) setState((s) => ({ ...s, reservations: res.reservations }));
       });
@@ -545,7 +546,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Statut piloté par l'opérateur (badges « Bientôt »/masquage de tout club) : on relit
       // pour refléter une bascule décidée sur un autre appareil sans réinstaller.
       void fetchClubStatus().then((clubStatus) => {
-        if (!ok()) return;
+        if (!clubStatus || !ok()) return;
         setClubStatusMap(clubStatus);
         setState((s) => ({ ...s, clubStatus }));
       });
@@ -866,7 +867,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             // pour que la disponibilité affichée se corrige immédiatement (anti dead-loop).
             if (res.conflict) {
               const fresh = await fetchOccupancy();
-              setState((s) => ({ ...s, occupancy: fresh }));
+              if (fresh) setState((s) => ({ ...s, occupancy: fresh }));
             }
             return false;
           }
@@ -1192,8 +1193,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const ok = await setBaseClubStatusRpc(clubId, status);
         if (ok) {
           const clubStatus = await fetchClubStatus();
-          setClubStatusMap(clubStatus);
-          setState((s) => ({ ...s, clubStatus }));
+          if (clubStatus) {
+            setClubStatusMap(clubStatus);
+            setState((s) => ({ ...s, clubStatus }));
+          }
         }
         return { ok };
       },

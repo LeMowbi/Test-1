@@ -188,10 +188,12 @@ export async function respondInvitation(reservationId: string, accept: boolean):
   return !error && data === true;
 }
 
-// Occupation de TOUS les créneaux pris (vue publique sans identité).
-export async function fetchOccupancy(): Promise<SlotOccupancy[]> {
+// Occupation de TOUS les créneaux pris (vue publique sans identité). Renvoie null en cas
+// d'échec réseau (≠ tableau vide = « aucun créneau pris ») → l'appelant garde l'occupation
+// connue au lieu de la vider et d'afficher de fausses dispos.
+export async function fetchOccupancy(): Promise<SlotOccupancy[] | null> {
   const { data, error } = await supabase.from('slot_occupancy').select('*');
-  if (error) return [];
+  if (error) return null;
   return (data ?? []).map((o: { club_id: string; date_key: string; time: string; court: string }) => ({
     clubId: o.club_id,
     dateKey: o.date_key,

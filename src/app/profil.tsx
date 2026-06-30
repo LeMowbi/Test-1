@@ -36,6 +36,9 @@ export default function ProfilScreen() {
   const { state, stats, setRemindersOn, signOut, updateAccount, deleteAccount, updateEmail } = useApp();
   const { refreshControl } = usePullToRefresh();
   const { account, level, friends, officialResults } = state;
+  // Les comptes créés par TÉLÉPHONE ont un e-mail technique « …@phone.padelconnect.app » : on
+  // le traite comme « aucun e-mail » pour proposer d'en ajouter un vrai.
+  const realEmail = account?.email && !account.email.endsWith('@phone.padelconnect.app') ? account.email : undefined;
 
   const [editing, setEditing] = useState(false);
   const [photoSheet, setPhotoSheet] = useState(false);
@@ -333,9 +336,9 @@ export default function ProfilScreen() {
         </Card>
       </View>
 
-      {/* Espaces pro — non affichés dans la navigation normale (cf. handoff sécurité).
-          Révélés par appui long sur l'avatar ; l'Espace Club reste visible pour un gérant
-          déjà déverrouillé. Les vrais accès restent protégés (code club, gating serveur §B). */}
+      {/* Espaces pro — affichés UNIQUEMENT selon le rôle vérifié côté serveur (state.role) :
+          « club » → Espace Club, « operator » → Espace opérateur. Aucun geste secret ; la
+          vraie barrière reste la Row Level Security Supabase. */}
       {showClub || showOperator ? (
         <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
           {showClub ? (
@@ -402,7 +405,7 @@ export default function ProfilScreen() {
         <SectionHeader title="Mon compte" />
         <Card
           onPress={() => {
-            setEmailDraft(account.email ?? '');
+            setEmailDraft(realEmail ?? '');
             setEmailMsg(null);
             setEmailSheet(true);
           }}
@@ -411,7 +414,7 @@ export default function ProfilScreen() {
           <IconCircle icon="mail-outline" color={colors.purple} bg={colors.purpleSoft} />
           <View style={{ flex: 1 }}>
             <Txt variant="h3">Adresse e-mail</Txt>
-            <Txt variant="muted">{account.email ? account.email : 'Aucune — touche pour en ajouter une'}</Txt>
+            <Txt variant="muted">{realEmail ? realEmail : 'Aucune — touche pour en ajouter une'}</Txt>
           </View>
           <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
         </Card>
@@ -499,7 +502,7 @@ export default function ProfilScreen() {
       {/* Ajouter / changer l'e-mail — un lien de confirmation est envoyé à la nouvelle adresse. */}
       <BottomSheet
         visible={emailSheet}
-        title={account.email ? 'Changer mon e-mail' : 'Ajouter un e-mail'}
+        title={realEmail ? 'Changer mon e-mail' : 'Ajouter un e-mail'}
         subtitle="On envoie un lien de confirmation à cette adresse. Le changement s'applique après le clic."
         onClose={() => {
           if (!emailBusy) setEmailSheet(false);

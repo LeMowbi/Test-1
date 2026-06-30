@@ -16,11 +16,23 @@ function codeFromUrl(url: string | null): string | null {
   return typeof code === 'string' ? code : null;
 }
 
+// Un lien expiré / déjà utilisé revient avec `error` / `error_code` au lieu de `code`.
+function hasAuthError(url: string | null): boolean {
+  if (!url) return false;
+  const q = Linking.parse(url).queryParams ?? {};
+  return Boolean(q.error || q.error_code || q.error_description);
+}
+
 export function useEmailConfirmLink(onResult: (r: Result) => void) {
   useEffect(() => {
     let active = true;
 
     const handle = async (url: string | null) => {
+      // Lien expiré / déjà utilisé : on prévient l'utilisateur au lieu d'ignorer en silence.
+      if (hasAuthError(url)) {
+        if (active) onResult('error');
+        return;
+      }
       const code = codeFromUrl(url);
       if (!code) return;
       const { error } = await supabase.auth.exchangeCodeForSession(code);

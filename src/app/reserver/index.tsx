@@ -63,13 +63,16 @@ export default function ReserverScreen() {
     .filter((r) => r.ts > Date.now()); // on masque les heures déjà passées
   const selectedRow = rows.find((r) => r.time === slot) ?? null;
 
-  // Vue « Par club » : pour chaque club, ses créneaux encore libres ce jour.
-  const byClub = visibleClubs.map((club) => ({
-    club,
-    slots: openSlotsFor(club, state.clubSlots)
-      .map((time) => ({ time, ts: slotTimestamp(day.key, time) }))
-      .filter((s) => s.ts > Date.now() && freeCourts(club, day.key, s.time, ctx).length > 0),
-  }));
+  // Vue « Par club » : pour chaque club, ses créneaux encore libres ce jour. Les clubs
+  // « Bientôt » (pas encore réservables) sont exclus, comme dans la vue « Par heure ».
+  const byClub = visibleClubs
+    .filter((club) => !club.comingSoon)
+    .map((club) => ({
+      club,
+      slots: openSlotsFor(club, state.clubSlots)
+        .map((time) => ({ time, ts: slotTimestamp(day.key, time) }))
+        .filter((s) => s.ts > Date.now() && freeCourts(club, day.key, s.time, ctx).length > 0),
+    }));
 
   const open = (club: Club, time: string) => setSheet({ club, time });
 

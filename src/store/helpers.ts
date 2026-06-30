@@ -18,6 +18,8 @@ export function frAuthError(msg: string): string {
   if (m.includes('unable to validate email') || m.includes('invalid format')) return 'Adresse e-mail invalide — vérifie-la.';
   if (m.includes('password should be') || m.includes('password')) return 'Mot de passe trop court (6 caractères minimum).';
   if (m.includes('network') || m.includes('fetch') || m.includes('timeout')) return 'Connexion internet impossible — réessaie.';
+  if (m.includes('security purposes') || m.includes('rate limit') || (m.includes('after') && m.includes('seconds')))
+    return 'Trop de tentatives — patiente une minute avant de réessayer.';
   if (m.includes('email logins are disabled') || m.includes('signups not allowed'))
     return 'Connexion désactivée côté serveur (vérifie la config Supabase).';
   return msg || 'Une erreur est survenue. Réessaie.';

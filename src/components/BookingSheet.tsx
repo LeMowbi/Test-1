@@ -61,6 +61,11 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
 
   const confirm = async () => {
     if (!court || submitting) return;
+    // Garde-fou : un club « Bientôt » n'est pas réservable (en plus du filtrage des vues).
+    if (club.comingSoon) {
+      toast.show('Ce club n’est pas encore réservable (Bientôt).', { icon: 'alert-circle' });
+      return;
+    }
     setSubmitting(true);
     const invited = [
       ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false })),

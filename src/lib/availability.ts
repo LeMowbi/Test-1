@@ -30,9 +30,10 @@ export function courtsFor(club: Club, clubCourts: Record<string, string[]>): str
   return clubCourts[club.id] ?? defaultCourts(club);
 }
 
-// Une compétition au club ce jour-là bloque tous ses terrains.
+// Une compétition au club ce jour-là bloque tous ses terrains. Pour un tournoi multi-jours,
+// le blocage couvre toute la plage début → fin (endDateKey), pas seulement le jour de début.
 export function hasCompetition(clubId: string, dateKey: string, comps: Competition[]): boolean {
-  return comps.some((c) => c.clubId === clubId && c.dateKey === dateKey);
+  return comps.some((c) => c.clubId === clubId && dateKey >= c.dateKey && dateKey <= (c.endDateKey ?? c.dateKey));
 }
 
 // Terrains encore libres d'un club à (jour, heure) — réservés ET bloqués hors app exclus.
@@ -60,6 +61,7 @@ export type ClubAvail = { club: Club; free: number };
 export function clubsFreeAt(dateKey: string, time: string, slotTs: number, ctx: AvailCtx): ClubAvail[] {
   if (slotTs <= Date.now()) return [];
   return ctx.clubs
+    .filter((club) => !club.comingSoon) // un club « Bientôt » n'est pas encore réservable
     .filter((club) => openSlotsFor(club, ctx.clubSlots).includes(time))
     .map((club) => ({ club, free: freeCourts(club, dateKey, time, ctx).length }))
     .filter((x) => x.free > 0)

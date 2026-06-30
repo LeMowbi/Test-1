@@ -333,7 +333,9 @@ export default function ReservationsScreen() {
         visible={cancelTarget !== null}
         title="Annuler cette réservation ?"
         subtitle={
-          cancelTarget ? `${cancelTarget.clubName} — ${cancelTarget.date} à ${cancelTarget.time} · ${cancelTarget.court}` : undefined
+          cancelTarget
+            ? `${cancelTarget.clubName} — ${dateKeyLabel(cancelTarget.dateKey)} à ${cancelTarget.time} · ${cancelTarget.court}`
+            : undefined
         }
         onClose={() => setCancelTarget(null)}
       >

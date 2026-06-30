@@ -1,6 +1,6 @@
 // Compétitions — données de DÉMONSTRATION. Créées par un CLUB ou par un JOUEUR.
 
-import { dayKey, nextDays } from '@/lib/days';
+import { dateKeyLabel, dayKey, nextDays } from '@/lib/days';
 
 export type Competition = {
   id: string;
@@ -34,8 +34,11 @@ export function isTournamentPublic(c: Competition): boolean {
 }
 
 // Libellé de date : « du X au Y » si le tournoi s'étale sur plusieurs jours, sinon le jour seul.
+// Dérivé de dateKey/endDateKey (date ABSOLUE) — jamais du libellé relatif figé à la création
+// (sinon « Demain 30 » resterait affiché une fois le jour passé).
 export function compDateLabel(c: Competition): string {
-  return c.endDateKey && c.endDateKey !== c.dateKey ? `${c.date} → ${c.endDate}` : c.date;
+  const start = dateKeyLabel(c.dateKey);
+  return c.endDateKey && c.endDateKey !== c.dateKey ? `${start} → ${dateKeyLabel(c.endDateKey)}` : start;
 }
 
 // Jours réels (relatifs au lancement) pour que l'affichage ET le blocage des terrains
