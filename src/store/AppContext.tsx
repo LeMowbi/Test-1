@@ -572,7 +572,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       stats,
       myReservations,
       setAccount: (a) => setState((s) => ({ ...s, account: a })),
-      updateAccount: (patch) => setState((s) => ({ ...s, account: s.account ? { ...s.account, ...patch } : s.account })),
+      updateAccount: (patch) => {
+        setState((s) => ({ ...s, account: s.account ? { ...s.account, ...patch } : s.account }));
+        // Persistance SERVEUR des champs texte modifiés (si connecté) : sans ça, ils étaient
+        // écrasés par l'ancienne valeur serveur au prochain chargement. La photo reste locale
+        // (conservée par le repli de loadSession ; l'upload vers le stockage viendra ensuite).
+        const userId = state.serverUserId;
+        if (!userId) return;
+        const row: Record<string, string | null> = {};
+        if (patch.firstName !== undefined) row.first_name = patch.firstName.trim();
+        if (patch.lastName !== undefined) row.last_name = patch.lastName.trim();
+        if (patch.phone !== undefined) row.phone = patch.phone.trim();
+        if (patch.birthDate !== undefined) row.birth_date = patch.birthDate?.trim() || null;
+        if (patch.gender !== undefined) row.gender = patch.gender ?? null;
+        if (Object.keys(row).length > 0) void supabase.from('profiles').update(row).eq('id', userId);
+      },
       // ── Inscription par E-MAIL (parcours principal) ────────────────────────
       // E-mail réel + mot de passe ; le téléphone est conservé (sans SMS). Avec la
       // confirmation d'e-mail activée côté Supabase, le compte est créé mais SANS session :
