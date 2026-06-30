@@ -35,6 +35,7 @@ export default function ClubDetail() {
   const [toast, setToast] = useState<string | null>(null);
   const [viewer, setViewer] = useState<number | null>(null); // photo ouverte en plein écran
   const [tierTab, setTierTab] = useState(0); // onglet de tarifs actif (plages nommées)
+  const [showAllReviews, setShowAllReviews] = useState(false); // liste d'avis repliée par défaut
   const { width: winW } = useWindowDimensions();
 
   if (!club) {
@@ -66,6 +67,9 @@ export default function ClubDetail() {
   ];
   // Une seule source de vérité : la liste (avis utilisateur en tête + avis générés).
   const reviews = reviewsFor(club, state.userReviews);
+  // Liste repliée : on n'affiche que les premiers avis, avec un bouton « Voir tout ».
+  const REVIEWS_PREVIEW = 3;
+  const reviewsShown = showAllReviews ? reviews : reviews.slice(0, REVIEWS_PREVIEW);
   const { rating: avgRating, count: ratingCount } = ratingFor(club, state.userReviews);
   // Plages tarifaires définies par le gérant (vide → tarif unique).
   const tiers = priceTiersFor(club);
@@ -471,20 +475,32 @@ export default function ClubDetail() {
             Aucun avis pour l’instant — sois le premier !
           </Txt>
         ) : (
-          reviews.map((r) => (
-            <Card key={r.id} style={{ marginTop: spacing.md }}>
-              <View style={styles.reviewHead}>
-                <Txt variant="h3">{r.author}</Txt>
-                <Txt variant="small" color={colors.textFaint}>
-                  {r.date}
-                </Txt>
+          <>
+            {reviewsShown.map((r) => (
+              <Card key={r.id} style={{ marginTop: spacing.md }}>
+                <View style={styles.reviewHead}>
+                  <Txt variant="h3">{r.author}</Txt>
+                  <Txt variant="small" color={colors.textFaint}>
+                    {r.date}
+                  </Txt>
+                </View>
+                <View style={{ marginVertical: 6 }}>
+                  <RatingStars value={r.rating} size={14} />
+                </View>
+                <Txt variant="body">{r.text}</Txt>
+              </Card>
+            ))}
+            {reviews.length > REVIEWS_PREVIEW ? (
+              <View style={{ marginTop: spacing.sm }}>
+                <Button
+                  size="sm"
+                  label={showAllReviews ? 'Réduire' : `Voir tous les avis (${reviews.length})`}
+                  variant="ghost"
+                  onPress={() => setShowAllReviews((v) => !v)}
+                />
               </View>
-              <View style={{ marginVertical: 6 }}>
-                <RatingStars value={r.rating} size={14} />
-              </View>
-              <Txt variant="body">{r.text}</Txt>
-            </Card>
-          ))
+            ) : null}
+          </>
         )}
       </View>
 
