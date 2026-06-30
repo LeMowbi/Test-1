@@ -223,7 +223,13 @@ export default function Onboarding() {
 
   return (
     <View style={styles.root}>
-      <ScrollView ref={scrollRef} showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: spacing.xxxl }}>
+      <ScrollView
+        ref={scrollRef}
+        showsVerticalScrollIndicator={false}
+        keyboardShouldPersistTaps="handled"
+        keyboardDismissMode="on-drag"
+        contentContainerStyle={{ paddingBottom: spacing.xxxl }}
+      >
         <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
           <Logo size={40} />
           <Txt variant="display" color={colors.onSignature} style={styles.heroTitle}>
@@ -555,17 +561,13 @@ function SignInSheet({
             style={styles.input}
           />
         )}
-        <TextInput
+        <PasswordInput
           value={pass}
           onChangeText={(t) => {
             setPass(t);
             clearError();
           }}
           placeholder="Mot de passe"
-          placeholderTextColor={colors.textFaint}
-          secureTextEntry
-          autoCapitalize="none"
-          style={styles.input}
         />
         {error ? (
           <Txt variant="small" color={colors.danger}>
@@ -593,6 +595,48 @@ function SignInSheet({
         </Pressable>
       </View>
     </BottomSheet>
+  );
+}
+
+// Champ mot de passe avec œil pour révéler/masquer (évite les fautes de frappe invisibles).
+// Réutilisé par le formulaire d'inscription et la feuille de connexion.
+function PasswordInput({
+  value,
+  onChangeText,
+  placeholder,
+  error,
+  autoFocus,
+}: {
+  value: string;
+  onChangeText: (t: string) => void;
+  placeholder: string;
+  error?: boolean;
+  autoFocus?: boolean;
+}) {
+  const [hidden, setHidden] = useState(true);
+  return (
+    <View style={styles.pwWrap}>
+      <TextInput
+        value={value}
+        onChangeText={onChangeText}
+        placeholder={placeholder}
+        placeholderTextColor={colors.textFaint}
+        secureTextEntry={hidden}
+        autoCapitalize="none"
+        autoCorrect={false}
+        autoFocus={autoFocus}
+        returnKeyType="done"
+        style={[styles.input, styles.pwInput, error ? { borderColor: colors.danger } : null]}
+      />
+      <Pressable
+        onPress={() => setHidden((h) => !h)}
+        hitSlop={8}
+        style={styles.pwEye}
+        accessibilityLabel={hidden ? 'Afficher le mot de passe' : 'Masquer le mot de passe'}
+      >
+        <Ionicons name={hidden ? 'eye-outline' : 'eye-off-outline'} size={20} color={colors.textMuted} />
+      </Pressable>
+    </View>
   );
 }
 
@@ -626,20 +670,23 @@ function Field({
       <Txt variant="label" style={styles.fieldLabel}>
         {label}
       </Txt>
-      <TextInput
-        value={value}
-        onChangeText={onChangeText}
-        placeholder={placeholder}
-        placeholderTextColor={colors.textFaint}
-        keyboardType={keyboardType ?? 'default'}
-        maxLength={maxLength}
-        autoFocus={autoFocus}
-        autoCapitalize={autoCapitalize}
-        autoCorrect={false}
-        secureTextEntry={secureTextEntry}
-        returnKeyType="done"
-        style={[styles.input, error ? { borderColor: colors.danger } : null]}
-      />
+      {secureTextEntry ? (
+        <PasswordInput value={value} onChangeText={onChangeText} placeholder={placeholder} error={!!error} autoFocus={autoFocus} />
+      ) : (
+        <TextInput
+          value={value}
+          onChangeText={onChangeText}
+          placeholder={placeholder}
+          placeholderTextColor={colors.textFaint}
+          keyboardType={keyboardType ?? 'default'}
+          maxLength={maxLength}
+          autoFocus={autoFocus}
+          autoCapitalize={autoCapitalize}
+          autoCorrect={false}
+          returnKeyType="done"
+          style={[styles.input, error ? { borderColor: colors.danger } : null]}
+        />
+      )}
       {error ? (
         <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>
           {error}
@@ -730,4 +777,7 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
     fontSize: font.size.md,
   },
+  pwWrap: { position: 'relative', justifyContent: 'center' },
+  pwInput: { paddingRight: 48 }, // place pour l'œil, sans chevaucher le texte
+  pwEye: { position: 'absolute', right: spacing.md, height: '100%', justifyContent: 'center' },
 });
