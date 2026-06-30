@@ -20,7 +20,6 @@ import {
   type SlotOccupancy,
 } from '@/lib/reservations';
 import { cancelMatchReminder, scheduleMatchReminder, syncMatchReminders } from '@/lib/notifications';
-import { claimReferral, referralCodeForUser } from '@/lib/referrals';
 import { phoneToAuthEmail, supabase } from '@/lib/supabase';
 import { ACCENTS } from '@/theme';
 
@@ -256,11 +255,6 @@ type AppContextType = {
   // Recharge la session (profil + données) — appelé après la confirmation d'e-mail (deep link).
   refreshSession: () => Promise<void>;
   // Connexion serveur héritée — téléphone + mot de passe (comptes créés avant l'e-mail).
-  signUpWithPhone: (
-    phone: string,
-    password: string,
-    profile: { firstName: string; lastName: string; birthDate?: string; gender?: Account['gender']; level?: number; referralCode?: string },
-  ) => Promise<{ ok: boolean; error?: string }>;
   signInWithPhone: (phone: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   signOut: () => void;
   setLevel: (n: number) => void;
@@ -500,6 +494,44 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     })();
   }, [hydrated, loadSession]);
 
+  // Session révoquée À L'EXTÉRIEUR de l'app (jeton de rafraîchissement expiré/invalide,
+  // compte supprimé côté serveur, mot de passe changé ailleurs) : Supabase émet SIGNED_OUT.
+  // On remet alors l'app en état déconnecté pour ne pas laisser un compte « fantôme » affiché
+  // avec des données qui ne se rechargeront plus. Notre propre signOut a déjà nettoyé l'état :
+  // le garde `s.serverUserId` rend ce reset idempotent (aucune action si déjà déconnecté).
+  useEffect(() => {
+    const { data } = supabase.auth.onAuthStateChange((event) => {
+      if (event !== 'SIGNED_OUT') return;
+      sessionEpochRef.current += 1; // invalide toute requête en vol du compte sortant
+      void syncMatchReminders([], false);
+      setState((s) =>
+        !s.serverUserId
+          ? s
+          : {
+              ...s,
+              account: null,
+              role: 'player',
+              serverManagedClubId: null,
+              serverUserId: null,
+              reservations: [],
+              participantReservationIds: [],
+              occupancy: [],
+              customClubs: s.customClubs.filter((c) => !c.fromServer),
+              level: initialState.level,
+              friends: [],
+              favoriteClubIds: [],
+              userReviews: [],
+              myCompetitions: [],
+              compRegistrations: {},
+              compResults: {},
+              officialResults: [],
+              operatorUnlocked: false,
+            },
+      );
+    });
+    return () => data.subscription.unsubscribe();
+  }, []);
+
   // Retour au premier plan : on rafraîchit l'occupation (et mes résas) pour que la
   // disponibilité affichée ne reste pas figée si d'autres joueurs ont réservé entre-temps.
   useEffect(() => {
@@ -612,6 +644,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           },
         });
         if (error) return { ok: false, error: frAuthError(error.message) };
+        // E-mail DÉJÀ utilisé : Supabase ne renvoie pas d'erreur (anti-énumération) mais
+        // un user « factice » sans identités. On le détecte pour éviter d'afficher un faux
+        // « vérifiez vos e-mails » et on oriente vers la connexion.
+        if (data.user && data.user.identities?.length === 0) {
+          return { ok: false, error: 'Cet e-mail a déjà un compte. Connecte-toi plutôt.' };
+        }
         // Confirmation requise → pas encore de session : on invite à valider l'e-mail.
         if (!data.session) return { ok: true, needsConfirm: true };
         // Confirmation désactivée (selon config) → session immédiate : on charge tout.
@@ -626,80 +664,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       refreshSession: loadSession,
-      // Création de compte serveur héritée : téléphone + mot de passe (e-mail interne, sans SMS).
-      signUpWithPhone: async (phone, password, profile) => {
-        const email = phoneToAuthEmail(phone);
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) return { ok: false, error: frAuthError(error.message) };
-        let userId = data.user?.id;
-        if (!data.session) {
-          // Si signUp ne renvoie pas de session (selon config), on se connecte aussitôt.
-          const si = await supabase.auth.signInWithPassword({ email, password });
-          if (si.error) return { ok: false, error: frAuthError(si.error.message) };
-          userId = si.data.user?.id ?? userId;
-        }
-        if (!userId) return { ok: false, error: 'Compte créé, mais connexion impossible. Réessaie.' };
-        const level = clampLevel(profile.level ?? 3.0);
-        const { error: pErr } = await supabase.from('profiles').upsert({
-          id: userId,
-          first_name: profile.firstName.trim(),
-          last_name: profile.lastName.trim(),
-          phone: phone.trim(),
-          birth_date: profile.birthDate?.trim() || null,
-          gender: profile.gender ?? null,
-          level,
-          referral_code: referralCodeForUser(userId), // mon code de parrainage (stable)
-          updated_at: new Date().toISOString(),
-        });
-        if (pErr) return { ok: false, error: 'Profil non enregistré — réessaie.' };
-        // Parrainage : si un code a été saisi à l'inscription, on crée le lien parrain→filleul.
-        if (profile.referralCode?.trim()) await claimReferral(profile.referralCode);
-        const occ = await fetchOccupancy();
-        setState((s) => ({
-          ...s,
-          account: {
-            firstName: profile.firstName.trim(),
-            lastName: profile.lastName.trim(),
-            phone: phone.trim(),
-            birthDate: profile.birthDate?.trim() || undefined,
-            gender: profile.gender,
-          },
-          level,
-          serverUserId: userId, // mode « réservations serveur » activé
-          reservations: [], // compte neuf → aucune résa locale parasite
-          participantReservationIds: [], // compte neuf → aucune invitation
-          occupancy: occ, // créneaux déjà pris par les autres (disponibilité)
-        }));
-        return { ok: true };
-      },
-      // Connexion serveur d'un compte existant (ex. après réinstallation).
+      // Connexion serveur héritée — comptes créés AVANT l'e-mail, via le téléphone (e-mail
+      // interne sans SMS). On se connecte puis on délègue à loadSession : une SEULE source
+      // de vérité pour le chargement profil + résas + occupation (pas de doublon à maintenir).
       signInWithPhone: async (phone, password) => {
         const email = phoneToAuthEmail(phone);
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) return { ok: false, error: frAuthError(error.message) };
-        const userId = data.user?.id;
-        if (!userId) return { ok: false, error: 'Connexion impossible. Réessaie.' };
-        const { data: prof } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
-        // Reconnexion : on recharge les résas du périmètre (RLS) + l'occupation de tous.
-        const [reservationsRes, occ, parts] = await Promise.all([fetchReservations(), fetchOccupancy(), fetchMyParticipations(userId)]);
-        setState((s) => ({
-          ...s,
-          account: {
-            firstName: prof?.first_name ?? '',
-            lastName: prof?.last_name ?? '',
-            phone: prof?.phone ?? phone.trim(),
-            photoUri: prof?.photo_uri ?? undefined,
-            birthDate: prof?.birth_date ?? undefined,
-            gender: prof?.gender ?? undefined,
-          },
-          role: (prof?.role as AppState['role']) ?? 'player',
-          serverManagedClubId: prof?.managed_club_id ?? null,
-          serverUserId: userId,
-          reservations: reservationsRes.ok ? reservationsRes.reservations : s.reservations,
-          participantReservationIds: parts,
-          occupancy: occ,
-          level: clampLevel(Number(prof?.level ?? 3.0)),
-        }));
+        await loadSession();
         return { ok: true };
       },
       signOut: () => {
