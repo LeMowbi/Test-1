@@ -235,6 +235,34 @@ const initialState: AppState = {
   dismissedNewsId: null,
 };
 
+// État ramené à « déconnecté » : identité + données serveur ET tout le périmètre personnel
+// (niveau, amis, favoris, avis, palmarès…) remis à zéro, pour qu'un autre compte ouvert sur
+// le même appareil ne récupère rien du précédent. On conserve uniquement d'éventuels clubs
+// démo créés en local (les clubs venus du serveur se rechargeront à la prochaine session).
+// Utilisé par signOut, la révocation externe (SIGNED_OUT) et la suppression de compte.
+function loggedOutState(s: AppState): AppState {
+  return {
+    ...s,
+    account: null,
+    role: 'player',
+    serverManagedClubId: null,
+    serverUserId: null,
+    reservations: [],
+    participantReservationIds: [],
+    occupancy: [],
+    customClubs: s.customClubs.filter((c) => !c.fromServer),
+    level: initialState.level,
+    friends: [],
+    favoriteClubIds: [],
+    userReviews: [],
+    myCompetitions: [],
+    compRegistrations: {},
+    compResults: {},
+    officialResults: [],
+    operatorUnlocked: false,
+  };
+}
+
 type AppContextType = {
   state: AppState;
   hydrated: boolean;
@@ -256,6 +284,12 @@ type AppContextType = {
   refreshSession: () => Promise<void>;
   // Connexion serveur héritée — téléphone + mot de passe (comptes créés avant l'e-mail).
   signInWithPhone: (phone: string, password: string) => Promise<{ ok: boolean; error?: string }>;
+  // Mot de passe oublié : envoi d'un lien de réinitialisation par e-mail.
+  resetPassword: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  // Renvoyer l'e-mail de confirmation d'inscription.
+  resendConfirmation: (email: string) => Promise<{ ok: boolean; error?: string }>;
+  // Suppression définitive du compte (exigence App Store / Google Play).
+  deleteAccount: () => Promise<{ ok: boolean; error?: string }>;
   signOut: () => void;
   setLevel: (n: number) => void;
   closeCompetition: (
@@ -504,30 +538,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (event !== 'SIGNED_OUT') return;
       sessionEpochRef.current += 1; // invalide toute requête en vol du compte sortant
       void syncMatchReminders([], false);
-      setState((s) =>
-        !s.serverUserId
-          ? s
-          : {
-              ...s,
-              account: null,
-              role: 'player',
-              serverManagedClubId: null,
-              serverUserId: null,
-              reservations: [],
-              participantReservationIds: [],
-              occupancy: [],
-              customClubs: s.customClubs.filter((c) => !c.fromServer),
-              level: initialState.level,
-              friends: [],
-              favoriteClubIds: [],
-              userReviews: [],
-              myCompetitions: [],
-              compRegistrations: {},
-              compResults: {},
-              officialResults: [],
-              operatorUnlocked: false,
-            },
-      );
+      setState((s) => (s.serverUserId ? loggedOutState(s) : s));
     });
     return () => data.subscription.unsubscribe();
   }, []);
@@ -678,31 +689,38 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         sessionEpochRef.current += 1; // invalide toute requête en vol du compte sortant
         supabase.auth.signOut().catch(() => {});
         void syncMatchReminders([], false); // on efface les rappels locaux du compte sortant
-        // On revient à un état NEUF : identité + données serveur ET tout le périmètre
-        // personnel (niveau, amis, favoris, avis, palmarès…) sont remis à zéro, pour qu'un
-        // autre compte se connectant sur le même appareil ne récupère rien du précédent.
-        setState((s) => ({
-          ...s,
-          account: null,
-          role: 'player',
-          serverManagedClubId: null,
-          serverUserId: null,
-          reservations: [],
-          participantReservationIds: [],
-          occupancy: [],
-          // Les clubs venus du serveur se rechargeront à la prochaine session ; on ne garde
-          // que d'éventuels clubs démo créés en local.
-          customClubs: s.customClubs.filter((c) => !c.fromServer),
-          level: initialState.level,
-          friends: [],
-          favoriteClubIds: [],
-          userReviews: [],
-          myCompetitions: [],
-          compRegistrations: {},
-          compResults: {},
-          officialResults: [],
-          operatorUnlocked: false,
-        }));
+        setState(loggedOutState);
+      },
+      // Réinitialisation du mot de passe : envoie un lien par e-mail (deep link → écran de
+      // changement). Pas d'erreur révélée si l'e-mail n'existe pas (anti-énumération).
+      resetPassword: async (email) => {
+        const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
+          redirectTo: Linking.createURL('auth-callback'),
+        });
+        if (error) return { ok: false, error: frAuthError(error.message) };
+        return { ok: true };
+      },
+      // Renvoie l'e-mail de confirmation d'inscription (si l'utilisateur ne l'a pas reçu / l'a perdu).
+      resendConfirmation: async (email) => {
+        const { error } = await supabase.auth.resend({
+          type: 'signup',
+          email: email.trim().toLowerCase(),
+          options: { emailRedirectTo: Linking.createURL('auth-callback') },
+        });
+        if (error) return { ok: false, error: frAuthError(error.message) };
+        return { ok: true };
+      },
+      // Suppression DÉFINITIVE du compte (exigence App Store / Google Play). Le serveur efface
+      // la ligne auth.users → cascade sur profil/résas/parrainages ; puis on revient à l'écran
+      // d'accueil dans un état neuf. Irréversible : l'écran appelant confirme avant d'appeler.
+      deleteAccount: async () => {
+        const { error } = await supabase.rpc('delete_account');
+        if (error) return { ok: false, error: 'Suppression impossible — réessaie dans un instant.' };
+        sessionEpochRef.current += 1;
+        supabase.auth.signOut().catch(() => {});
+        void syncMatchReminders([], false);
+        setState(loggedOutState);
+        return { ok: true };
       },
       setLevel: (n) => setState((s) => ({ ...s, level: clampLevel(n) })),
       // Clôture par l'ORGANISATEUR : fige le vainqueur (et, en option, l'équipe classée

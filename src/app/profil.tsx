@@ -17,11 +17,26 @@ import { colors, gradients, radius, spacing } from '@/theme';
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { state, stats, setRemindersOn, signOut, updateAccount } = useApp();
+  const { state, stats, setRemindersOn, signOut, updateAccount, deleteAccount } = useApp();
   const { account, level, friends, officialResults } = state;
 
   const [editing, setEditing] = useState(false);
   const [photoSheet, setPhotoSheet] = useState(false);
+  const [deleteSheet, setDeleteSheet] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
+  const confirmDelete = async () => {
+    if (deleting) return;
+    setDeleting(true);
+    setDeleteError(null);
+    const res = await deleteAccount();
+    setDeleting(false);
+    if (res.ok) {
+      setDeleteSheet(false);
+      router.replace('/onboarding');
+    } else setDeleteError(res.error ?? 'Suppression impossible — réessaie.');
+  };
 
   if (!account) return null;
 
@@ -327,6 +342,8 @@ export default function ProfilScreen() {
       <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
         <Button label="Mentions légales & CGU" icon="document-text-outline" variant="ghost" onPress={() => router.push('/legal')} />
         <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={signOut} />
+        {/* Suppression de compte — exigence App Store / Google Play (accessible depuis l'app). */}
+        <Button label="Supprimer mon compte" icon="trash-outline" variant="ghost" onPress={() => setDeleteSheet(true)} />
       </View>
 
       {/* Photo de profil : changer (recadrée + compressée) ou revenir aux initiales */}
@@ -346,6 +363,33 @@ export default function ProfilScreen() {
             />
           ) : null}
           <Button label="Annuler" variant="ghost" onPress={() => setPhotoSheet(false)} full />
+        </View>
+      </BottomSheet>
+
+      {/* Suppression définitive — irréversible : on prévient clairement avant de confirmer. */}
+      <BottomSheet
+        visible={deleteSheet}
+        title="Supprimer mon compte ?"
+        subtitle="Cette action est définitive. Ton profil, tes réservations et tes données seront effacés. On ne peut pas les récupérer."
+        onClose={() => {
+          if (!deleting) setDeleteSheet(false);
+        }}
+      >
+        <View style={{ gap: spacing.sm }}>
+          {deleteError ? (
+            <Txt variant="small" color={colors.danger}>
+              {deleteError}
+            </Txt>
+          ) : null}
+          <Button
+            label={deleting ? 'Suppression…' : 'Supprimer définitivement'}
+            icon="trash-outline"
+            variant="danger"
+            onPress={confirmDelete}
+            disabled={deleting}
+            full
+          />
+          <Button label="Annuler" variant="ghost" onPress={() => setDeleteSheet(false)} disabled={deleting} full />
         </View>
       </BottomSheet>
     </Screen>

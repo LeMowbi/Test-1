@@ -23,7 +23,7 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 export default function Onboarding() {
   const router = useRouter();
-  const { signUpWithEmail, signInWithEmail, signInWithPhone } = useApp();
+  const { signUpWithEmail, signInWithEmail, signInWithPhone, resetPassword, resendConfirmation } = useApp();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -48,6 +48,8 @@ export default function Onboarding() {
   const [siPass, setSiPass] = useState('');
   const [siBusy, setSiBusy] = useState(false);
   const [siError, setSiError] = useState<string | null>(null);
+  const [siInfo, setSiInfo] = useState<string | null>(null); // « lien envoyé » (mot de passe oublié)
+  const [resendMsg, setResendMsg] = useState<string | null>(null); // retour du renvoi d'e-mail
   const scrollRef = useRef<ScrollView>(null);
   const positions = useRef<Partial<Record<FieldKey, number>>>({});
 
@@ -116,6 +118,30 @@ export default function Onboarding() {
     } else setSiError(res.error ?? 'Connexion impossible.');
   };
 
+  // Mot de passe oublié (mode e-mail) : envoie le lien de réinitialisation à l'e-mail saisi.
+  const forgotPassword = async () => {
+    if (siBusy) return;
+    if (!isEmail(siEmail)) {
+      setSiError('Saisis ton e-mail pour recevoir le lien.');
+      return;
+    }
+    setSiBusy(true);
+    setSiError(null);
+    setSiInfo(null);
+    const res = await resetPassword(siEmail);
+    setSiBusy(false);
+    if (res.ok) setSiInfo('Lien envoyé ! Regarde ta boîte mail (et les spams).');
+    else setSiError(res.error ?? 'Envoi impossible. Réessaie.');
+  };
+
+  // Renvoyer l'e-mail de confirmation depuis l'écran « Vérifie ta boîte mail ».
+  const resend = async () => {
+    if (!sentTo) return;
+    setResendMsg(null);
+    const res = await resendConfirmation(sentTo);
+    setResendMsg(res.ok ? 'E-mail renvoyé ✓' : (res.error ?? 'Renvoi impossible — réessaie.'));
+  };
+
   const clearError = (k: FieldKey) => setErrors((cur) => (cur[k] ? { ...cur, [k]: undefined } : cur));
 
   // Écran « Vérifie ta boîte mail » — après l'envoi du lien de confirmation. Le clic sur
@@ -156,8 +182,14 @@ export default function Onboarding() {
               }}
               full
             />
+            <Button label="Renvoyer l'e-mail" icon="refresh" variant="ghost" onPress={resend} full />
             <Button label="Modifier l'adresse" variant="ghost" onPress={() => setSentTo(null)} full />
           </View>
+          {resendMsg ? (
+            <Txt variant="small" color={colors.signature} style={{ textAlign: 'center', marginTop: spacing.sm }}>
+              {resendMsg}
+            </Txt>
+          ) : null}
         </View>
 
         {/* Connexion (réutilise la même feuille que l'écran d'inscription). */}
@@ -173,9 +205,17 @@ export default function Onboarding() {
           setPass={setSiPass}
           busy={siBusy}
           error={siError}
-          onClose={() => setSignInOpen(false)}
+          info={siInfo}
+          onClose={() => {
+            setSignInOpen(false);
+            setSiInfo(null);
+          }}
           onSubmit={signIn}
-          clearError={() => setSiError(null)}
+          onForgot={forgotPassword}
+          clearError={() => {
+            setSiError(null);
+            setSiInfo(null);
+          }}
         />
       </View>
     );
@@ -425,9 +465,17 @@ export default function Onboarding() {
         setPass={setSiPass}
         busy={siBusy}
         error={siError}
-        onClose={() => setSignInOpen(false)}
+        info={siInfo}
+        onClose={() => {
+          setSignInOpen(false);
+          setSiInfo(null);
+        }}
         onSubmit={signIn}
-        clearError={() => setSiError(null)}
+        onForgot={forgotPassword}
+        clearError={() => {
+          setSiError(null);
+          setSiInfo(null);
+        }}
       />
     </View>
   );
@@ -446,8 +494,10 @@ function SignInSheet({
   setPass,
   busy,
   error,
+  info,
   onClose,
   onSubmit,
+  onForgot,
   clearError,
 }: {
   visible: boolean;
@@ -461,8 +511,10 @@ function SignInSheet({
   setPass: (v: string) => void;
   busy: boolean;
   error: string | null;
+  info: string | null;
   onClose: () => void;
   onSubmit: () => void;
+  onForgot: () => void;
   clearError: () => void;
 }) {
   const byEmail = mode === 'email';
@@ -520,7 +572,20 @@ function SignInSheet({
             {error}
           </Txt>
         ) : null}
+        {info ? (
+          <Txt variant="small" color={colors.signature}>
+            {info}
+          </Txt>
+        ) : null}
         <Button label={busy ? 'Connexion…' : 'Se connecter'} icon="log-in" onPress={onSubmit} disabled={busy} full />
+        {/* Mot de passe oublié : seulement pertinent en connexion par e-mail. */}
+        {byEmail ? (
+          <Pressable onPress={onForgot} disabled={busy} style={{ alignItems: 'center', paddingVertical: spacing.xs }}>
+            <Txt variant="small" color={colors.textFaint}>
+              Mot de passe oublié ?
+            </Txt>
+          </Pressable>
+        ) : null}
         <Pressable onPress={() => setMode(byEmail ? 'phone' : 'email')} style={{ alignItems: 'center', paddingVertical: spacing.xs }}>
           <Txt variant="small" color={colors.signature}>
             {byEmail ? 'Se connecter par téléphone' : 'Se connecter par e-mail'}
