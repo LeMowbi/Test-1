@@ -12,6 +12,7 @@ import { useToast } from '@/components/Toast';
 import { Button, Card, EmptyState, Txt, type IconName } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
+import { addReservationToCalendar } from '@/lib/calendar';
 import { openWhatsApp } from '@/lib/contact';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { courtsFor, freeCourts, hasCompetition, openSlotsFor, type AvailCtx } from '@/lib/availability';
@@ -167,6 +168,28 @@ export default function ReserverScreen() {
           </View>
           <View style={{ alignSelf: 'stretch', gap: spacing.sm, marginTop: spacing.lg }}>
             <Button label="Voir mes réservations" icon="calendar" onPress={() => router.push('/reservations')} full />
+            <Button
+              label="Ajouter à mon calendrier"
+              icon="calendar-outline"
+              variant="secondary"
+              onPress={async () => {
+                const res = await addReservationToCalendar({
+                  clubName: club.name,
+                  startsAt: slotTimestamp(day!.key, slot!),
+                  court: effectiveCourt!,
+                  area: club.area,
+                });
+                toast.show(
+                  res === 'added'
+                    ? 'Ajouté à ton calendrier ✓'
+                    : res === 'denied'
+                      ? 'Autorise le calendrier dans les réglages.'
+                      : 'Calendrier indisponible sur cet appareil.',
+                  res === 'added' ? undefined : { icon: 'alert-circle' },
+                );
+              }}
+              full
+            />
             {participantCount > 0 ? (
               <Button
                 label="Prévenir mes partenaires"
