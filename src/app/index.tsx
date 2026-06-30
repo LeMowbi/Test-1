@@ -218,7 +218,13 @@ export default function HomeScreen() {
               Abidjan
             </Txt>
           </View>
-          <Pressable onPress={() => go('/profil')} hitSlop={6} style={styles.avatarRing}>
+          <Pressable
+            onPress={() => go('/profil')}
+            hitSlop={6}
+            style={styles.avatarRing}
+            accessibilityRole="button"
+            accessibilityLabel="Mon profil"
+          >
             <Avatar uri={state.account?.photoUri} name={fullName} size={42} />
           </Pressable>
         </View>

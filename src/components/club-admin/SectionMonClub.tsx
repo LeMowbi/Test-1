@@ -153,7 +153,13 @@ export function SectionMonClub({ club }: { club: Club }) {
             {photos.map((uri) => (
               <View key={uri}>
                 <ClubPhoto uri={uri} accent={club.accent} initials={initials(club.name)} height={90} width={120} rounded={radius.md} />
-                <Pressable onPress={() => removeClubPhoto(club.id, uri)} style={styles.removeBadge} hitSlop={6}>
+                <Pressable
+                  onPress={() => removeClubPhoto(club.id, uri)}
+                  style={styles.removeBadge}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel="Retirer cette photo"
+                >
                   <Ionicons name="close" size={14} color={colors.white} />
                 </Pressable>
               </View>

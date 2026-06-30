@@ -1,13 +1,35 @@
 import { SaveFormat, manipulateAsync, type Action } from 'expo-image-manipulator';
 import * as ImagePicker from 'expo-image-picker';
+import { Alert, Linking } from 'react-native';
+
+// Message clair par défaut quand l'accès aux photos est refusé : on propose d'ouvrir Réglages.
+function defaultDenied() {
+  Alert.alert(
+    'Accès aux photos refusé',
+    'Pour choisir une image, autorise PadelConnect à accéder à tes photos dans les Réglages de ton téléphone.',
+    [
+      { text: 'Plus tard', style: 'cancel' },
+      { text: 'Ouvrir les Réglages', onPress: () => void Linking.openSettings() },
+    ],
+  );
+}
 
 // Ouvre la galerie puis OPTIMISE l'image avant stockage : recadrage carré centré
 // (avatars), redimensionnement et compression JPEG ≈ 0.8. Renvoie un data-URI
 // base64 compact — l'état persisté reste léger (localStorage du prototype ≈ 5 Mo,
 // une photo de téléphone brute peut le faire exploser) et l'image survit aux
 // redémarrages sur tous les supports (web et natif).
-export async function pickImage(opts: { square?: boolean } = {}): Promise<string | null> {
+export async function pickImage(opts: { square?: boolean; onDenied?: () => void } = {}): Promise<string | null> {
   try {
+    // On VÉRIFIE puis demande l'accès à la galerie explicitement : si l'utilisateur refuse,
+    // on prévient l'appelant (onDenied) pour afficher un message clair au lieu d'un échec muet.
+    const perm = await ImagePicker.getMediaLibraryPermissionsAsync();
+    let granted = perm.granted;
+    if (!granted && perm.canAskAgain) granted = (await ImagePicker.requestMediaLibraryPermissionsAsync()).granted;
+    if (!granted) {
+      (opts.onDenied ?? defaultDenied)();
+      return null;
+    }
     const res = await ImagePicker.launchImageLibraryAsync({ quality: 1 });
     if (res.canceled) return null; // annulation : aucun changement, aucune erreur
     const asset = res.assets?.[0];
