@@ -45,6 +45,19 @@ export default function ReserverScreen() {
     );
   }
 
+  // Un club « Bientôt » est référencé mais pas encore réservable (garde aussi le lien direct).
+  if (club.comingSoon) {
+    return (
+      <Screen back title={club.name}>
+        <EmptyState
+          icon="time-outline"
+          title="Bientôt sur PadelConnect"
+          text="Ce club arrive très vite. La réservation en ligne ouvrira dès qu'il aura finalisé son inscription."
+        />
+      </Screen>
+    );
+  }
+
   const ctx: AvailCtx = {
     clubs: activeClubs(state.customClubs, state.clubInfo),
     clubSlots: state.clubSlots,

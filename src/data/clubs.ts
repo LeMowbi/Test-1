@@ -22,6 +22,10 @@ export type Club = {
   contactPhone?: string; // WhatsApp du club — alimente le lien discret « Contacter le club »
   photos?: string[]; // photos officielles (sinon photos illustratives par défaut)
   offers?: { title: string; detail: string }[];
+  // « Bientôt » : club référencé mais pas encore réservable (pré-chargé par l'opérateur en
+  // attendant qu'il finalise son inscription). Visible dans la liste, badge « Bientôt »,
+  // bouton Réserver désactivé. Les clubs de base ne le sont jamais.
+  comingSoon?: boolean;
 };
 
 // Tarif d'une plage horaire défini librement par le gérant : [start, end[ → prix FCFA.
@@ -198,7 +202,10 @@ export function getClub(id?: string | string[]): Club | undefined {
 // ——— Clubs inscrits via l'app (validés par l'opérateur PadelConnect) ———
 
 export type CustomClub = Club & {
-  status: 'pending' | 'active'; // « pending » = en attente d'activation par l'opérateur
+  // « pending » = demande locale en attente d'activation par l'opérateur ;
+  // « coming_soon » = pré-chargé côté serveur, visible mais pas encore réservable ;
+  // « active » = visible ET réservable.
+  status: 'pending' | 'coming_soon' | 'active';
   contactPhone?: string;
   createdAt: number;
   fromServer?: boolean; // true = club venu du serveur (table clubs), pas un club démo local
@@ -217,11 +224,11 @@ export function serverRowToClub(row: {
   contact_phone: string | null;
   blurb: string | null;
   amenities: string[] | null;
+  status: string | null;
   created_at: string | null;
 }): CustomClub {
-  const type = (['Couvert', 'Extérieur', 'Mixte'] as const).includes(row.type as Club['type'])
-    ? (row.type as Club['type'])
-    : 'Mixte';
+  const type = (['Couvert', 'Extérieur', 'Mixte'] as const).includes(row.type as Club['type']) ? (row.type as Club['type']) : 'Mixte';
+  const comingSoon = row.status === 'coming_soon';
   // Accent stable dérivé de l'id (déterministe, pas de couleur qui « saute » au rechargement).
   const accentIdx = Math.abs([...row.id].reduce((h, c) => (h * 31 + c.charCodeAt(0)) | 0, 7)) % ACCENTS.length;
   return {
@@ -239,10 +246,9 @@ export function serverRowToClub(row: {
     mapsQuery: `${row.name} ${row.city ?? CITY}`,
     accent: ACCENTS[accentIdx],
     contactPhone: row.contact_phone ?? undefined,
-    // fetchServerClubs ne renvoie que des clubs status='active' (filtre côté requête) → on
-    // les marque actifs. Un éventuel écran opérateur listant aussi les clubs masqués devra
-    // mapper row.status au lieu de ce littéral.
-    status: 'active',
+    comingSoon, // « Bientôt » → badge + réservation désactivée
+    // fetchServerClubs renvoie les clubs 'active' ET 'coming_soon' ; on garde le statut tel quel.
+    status: comingSoon ? 'coming_soon' : 'active',
     createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
     fromServer: true,
   };
@@ -259,9 +265,11 @@ function applyInfo(club: Club, overrides?: ClubOverrides): Club & { contactPhone
   return patch ? { ...club, ...patch } : club;
 }
 
-// Clubs visibles par les JOUEURS : clubs de base + clubs inscrits ACTIVÉS.
+// Clubs visibles par les JOUEURS : clubs de base + clubs serveur activés OU « Bientôt »
+// (ces derniers s'affichent avec un badge et ne sont pas réservables). On exclut seulement
+// les demandes locales « pending » (pas encore approuvées).
 export function activeClubs(custom: CustomClub[], overrides?: ClubOverrides): Club[] {
-  return [...clubs, ...custom.filter((c) => c.status === 'active')]
+  return [...clubs, ...custom.filter((c) => c.status === 'active' || c.status === 'coming_soon')]
     .map((c) => applyInfo(c, overrides))
     .sort((a, b) => a.name.localeCompare(b.name));
 }

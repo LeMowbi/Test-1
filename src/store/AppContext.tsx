@@ -5,7 +5,12 @@ import * as Linking from 'expo-linking';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState as RNAppState } from 'react-native';
 import { clubs, type Club, type CustomClub, type PriceTier } from '@/data/clubs';
-import { approveClubRequest as approveClubRequestRpc, fetchServerClubs } from '@/lib/clubsServer';
+import {
+  approveClubRequest as approveClubRequestRpc,
+  createClub as createClubRpc,
+  fetchServerClubs,
+  setClubStatus as setClubStatusRpc,
+} from '@/lib/clubsServer';
 import type { Competition } from '@/data/competitions';
 import type { Review } from '@/data/reviews';
 import { type Friend } from '@/data/user';
@@ -351,6 +356,15 @@ type AppContextType = {
   // Approuve une demande côté SERVEUR : crée le club (visible par tous) + donne au
   // demandeur l'accès à son Espace Club. Recharge ensuite la liste des clubs serveur.
   approveClubRequest: (requestId: string) => Promise<{ ok: boolean; clubId?: string }>;
+  // Opérateur : statut d'un club serveur (Actif / Bientôt / masqué) et pré-chargement d'un club.
+  operatorSetClubStatus: (clubId: string, status: 'active' | 'coming_soon' | 'hidden') => Promise<{ ok: boolean }>;
+  operatorCreateClub: (input: {
+    name: string;
+    area: string;
+    type: string;
+    courts: number;
+    priceFrom: number;
+  }) => Promise<{ ok: boolean; clubId?: string }>;
   // Aide / signalements : le joueur envoie un message, l'opérateur les lit/traite.
   submitSupportMessage: (message: string, contactPhone?: string) => Promise<{ ok: boolean; error?: string }>;
   fetchSupportMessages: () => Promise<{ ok: boolean; messages: ServerSupportMessage[] }>;
@@ -1056,6 +1070,25 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // recharge la liste des clubs serveur pour que le nouveau club apparaisse aussitôt.
       approveClubRequest: async (requestId) => {
         const res = await approveClubRequestRpc(requestId);
+        if (res.ok) {
+          const serverClubs = await fetchServerClubs();
+          setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
+        }
+        return res;
+      },
+      // Opérateur : change le statut d'un club serveur (Actif ⇄ Bientôt ⇄ masqué) puis
+      // recharge la liste pour refléter le changement immédiatement.
+      operatorSetClubStatus: async (clubId, status) => {
+        const ok = await setClubStatusRpc(clubId, status);
+        if (ok) {
+          const serverClubs = await fetchServerClubs();
+          setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
+        }
+        return { ok };
+      },
+      // Opérateur : pré-charge un club « Bientôt » côté serveur (il apparaît aussitôt en liste).
+      operatorCreateClub: async (input) => {
+        const res = await createClubRpc(input);
         if (res.ok) {
           const serverClubs = await fetchServerClubs();
           setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));

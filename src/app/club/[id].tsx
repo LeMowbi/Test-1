@@ -100,11 +100,13 @@ export default function ClubDetail() {
       contentStyle={{ paddingBottom: 96 }}
       overlay={
         <>
-          {/* CTA collant : prix « dès » à gauche, Réserver (pill) à droite */}
+          {/* CTA collant : prix « dès » à gauche, Réserver (pill) à droite. Un club « Bientôt »
+              n'est pas encore réservable → bouton désactivé + libellé explicite. */}
           <StickyBar
-            label={`dès ${fcfa(minPrice(club))}`}
-            hint="la session · 1h30"
-            cta="Réserver"
+            label={club.comingSoon ? 'Bientôt sur PadelConnect' : `dès ${fcfa(minPrice(club))}`}
+            hint={club.comingSoon ? 'réservation à venir' : 'la session · 1h30'}
+            cta={club.comingSoon ? 'Bientôt' : 'Réserver'}
+            disabled={!!club.comingSoon}
             onPress={() => router.push(`/reserver/${club.id}`)}
           />
           {toast ? (

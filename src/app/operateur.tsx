@@ -27,10 +27,44 @@ export default function Operateur() {
     fetchClubRequests,
     setClubRequestStatus,
     approveClubRequest,
+    operatorSetClubStatus,
+    operatorCreateClub,
     fetchSupportMessages,
     setSupportMessageStatus,
   } = useApp();
   const toast = useToast();
+
+  // ── Clubs serveur (Actif / Bientôt) : pré-chargement + bascule de statut ──────
+  const serverClubs = state.customClubs.filter((c) => c.fromServer);
+  const [ncName, setNcName] = useState('');
+  const [ncArea, setNcArea] = useState('');
+  const [ncPrice, setNcPrice] = useState('');
+  const [creatingClub, setCreatingClub] = useState(false);
+  const createComingSoon = async () => {
+    if (creatingClub || ncName.trim().length < 2) return;
+    setCreatingClub(true);
+    const res = await operatorCreateClub({
+      name: ncName.trim(),
+      area: ncArea.trim(),
+      type: 'Mixte',
+      courts: 1,
+      priceFrom: Number(ncPrice) > 0 ? Number(ncPrice) : 10000,
+    });
+    setCreatingClub(false);
+    if (res.ok) {
+      setNcName('');
+      setNcArea('');
+      setNcPrice('');
+      toast.show('Club ajouté en « Bientôt » ✅');
+    } else {
+      toast.show('Ajout impossible — réessaie', { icon: 'alert-circle' });
+    }
+  };
+  const toggleClubStatus = async (clubId: string, current: boolean) => {
+    // current = est « Bientôt » → on bascule vers Actif, et inversement.
+    const { ok } = await operatorSetClubStatus(clubId, current ? 'active' : 'coming_soon');
+    if (!ok) toast.show('Changement impossible — réessaie', { icon: 'alert-circle' });
+  };
 
   // Messages d'aide / signalements (table support_messages, RLS opérateur).
   const [support, setSupport] = useState<ServerSupportMessage[]>([]);
@@ -456,6 +490,68 @@ export default function Operateur() {
         )}
       </View>
 
+      {/* Clubs serveur : pré-charger un club « Bientôt » et activer quand il est prêt. */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title={`Clubs sur le serveur · ${serverClubs.length}`} />
+        <Card>
+          <Txt variant="small" color={colors.textMuted}>
+            Ajoute un club en « Bientôt » : il apparaît dans la liste des joueurs (non réservable) jusqu'à ce que tu l'actives.
+          </Txt>
+          <TextInput
+            value={ncName}
+            onChangeText={setNcName}
+            placeholder="Nom du club"
+            placeholderTextColor={colors.textFaint}
+            style={styles.clubInput}
+          />
+          <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+            <TextInput
+              value={ncArea}
+              onChangeText={setNcArea}
+              placeholder="Quartier"
+              placeholderTextColor={colors.textFaint}
+              style={[styles.clubInput, { flex: 1 }]}
+            />
+            <TextInput
+              value={ncPrice}
+              onChangeText={setNcPrice}
+              placeholder="Tarif dès (FCFA)"
+              placeholderTextColor={colors.textFaint}
+              keyboardType="numeric"
+              style={[styles.clubInput, { flex: 1 }]}
+            />
+          </View>
+          <Button
+            size="sm"
+            label={creatingClub ? 'Ajout…' : 'Ajouter en « Bientôt »'}
+            icon="add"
+            onPress={createComingSoon}
+            disabled={creatingClub || ncName.trim().length < 2}
+          />
+        </Card>
+        {serverClubs.map((c) => (
+          <Card key={c.id} style={{ marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+            <IconCircle icon="business" color={colors.signature} bg={colors.signatureSoft} size={40} />
+            <View style={{ flex: 1 }}>
+              <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
+                {c.name}
+              </Txt>
+              <Txt variant="muted" numberOfLines={1}>
+                {c.area} · dès {fcfa(c.priceFrom)}
+              </Txt>
+            </View>
+            <Tag label={c.comingSoon ? 'Bientôt' : 'Actif'} tone={c.comingSoon ? 'purple' : 'green'} />
+            <Button
+              size="sm"
+              label={c.comingSoon ? 'Activer' : 'Mettre en attente'}
+              icon={c.comingSoon ? 'checkmark' : 'time'}
+              variant={c.comingSoon ? 'primary' : 'ghost'}
+              onPress={() => toggleClubStatus(c.id, !!c.comingSoon)}
+            />
+          </Card>
+        ))}
+      </View>
+
       {/* Signalements / messages d'aide envoyés par les joueurs (serveur). */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title={`Signalements · ${newSupport}`} />
@@ -631,8 +727,11 @@ export default function Operateur() {
         <View style={styles.approveBox}>
           <Ionicons name="sparkles" size={18} color={colors.signature} />
           <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-            Le demandeur obtiendra l'accès à <Txt variant="small" style={{ fontWeight: '700' }}>son Espace Club</Txt> dès sa prochaine
-            ouverture de l'app. Aucune manipulation technique de ta part.
+            Le demandeur obtiendra l'accès à{' '}
+            <Txt variant="small" style={{ fontWeight: '700' }}>
+              son Espace Club
+            </Txt>{' '}
+            dès sa prochaine ouverture de l'app. Aucune manipulation technique de ta part.
           </Txt>
         </View>
         <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
@@ -731,6 +830,16 @@ function NewsEditor({
 }
 
 const styles = StyleSheet.create({
+  clubInput: {
+    backgroundColor: colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: colors.border,
+    borderRadius: radius.md,
+    color: colors.text,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+    fontSize: font.size.md,
+  },
   infoBanner: {
     flexDirection: 'row',
     alignItems: 'center',

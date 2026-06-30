@@ -18,6 +18,7 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const photo = clubGallery(club, state.clubPhotos[club.id] ?? [])[0];
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
   const { rating, count } = ratingFor(club, state.userReviews);
+  const comingSoon = !!club.comingSoon; // club pré-chargé, pas encore réservable
   const go = () => router.push(`/club/${club.id}`);
 
   const heart = (
@@ -41,14 +42,20 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
             subtitle={club.area}
           />
           {heart}
-          {boosted ? (
+          {comingSoon ? (
+            <View style={styles.boostBadge}>
+              <Tag label="Bientôt" tone="purple" icon="time" />
+            </View>
+          ) : boosted ? (
             <View style={styles.boostBadge}>
               <Tag label="Sponsorisé" tone="amber" icon="megaphone" />
             </View>
           ) : null}
         </View>
         <View style={styles.compactFooter}>
-          {count === 0 ? (
+          {comingSoon ? (
+            <Tag label="Pas encore réservable" tone="neutral" />
+          ) : count === 0 ? (
             <Tag label="Nouveau" tone="coral" icon="sparkles" />
           ) : (
             <View style={styles.ratingRow}>
@@ -60,9 +67,16 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           )}
           {/* Prix tronqué + flexShrink : sur une carte étroite (250px), il ne se colle plus à
               la note et ne déborde plus (« …· session » coupé). */}
-          <Txt variant="small" color={colors.signature} numberOfLines={1} style={{ fontWeight: '700', flexShrink: 1, marginLeft: spacing.sm }}>
-            dès {fcfa(club.priceFrom)}
-          </Txt>
+          {comingSoon ? null : (
+            <Txt
+              variant="small"
+              color={colors.signature}
+              numberOfLines={1}
+              style={{ fontWeight: '700', flexShrink: 1, marginLeft: spacing.sm }}
+            >
+              dès {fcfa(club.priceFrom)}
+            </Txt>
+          )}
         </View>
       </Card>
     );
@@ -79,7 +93,13 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           <Txt variant="h3" numberOfLines={1} style={{ flex: 1 }}>
             {club.name}
           </Txt>
-          {boosted ? <Tag label="Sponsorisé" tone="amber" icon="megaphone" /> : <Tag label={club.type} tone="neutral" />}
+          {comingSoon ? (
+            <Tag label="Bientôt" tone="purple" icon="time" />
+          ) : boosted ? (
+            <Tag label="Sponsorisé" tone="amber" icon="megaphone" />
+          ) : (
+            <Tag label={club.type} tone="neutral" />
+          )}
         </View>
         <View style={styles.areaRow}>
           <Ionicons name="location-outline" size={14} color={colors.textMuted} />
@@ -98,9 +118,15 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
               </Txt>
             </View>
           )}
-          <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
-            dès {fcfa(club.priceFrom)} · session
-          </Txt>
+          {comingSoon ? (
+            <Txt variant="small" color={colors.purple} style={{ fontWeight: '700' }}>
+              Pas encore réservable
+            </Txt>
+          ) : (
+            <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
+              dès {fcfa(club.priceFrom)} · session
+            </Txt>
+          )}
         </View>
       </View>
     </Card>
