@@ -118,9 +118,9 @@ export default function ClubDetail() {
       return;
     }
     setNoteError(false);
-    const ok = await submitReview(club.id, rating, text);
-    if (!ok) {
-      setToast('Avis impossible — il faut avoir joué ici.');
+    const res = await submitReview(club.id, rating, text);
+    if (!res.ok) {
+      setToast(res.reason === 'not_played' ? 'Avis réservé à ceux qui ont joué ici.' : 'Envoi impossible — réessaie.');
       setTimeout(() => setToast(null), 2400);
       return;
     }

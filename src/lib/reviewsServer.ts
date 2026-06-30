@@ -49,10 +49,17 @@ export async function fetchClubReviews(clubId: string): Promise<ServerReview[]> 
   return (data ?? []).map((r) => toReview(r as Row));
 }
 
-// Dépose/met à jour mon avis. false si je n'ai pas (encore) joué dans ce club (non vérifié).
-export async function submitReview(clubId: string, rating: number, text: string): Promise<boolean> {
+// Dépose/met à jour mon avis. Distingue le refus métier (pas encore joué → non vérifié) d'une
+// erreur réseau/serveur, pour afficher le bon message côté UI.
+export async function submitReview(
+  clubId: string,
+  rating: number,
+  text: string,
+): Promise<{ ok: boolean; reason?: 'not_played' | 'error' }> {
   const { data, error } = await supabase.rpc('submit_review', { p_club_id: clubId, p_rating: rating, p_text: text });
-  return !error && data === true;
+  if (error) return { ok: false, reason: 'error' };
+  if (data === true) return { ok: true };
+  return { ok: false, reason: 'not_played' };
 }
 
 // Supprime MON avis sur ce club (RLS : delete own).
