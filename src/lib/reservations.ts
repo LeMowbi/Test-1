@@ -2,6 +2,7 @@
 // le store garde un MIROIR local (lectures synchrones rapides + résilience hors-ligne).
 // On écrit ici, puis on met à jour le miroir dans AppContext.
 
+import { slotTimestamp } from './days';
 import { supabase } from './supabase';
 import type { Invited, Reservation } from '@/store/AppContext';
 
@@ -29,6 +30,13 @@ type Row = {
 
 // Ligne serveur → modèle local.
 export function rowToReservation(row: Row): Reservation {
+  // startsAt CANONIQUE : recalculé depuis (date_key + time) en heure fixe Abidjan, pour
+  // neutraliser un éventuel fuseau erroné de l'appareil qui a créé la résa (le starts_at
+  // stocké ne sert que de repli si la date/heure manquent). Repli sûr contre NaN.
+  const storedTs = Number(row.starts_at);
+  const startsAt =
+    row.date_key && row.time ? slotTimestamp(row.date_key, row.time) : Number.isFinite(storedTs) ? storedTs : 0;
+  const createdTs = row.created_at ? new Date(row.created_at).getTime() : NaN;
   return {
     id: row.id,
     userId: row.user_id,
@@ -38,13 +46,13 @@ export function rowToReservation(row: Row): Reservation {
     date: row.date_label ?? '',
     dateKey: row.date_key ?? '',
     time: row.time ?? '',
-    startsAt: Number(row.starts_at ?? 0),
+    startsAt,
     price: row.price ?? 0,
     players: row.players ?? 1,
     invited: row.invited ?? [],
     bookedBy: row.booked_by_name ? { name: row.booked_by_name, phone: row.booked_by_phone ?? '' } : undefined,
     clubConfirmed: row.club_confirmed ?? false,
-    createdAt: row.created_at ? new Date(row.created_at).getTime() : Date.now(),
+    createdAt: Number.isFinite(createdTs) ? createdTs : Date.now(),
   };
 }
 

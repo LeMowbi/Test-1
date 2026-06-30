@@ -83,7 +83,7 @@ export default function ReserverScreen() {
 
   const confirm = async () => {
     if (!day || !slot || !effectiveCourt || submitting) return;
-    const startsAt = slotTimestamp(day.value, slot);
+    const startsAt = slotTimestamp(day.key, slot);
     if (startsAt <= Date.now()) return;
     setSubmitting(true);
     const invited = [
@@ -233,8 +233,7 @@ export default function ReserverScreen() {
               </View>
               <View style={styles.wrap}>
                 {periodSlots.map((s) => {
-                  const slotTs = slotTimestamp(day?.value ?? 0, s);
-                  const isPast = !!day && slotTs <= Date.now();
+                  const isPast = !!day && slotTimestamp(day.key, s) <= Date.now();
                   const noCourt = !!day && freeCourts(club, day.key, s, ctx).length === 0;
                   const blocked = !day || compToday || isPast || noCourt;
                   // Avec des plages tarifaires, on montre le prix de chaque créneau.

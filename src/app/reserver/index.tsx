@@ -28,7 +28,7 @@ export default function ReserverScreen() {
 
   const days = useMemo(() => nextDays(7), []);
   // Le soir, quand tous les créneaux du jour sont passés, on ouvre directement sur Demain.
-  const todayOver = useMemo(() => !SAMPLE_SLOTS.some((t) => slotTimestamp(days[0].value, t) > Date.now()), [days]);
+  const todayOver = useMemo(() => !SAMPLE_SLOTS.some((t) => slotTimestamp(days[0].key, t) > Date.now()), [days]);
   const [day, setDay] = useState(todayOver ? days[1] : days[0]);
   const [slot, setSlot] = useState<string | null>(null); // créneau choisi (vue « Par heure » guidée)
   // La dernière vue utilisée est mémorisée (l'écran rouvre comme tu l'avais laissé).
@@ -54,7 +54,7 @@ export default function ReserverScreen() {
   const grid = useMemo(() => slotGrid({ clubs: visibleClubs, clubSlots: state.clubSlots }), [visibleClubs, state.clubSlots]);
   const rows = grid
     .map((time) => {
-      const ts = slotTimestamp(day.value, time);
+      const ts = slotTimestamp(day.key, time);
       return { time, ts, clubs: clubsFreeAt(day.key, time, ts, ctx) };
     })
     .filter((r) => r.ts > Date.now()); // on masque les heures déjà passées
@@ -64,7 +64,7 @@ export default function ReserverScreen() {
   const byClub = visibleClubs.map((club) => ({
     club,
     slots: openSlotsFor(club, state.clubSlots)
-      .map((time) => ({ time, ts: slotTimestamp(day.value, time) }))
+      .map((time) => ({ time, ts: slotTimestamp(day.key, time) }))
       .filter((s) => s.ts > Date.now() && freeCourts(club, day.key, s.time, ctx).length > 0),
   }));
 

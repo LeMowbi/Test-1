@@ -308,7 +308,7 @@ export default function ClubAdmin() {
             </View>
           ) : (
             (() => {
-              const cellTs = slotTimestamp(selectedCell.value, selectedCell.time);
+              const cellTs = slotTimestamp(selectedCell.dateKey, selectedCell.time);
               const isPast = cellTs <= now;
               return courts.map((c, i) => {
                 const resa = cellRes.find((r) => r.court === c);

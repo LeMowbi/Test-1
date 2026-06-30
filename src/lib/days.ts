@@ -5,6 +5,11 @@
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
+// Durées en millisecondes — nommées pour la lisibilité (plus de « 86400000 » en dur).
+export const MINUTE_MS = 60_000;
+export const HOUR_MS = 60 * MINUTE_MS;
+export const DAY_MS = 24 * HOUR_MS;
+
 export type DayOption = { label: string; value: number; key: string };
 
 export function dayKey(d: Date): string {
@@ -29,10 +34,14 @@ export function nextDays(n: number, from: Date = new Date()): DayOption[] {
   });
 }
 
-// Horodatage réel d'un créneau « HH:MM » pour un jour donné (minuit du jour).
-export function slotTimestamp(dayValue: number, slot: string): number {
-  const [h, m] = slot.split(':').map(Number);
-  return dayValue + h * 3600000 + m * 60000;
+// Horodatage CANONIQUE d'un créneau, à partir de la clé du jour (AAAA-MM-JJ) + « HH:MM ».
+// Abidjan = UTC+0 : on interprète (jour + heure) comme une heure UTC FIXE, indépendante du
+// fuseau réglé sur le téléphone. Ainsi startsAt, les rappels, le passage en « jouée » et la
+// facturation hebdomadaire tombent juste même si l'horloge de l'appareil est à un autre fuseau.
+export function slotTimestamp(dateKey: string, slot: string): number {
+  const [y, m, d] = dateKey.split('-').map(Number);
+  const [h, min] = slot.split(':').map(Number);
+  return Date.UTC(y, m - 1, d, h, min);
 }
 
 const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];

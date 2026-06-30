@@ -36,7 +36,7 @@ export function QuickBlock({
   const [confirmUnblock, setConfirmUnblock] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  const tsOf = (t: string) => slotTimestamp(day.value, t);
+  const tsOf = (t: string) => slotTimestamp(day.key, t);
   const reset = () => {
     setTime(null);
     setCourt(null);

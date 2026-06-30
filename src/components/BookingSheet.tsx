@@ -73,7 +73,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
       date: day.label,
       dateKey: day.key,
       time,
-      startsAt: slotTimestamp(day.value, time),
+      startsAt: slotTimestamp(day.key, time),
       price,
       players: 1 + invited.length,
       invited,
