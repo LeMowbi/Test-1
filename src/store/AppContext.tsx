@@ -28,6 +28,7 @@ import { removeClubPhotoFile, uploadClubPhoto } from '@/lib/clubPhotos';
 import type { Competition } from '@/data/competitions';
 import type { Review } from '@/data/reviews';
 import { type Friend } from '@/data/user';
+import { addFriendByPhone, fetchFriends, removeFriendOnServer } from '@/lib/friends';
 import {
   cancelReservationRow,
   fetchMyParticipations,
@@ -254,7 +255,7 @@ type AppContextType = {
   // Réservation partagée : l'invité accepte (accept=true) ou refuse son invitation.
   respondInvitation: (reservationId: string, accept: boolean) => Promise<boolean>;
   confirmReservationByClub: (id: string) => Promise<boolean>;
-  addFriend: (name: string, phone: string, level?: number) => void;
+  addFriend: (name: string, phone: string, level?: number) => Promise<void>;
   removeFriend: (id: string) => void;
   toggleFavorite: (clubId: string) => void;
   addClubPhoto: (clubId: string, uri: string) => Promise<void>;
@@ -456,7 +457,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Réservations : le serveur est la source de vérité → on remplace le miroir local
       // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
       // via RLS), l'occupation de TOUS (disponibilité), et les clubs ajoutés côté serveur.
-      const [reservationsRes, occ, parts, serverClubs, overrides, clubStatus, configs, commissions, boosts] = await Promise.all([
+      const [reservationsRes, occ, parts, serverClubs, overrides, clubStatus, configs, commissions, boosts, friends] = await Promise.all([
         fetchReservations(),
         fetchOccupancy(),
         fetchMyParticipations(userId),
@@ -466,6 +467,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchClubConfigs(),
         fetchClubCommissions(),
         fetchClubBoosts(),
+        fetchFriends(),
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       const { active: activeParts, pending: pendingParts } = splitParticipations(parts);
@@ -478,6 +480,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         occupancy: occ ?? s.occupancy,
         participantReservationIds: activeParts,
         pendingInvitationIds: pendingParts,
+        // Amis synchronisés (le serveur fait foi). null = échec réseau → on garde le miroir.
+        friends: friends ?? s.friends,
         customClubs: mergeServerClubs(s.customClubs, serverClubs),
         clubStatus: clubStatus ?? s.clubStatus,
         clubCommission: commissions ?? s.clubCommission, // vide pour les non-opérateurs (RLS)
@@ -546,6 +550,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const { active, pending } = splitParticipations(parts);
         setState((s) => ({ ...s, participantReservationIds: active, pendingInvitationIds: pending }));
       });
+      // Amis ajoutés/retirés sur un autre appareil : on relit pour garder la liste à jour.
+      void fetchFriends().then((friends) => friends && ok() && setState((s) => ({ ...s, friends })));
       void fetchServerClubs().then(
         (serverClubs) => ok() && setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) })),
       );
@@ -981,16 +987,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
         return true;
       },
-      addFriend: (name, phone, level) =>
+      addFriend: async (name, phone, level) => {
+        const n = name.trim();
+        if (n.length < 2) return;
+        // Persistance serveur : lien RÉEL (résolu par numéro), id stable d'un appareil à l'autre.
+        // On reprend le vrai nom/niveau renvoyés ; hors-ligne, on retombe sur un ajout local.
+        const synced = state.serverUserId ? await addFriendByPhone(phone) : null;
         setState((s) => {
-          const n = name.trim();
-          if (n.length < 2) return s;
           // Anti-doublon : même numéro (10 derniers chiffres) → on ne ré-ajoute pas.
           const digits = phone.replace(/\D/g, '').slice(-10);
           if (digits.length >= 8 && s.friends.some((f) => (f.phone ?? '').replace(/\D/g, '').slice(-10) === digits)) return s;
-          return { ...s, friends: [{ id: uid(), name: n, phone: phone.trim() || undefined, level }, ...s.friends] };
-        }),
-      removeFriend: (id) => setState((s) => ({ ...s, friends: s.friends.filter((f) => f.id !== id) })),
+          const friend: Friend = synced ?? { id: uid(), name: n, phone: phone.trim() || undefined, level };
+          return { ...s, friends: [friend, ...s.friends] };
+        });
+      },
+      removeFriend: (id) => {
+        if (state.serverUserId) void removeFriendOnServer(id); // retrait serveur (idempotent)
+        setState((s) => ({ ...s, friends: s.friends.filter((f) => f.id !== id) }));
+      },
       toggleFavorite: (clubId) =>
         setState((s) => ({
           ...s,
