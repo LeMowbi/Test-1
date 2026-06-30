@@ -25,6 +25,8 @@ export default function CompetitionDetail() {
   const [partnerName, setPartnerName] = useState('');
   const [winnerName, setWinnerName] = useState('');
   const [loserName, setLoserName] = useState(''); // équipe classée dernière (facultatif)
+  const [secondName, setSecondName] = useState(''); // americano : 2ᵉ place (facultatif)
+  const [thirdName, setThirdName] = useState(''); // americano : 3ᵉ place (facultatif)
   const [pickingLoser, setPickingLoser] = useState(false); // 2ᵉ étape de clôture
   const [confirmCancel, setConfirmCancel] = useState(false); // annulation d'un tournoi sans inscrit
   const [toast, setToast] = useState<string | null>(null);
@@ -65,9 +67,19 @@ export default function CompetitionDetail() {
     setPartnerName('');
   };
 
+  // Americano : tournoi par rotation → on clôture par un PODIUM (1ᵉ/2ᵉ/3ᵉ) plutôt qu'un
+  // unique vainqueur + dernier. La détection se fait sur le format choisi à la création.
+  const isAmericano = comp.format.toLowerCase().includes('americano');
+
   // Clôture effective : vainqueur + (option) dernière équipe.
   const doClose = (loser?: string) =>
     closeCompetition(comp, winnerName, winnerName === myTeam && registered, loser, !!loser && loser === myTeam && registered);
+  // Clôture americano : vainqueur + 2ᵉ/3ᵉ place (le niveau ne bouge que pour le 1ᵉ, comme ailleurs).
+  const doClosePodium = () =>
+    closeCompetition(comp, winnerName, winnerName === myTeam && registered, undefined, false, {
+      second: secondName || undefined,
+      third: thirdName || undefined,
+    });
 
   return (
     <Screen
@@ -230,6 +242,21 @@ export default function CompetitionDetail() {
               />
             ) : null}
           </View>
+          {/* Podium americano : 2ᵉ / 3ᵉ place si renseignées. */}
+          {result.second || result.third ? (
+            <View style={{ marginTop: spacing.sm, gap: 2 }}>
+              {result.second ? (
+                <Txt variant="small" color={colors.textMuted}>
+                  🥈 2ᵉ place : <Txt style={{ fontWeight: '600' }}>{result.second}</Txt>
+                </Txt>
+              ) : null}
+              {result.third ? (
+                <Txt variant="small" color={colors.textMuted}>
+                  🥉 3ᵉ place : <Txt style={{ fontWeight: '600' }}>{result.third}</Txt>
+                </Txt>
+              ) : null}
+            </View>
+          ) : null}
           {result.loser ? (
             <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
               Fin de tableau : {result.loser}
@@ -309,7 +336,7 @@ export default function CompetitionDetail() {
               </View>
               <View style={{ marginTop: spacing.md }}>
                 <Button
-                  label={winnerName ? `Vainqueur : ${winnerName}` : 'Valider le vainqueur'}
+                  label={isAmericano ? 'Suite : podium →' : winnerName ? `Vainqueur : ${winnerName}` : 'Valider le vainqueur'}
                   icon="flag"
                   onPress={() => setPickingLoser(true)}
                   disabled={!winnerName}
@@ -321,6 +348,73 @@ export default function CompetitionDetail() {
                   Tournoi officiel : l'équipe vainqueure gagne +0.50 de niveau.
                 </Txt>
               ) : null}
+            </>
+          ) : isAmericano ? (
+            <>
+              <Txt variant="h3">Podium de l'americano</Txt>
+              <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
+                1ʳᵉ place : <Txt style={{ fontWeight: '700' }}>{winnerName}</Txt>. Ajoute la 2ᵉ et la 3ᵉ place (facultatif).
+              </Txt>
+              <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>
+                🥈 2ᵉ place
+              </Txt>
+              <View style={{ marginTop: 6, gap: 6 }}>
+                {teamList
+                  .filter((t) => t !== winnerName)
+                  .map((t) => {
+                    const sel = secondName === t;
+                    return (
+                      <Pressable
+                        key={t}
+                        onPress={() => {
+                          setSecondName((cur) => (cur === t ? '' : t));
+                          if (thirdName === t) setThirdName('');
+                        }}
+                        style={[styles.teamRow, sel && styles.teamRowSel]}
+                      >
+                        <Ionicons
+                          name={sel ? 'radio-button-on' : 'radio-button-off'}
+                          size={18}
+                          color={sel ? colors.amber : colors.textMuted}
+                        />
+                        <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
+                          {t}
+                        </Txt>
+                        {registered && t === myTeam ? <Tag label="Ton équipe" tone="blue" /> : null}
+                      </Pressable>
+                    );
+                  })}
+              </View>
+              <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>
+                🥉 3ᵉ place
+              </Txt>
+              <View style={{ marginTop: 6, gap: 6 }}>
+                {teamList
+                  .filter((t) => t !== winnerName && t !== secondName)
+                  .map((t) => {
+                    const sel = thirdName === t;
+                    return (
+                      <Pressable
+                        key={t}
+                        onPress={() => setThirdName((cur) => (cur === t ? '' : t))}
+                        style={[styles.teamRow, sel && styles.teamRowSel]}
+                      >
+                        <Ionicons
+                          name={sel ? 'radio-button-on' : 'radio-button-off'}
+                          size={18}
+                          color={sel ? colors.coral : colors.textMuted}
+                        />
+                        <Txt variant="body" style={{ flex: 1, fontWeight: sel ? '700' : '400' }}>
+                          {t}
+                        </Txt>
+                        {registered && t === myTeam ? <Tag label="Ton équipe" tone="blue" /> : null}
+                      </Pressable>
+                    );
+                  })}
+              </View>
+              <View style={{ marginTop: spacing.md }}>
+                <Button label="Clôturer le tournoi" icon="trophy" onPress={doClosePodium} full />
+              </View>
             </>
           ) : (
             <>

@@ -103,7 +103,9 @@ export type OfficialResult = {
 
 // Résultat d'un tournoi clôturé par son ORGANISATEUR (club ou créateur du défi).
 // `loser` = équipe classée dernière (désignation facultative → malus de niveau).
-export type CompResult = { winner: string; loser?: string; closedAt: number };
+// winner = 1ʳᵉ place. Pour un americano : second/third = podium (2ᵉ/3ᵉ). loser = dernière
+// place (formats à élimination). Tous optionnels sauf le vainqueur.
+export type CompResult = { winner: string; second?: string; third?: string; loser?: string; closedAt: number };
 
 // Actualité éditorialisée par l'opérateur, affichée en bandeau sur l'accueil joueur.
 export type OperatorNews = { id: string; title: string; subtitle?: string; link?: string };
@@ -308,6 +310,7 @@ type AppContextType = {
     winnerIsMe: boolean,
     loserName?: string,
     loserIsMe?: boolean,
+    podium?: { second?: string; third?: string }, // americano : 2ᵉ/3ᵉ place
   ) => void;
   setRemindersOn: (on: boolean) => void;
   setReserverView: (v: 'Par heure' | 'Par club') => void;
@@ -779,12 +782,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // dernière), et si TU étais inscrit met à jour ton palmarès. Tournoi OFFICIEL :
       // équipe vainqueure +0.50 / équipe dernière −0.25 (bornés 1.0–7.0). Participation,
       // tournoi amical, ou place intermédiaire : palmarès seulement, niveau inchangé.
-      closeCompetition: (comp, winnerName, winnerIsMe, loserName, loserIsMe) =>
+      closeCompetition: (comp, winnerName, winnerIsMe, loserName, loserIsMe, podium) =>
         setState((s) => {
           if (s.compResults[comp.id]) return s; // déjà clôturé
           const compResults = {
             ...s.compResults,
-            [comp.id]: { winner: winnerName.trim(), loser: loserName?.trim() || undefined, closedAt: Date.now() },
+            [comp.id]: {
+              winner: winnerName.trim(),
+              second: podium?.second?.trim() || undefined,
+              third: podium?.third?.trim() || undefined,
+              loser: loserName?.trim() || undefined,
+              closedAt: Date.now(),
+            },
           };
           const registered = !!s.compRegistrations[comp.id];
           const already = s.officialResults.some((o) => o.compId === comp.id);
