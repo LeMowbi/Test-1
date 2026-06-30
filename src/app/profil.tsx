@@ -8,12 +8,25 @@ import { Avatar } from '@/components/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
+import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt, type IconName } from '@/components/ui';
 import { useApp } from '@/store/AppContext';
 import { levelLabel } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
 import { GENDERS, ageFrom, genderLabel, maskBirthDate, parseBirthDate, zodiacFor, type Gender } from '@/lib/zodiac';
 import { colors, gradients, radius, spacing } from '@/theme';
+
+// Un trophée évolue par paliers : chaque seuil franchi monte d'un rang.
+type Trophy = { label: string; icon: IconName; value: number; steps: number[] };
+const TIER_NAMES = ['Bronze', 'Argent', 'Or', 'Platine'];
+
+// Rang atteint (0 = pas encore débloqué) + prochain seuil à viser.
+function trophyTier(t: Trophy): { tier: number; name: string | null; next: number | null } {
+  let tier = 0;
+  for (const s of t.steps) if (t.value >= s) tier++;
+  const name = tier > 0 ? TIER_NAMES[Math.min(tier - 1, TIER_NAMES.length - 1)] : null;
+  const next = tier < t.steps.length ? t.steps[tier] : null;
+  return { tier, name, next };
+}
 
 export default function ProfilScreen() {
   const router = useRouter();
@@ -52,15 +65,14 @@ export default function ProfilScreen() {
     setPhotoSheet(false);
   };
 
-  // Trophées basés sur du réel : parties jouées (auto), tournois, niveau, amis.
-  const badges = [
-    { label: 'Première partie', ok: stats.played >= 1, need: 'Joue ta 1ʳᵉ partie' },
-    { label: '5 parties', ok: stats.played >= 5, need: `${stats.played}/5 parties` },
-    { label: '20 parties', ok: stats.played >= 20, need: `${stats.played}/20 parties` },
-    { label: 'Premier tournoi', ok: stats.tournamentsPlayed >= 1, need: 'Joue un tournoi' },
-    { label: 'Vainqueur de tournoi', ok: stats.tournamentsWon >= 1, need: 'Gagne un tournoi' },
-    { label: 'Niveau 4+', ok: level >= 4, need: `Niveau ${level.toFixed(2)}/4` },
-    { label: '5 amis', ok: friends.length >= 5, need: `${friends.length}/5 amis` },
+  // Trophées ÉVOLUTIFs : chaque trophée monte en paliers (Bronze → Argent → Or → Platine)
+  // selon une valeur RÉELLE (parties jouées auto, tournois, victoires, amis, niveau).
+  const trophies: Trophy[] = [
+    { label: 'Parties jouées', icon: 'tennisball', value: stats.played, steps: [1, 5, 20, 50] },
+    { label: 'Tournois joués', icon: 'flag', value: stats.tournamentsPlayed, steps: [1, 3, 10] },
+    { label: 'Tournois gagnés', icon: 'trophy', value: stats.tournamentsWon, steps: [1, 3, 5] },
+    { label: 'Cercle d’amis', icon: 'people', value: friends.length, steps: [1, 5, 15] },
+    { label: 'Niveau de jeu', icon: 'trending-up', value: Math.floor(level), steps: [3, 4, 5, 6] },
   ];
 
   // B-R6 : prochain trophée le plus proche (excluant Vainqueur de tournoi et Niveau 4+).
@@ -214,22 +226,50 @@ export default function ProfilScreen() {
         </Txt>
       </View>
 
-      {/* Trophées */}
+      {/* Trophées évolutifs — chaque trophée monte en paliers (Bronze → Platine) */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Trophées" />
         <Card>
-          <View style={styles.badges}>
-            {badges.map((b) => (
-              <View key={b.label} style={{ alignItems: 'flex-start' }}>
-                <Tag label={b.label} tone={b.ok ? 'amber' : 'neutral'} icon={b.ok ? 'trophy' : 'lock-closed'} />
-                {!b.ok ? (
-                  <Txt variant="small" color={colors.textFaint} style={{ fontSize: 10, marginTop: 2 }}>
-                    {b.need}
-                  </Txt>
-                ) : null}
+          {trophies.map((t, i) => {
+            const { tier, name, next } = trophyTier(t);
+            const unlocked = tier > 0;
+            const pct = next ? `${Math.round((t.value / next) * 100)}%` : '100%';
+            return (
+              <View key={t.label}>
+                {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
+                <View style={styles.trophyRow}>
+                  <IconCircle
+                    icon={t.icon}
+                    color={unlocked ? colors.amber : colors.textFaint}
+                    bg={unlocked ? colors.amberSoft : colors.surfaceAlt}
+                    size={38}
+                  />
+                  <View style={{ flex: 1 }}>
+                    <View style={styles.trophyHead}>
+                      <Txt variant="body" style={{ fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+                        {t.label}
+                      </Txt>
+                      <Tag label={name ?? 'À débloquer'} tone={unlocked ? 'amber' : 'neutral'} icon={unlocked ? 'trophy' : 'lock-closed'} />
+                    </View>
+                    {next ? (
+                      <>
+                        <View style={styles.trophyTrack}>
+                          <View style={[styles.trophyFill, { width: pct as `${number}%` }]} />
+                        </View>
+                        <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
+                          {t.value}/{next} vers {TIER_NAMES[tier]}
+                        </Txt>
+                      </>
+                    ) : (
+                      <Txt variant="small" color={colors.amber} style={{ marginTop: 4, fontWeight: '600' }}>
+                        Palier maximal atteint 🏆
+                      </Txt>
+                    )}
+                  </View>
+                </View>
               </View>
-            ))}
-          </View>
+            );
+          })}
         </Card>
       </View>
 
@@ -526,7 +566,10 @@ const styles = StyleSheet.create({
   avatarImg: { width: '100%', height: '100%' },
   stats: { flexDirection: 'row', gap: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.md },
+  trophyRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
+  trophyHead: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
+  trophyTrack: { height: 5, borderRadius: radius.pill, backgroundColor: colors.surfaceAlt, overflow: 'hidden', marginTop: 6 },
+  trophyFill: { height: 5, borderRadius: radius.pill, backgroundColor: colors.amber },
   cta: { flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   input: {
     backgroundColor: colors.bg,

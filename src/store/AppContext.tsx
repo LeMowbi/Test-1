@@ -442,6 +442,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     remindersOnRef.current = state.remindersOn;
   }, [state.remindersOn]);
 
+  // Persistance SERVEUR du niveau : il évolue avec les tournois officiels (clôture) — sans
+  // ça, il était écrasé par l'ancienne valeur serveur au prochain chargement (ou sur un autre
+  // appareil). On pousse à chaque changement réel (ref anti-écriture redondante).
+  const levelSyncRef = useRef<number | null>(null);
+  useEffect(() => {
+    const uid = state.serverUserId;
+    if (!uid) {
+      levelSyncRef.current = null; // déconnexion → on réarme pour le prochain compte
+      return;
+    }
+    if (levelSyncRef.current === state.level) return;
+    levelSyncRef.current = state.level;
+    void supabase.from('profiles').update({ level: state.level }).eq('id', uid);
+  }, [state.level, state.serverUserId]);
+
   // « Époque » de session : incrémentée à chaque déconnexion / réinitialisation. Toute
   // requête en vol (loadSession, rafraîchissement au premier plan) capture l'époque au
   // départ et n'applique son résultat QUE si l'époque n'a pas changé entre-temps — sinon
