@@ -4,7 +4,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState as RNAppState } from 'react-native';
-import { clubs, type Club, type CustomClub, type PriceTier } from '@/data/clubs';
+import { type Club, type CustomClub, type PriceTier } from '@/data/clubs';
 import {
   approveClubRequest as approveClubRequestRpc,
   createClub as createClubRpc,
@@ -143,19 +143,11 @@ type AppState = {
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
   clubInfo: Record<string, ClubInfo>; // surcharges gérant (nom, tarif, WhatsApp…)
-  clubCodes: Record<string, string>; // code à 4 chiffres d'accès à l'Espace Club (démo)
-  unlockedClubIds: string[]; // clubs déjà déverrouillés sur cet appareil
   hiddenCoachIds: string[]; // coachs (de démo) retirés par leur club
   boostedClubIds: string[];
   boostExpiry: Record<string, number>; // clubId → date d'expiration du boost (affichage)
   operatorPayments: Record<string, 'sent' | 'paid'>; // « clubId:AAAA-MM » → statut de règlement
   customClubs: CustomClub[]; // clubs inscrits via l'app (activation par l'opérateur)
-  clubMode: boolean;
-  // Espace opérateur : protégé par un code PIN défini par l'opérateur sur SON appareil.
-  // `operatorPin` est persisté ; `operatorUnlocked` est une session (remis à false à
-  // chaque lancement) → le PIN est redemandé à chaque ouverture de l'app.
-  operatorPin: string | null;
-  operatorUnlocked: boolean;
   // RÔLE vérifié côté serveur (Supabase) — la VRAIE sécurité des espaces.
   //  - 'operator' : toi (PadelConnect). 'club' : un gérant. 'player' : par défaut.
   // Un joueur ne peut pas se promouvoir (protégé par un trigger côté serveur).
@@ -216,17 +208,11 @@ const initialState: AppState = {
   clubOffers: {},
   clubCoaches: {},
   clubInfo: {},
-  // Codes de démo : un code à 4 chiffres par club de base (visibles dans l'Espace opérateur).
-  clubCodes: Object.fromEntries(clubs.map((c, i) => [c.id, String((((i + 1) * 1234) % 9000) + 1000)])),
-  unlockedClubIds: [],
   hiddenCoachIds: [],
   boostedClubIds: [],
   boostExpiry: {},
   operatorPayments: {},
   customClubs: [],
-  clubMode: false,
-  operatorPin: null,
-  operatorUnlocked: false,
   role: 'player',
   serverManagedClubId: null,
   serverUserId: null,
@@ -272,7 +258,6 @@ function loggedOutState(s: AppState): AppState {
     compRegistrations: {},
     compResults: {},
     officialResults: [],
-    operatorUnlocked: false,
   };
 }
 
@@ -383,14 +368,6 @@ type AppContextType = {
   setSupportMessageStatus: (id: string, status: ServerSupportMessage['status']) => Promise<{ ok: boolean }>;
   approveClub: (id: string) => void;
   rejectClub: (id: string) => void;
-  unlockClub: (clubId: string, code: string) => boolean;
-  setClubCode: (clubId: string, code: string) => void;
-  setClubMode: (on: boolean) => void;
-  setOperatorPin: (pin: string | null) => void; // définit/efface le code PIN opérateur
-  // Tente de déverrouiller l'Espace opérateur : crée le PIN s'il n'existe pas encore,
-  // sinon le vérifie. Retourne true si l'accès est accordé.
-  unlockOperator: (pin: string) => boolean;
-  lockOperator: () => void; // re-verrouille (déconnexion de l'Espace opérateur)
   setManagedClub: (id: string) => void;
   setClubSlots: (clubId: string, slots: string[]) => void;
   setClubCourts: (clubId: string, courts: string[]) => void;
@@ -442,9 +419,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        // `operatorUnlocked` est toujours remis à false : le PIN opérateur est
-        // redemandé à chaque lancement (même si l'appareil était déverrouillé avant).
-        if (raw) setState({ ...initialState, ...JSON.parse(raw), operatorUnlocked: false });
+        // On repart de l'état par défaut puis on superpose l'état persisté (champs connus).
+        if (raw) setState({ ...initialState, ...JSON.parse(raw) });
       } catch {
         // état par défaut
       } finally {
@@ -1044,17 +1020,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({ ...s, clubCoaches: { ...s.clubCoaches, [clubId]: (s.clubCoaches[clubId] ?? []).filter((c) => c.id !== id) } })),
       setClubInfo: (clubId, patch) =>
         setState((s) => ({ ...s, clubInfo: { ...s.clubInfo, [clubId]: { ...s.clubInfo[clubId], ...patch } } })),
-      // Déverrouille l'Espace Club si le code correspond (mémorisé ensuite sur l'appareil).
-      unlockClub: (clubId, code) => {
-        const expected = state.clubCodes[clubId];
-        if (!expected || code.trim() !== expected) return false;
-        setState((s) => ({
-          ...s,
-          unlockedClubIds: s.unlockedClubIds.includes(clubId) ? s.unlockedClubIds : [...s.unlockedClubIds, clubId],
-        }));
-        return true;
-      },
-      setClubCode: (clubId, code) => setState((s) => ({ ...s, clubCodes: { ...s.clubCodes, [clubId]: code } })),
       toggleHideCoach: (coachId) =>
         setState((s) => ({
           ...s,
@@ -1234,35 +1199,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: !error };
       },
       approveClub: (id) =>
-        setState((s) => ({
-          ...s,
-          customClubs: s.customClubs.map((c) => (c.id === id ? { ...c, status: 'active' } : c)),
-          // À l'activation, l'opérateur attribue un code d'accès (au hasard, modifiable ensuite).
-          clubCodes: s.clubCodes[id] ? s.clubCodes : { ...s.clubCodes, [id]: String(Math.floor(1000 + Math.random() * 9000)) },
-        })),
+        setState((s) => ({ ...s, customClubs: s.customClubs.map((c) => (c.id === id ? { ...c, status: 'active' } : c)) })),
       rejectClub: (id) =>
         setState((s) => ({
           ...s,
           customClubs: s.customClubs.filter((c) => c.id !== id),
           managedClubId: s.managedClubId === id ? 'padelta' : s.managedClubId,
         })),
-      setClubMode: (on) => setState((s) => ({ ...s, clubMode: on })),
-      setOperatorPin: (pin) => setState((s) => ({ ...s, operatorPin: pin })),
-      // PROTOTYPE (local) : 1ʳᵉ saisie = création du PIN (l'opérateur le choisit sur SON
-      // appareil) ; ensuite = vérification. Une vraie sécurité « réservée à mon compte »
-      // arrivera avec le serveur (rôle vérifié côté serveur, cf. src/lib/access.ts).
-      unlockOperator: (pin) => {
-        const clean = pin.trim();
-        if (clean.length < 4) return false;
-        if (!state.operatorPin) {
-          setState((s) => ({ ...s, operatorPin: clean, operatorUnlocked: true }));
-          return true;
-        }
-        if (clean !== state.operatorPin) return false;
-        setState((s) => ({ ...s, operatorUnlocked: true }));
-        return true;
-      },
-      lockOperator: () => setState((s) => ({ ...s, operatorUnlocked: false })),
       setManagedClub: (id) => setState((s) => ({ ...s, managedClubId: id })),
       setClubSlots: (clubId, slots) => setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: [...slots].sort() } })),
       setClubCourts: (clubId, courts) => setState((s) => ({ ...s, clubCourts: { ...s.clubCourts, [clubId]: courts } })),

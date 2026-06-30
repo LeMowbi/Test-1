@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
 import { BottomSheet } from '@/components/BottomSheet';
@@ -24,17 +24,8 @@ const BLOCK_REASONS = ['Résa téléphone/WhatsApp', 'Entretien', 'Privatisé', 
 const CLUB_TYPES: Club['type'][] = ['Couvert', 'Extérieur', 'Mixte'];
 
 export default function ClubAdmin() {
-  const {
-    state,
-    setManagedClub,
-    setClubMode,
-    requestClub,
-    cancelOwnClubRequest,
-    closeCompetition,
-    deleteCompetition,
-    blockSlot,
-    unblockSlot,
-  } = useApp();
+  const { state, setManagedClub, requestClub, cancelOwnClubRequest, closeCompetition, deleteCompetition, blockSlot, unblockSlot } =
+    useApp();
   const toast = useToast();
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
@@ -141,27 +132,6 @@ export default function ClubAdmin() {
           Démo de l'interface gérant — tes modifications restent sur cet appareil. En production, l'accès est réservé au club connecté.
         </Txt>
       </View>
-
-      {/* Carte « Compte club (démo) » — interrupteur du mode gérant (parité prototype). */}
-      <Card style={styles.accountCard}>
-        <View style={styles.accountIcon}>
-          <Ionicons name="business" size={20} color={colors.signature} />
-        </View>
-        <View style={{ flex: 1 }}>
-          <Txt variant="h3" style={{ fontSize: 16 }}>
-            Compte club (démo)
-          </Txt>
-          <Txt variant="small" color={colors.textMuted}>
-            Active le mode gérant pour gérer ton club.
-          </Txt>
-        </View>
-        <Switch
-          value={state.clubMode}
-          onValueChange={setClubMode}
-          trackColor={{ true: colors.signature, false: colors.surfaceBeige }}
-          thumbColor={colors.white}
-        />
-      </Card>
 
       {/* Club géré — l'opérateur peut basculer entre clubs ; un compte club voit le sien. */}
       <View style={{ marginTop: spacing.lg }}>
@@ -427,15 +397,6 @@ const styles = StyleSheet.create({
     borderRadius: radius.md,
     padding: spacing.md,
     marginTop: spacing.sm,
-  },
-  accountCard: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
-  accountIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: radius.md,
-    backgroundColor: colors.greenSoft,
-    alignItems: 'center',
-    justifyContent: 'center',
   },
   banner: {
     flexDirection: 'row',
