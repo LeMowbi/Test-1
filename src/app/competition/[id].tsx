@@ -7,7 +7,9 @@ import { Chip } from '@/components/Chip';
 import { PlayerSheet, type PlayerLike } from '@/components/PlayerSheet';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
+import { findClub } from '@/data/clubs';
 import { compDateLabel, demoTeams, formatFee, seedCompetitions, teamCount } from '@/data/competitions';
+import { openWhatsApp } from '@/lib/contact';
 import { dayKey } from '@/lib/days';
 import { shareCompetition } from '@/lib/share';
 import { useApp } from '@/store/AppContext';
@@ -42,6 +44,15 @@ export default function CompetitionDetail() {
 
   const reg = state.compRegistrations[comp.id];
   const registered = !!reg;
+  // Club hôte (pour que l'organisateur d'un tournoi en attente puisse le contacter et le faire valider).
+  const hostClub = comp.clubId ? findClub(comp.clubId, state.customClubs, state.clubInfo) : undefined;
+  const contactClub = () =>
+    hostClub?.contactPhone
+      ? openWhatsApp(
+          hostClub.contactPhone,
+          `Bonjour ${hostClub.name}, je souhaite organiser le tournoi « ${comp.title} » chez vous — pouvez-vous le valider sur PadelConnect ?`,
+        )
+      : undefined;
   // Cycle de vie : à venir → terminé (jour STRICTEMENT passé) → clôturé (vainqueur désigné).
   // Le jour même = en cours, pas encore « terminé » (on ne clôture pas avant que ça se joue).
   // Pour un tournoi multi-jours, c'est la date de FIN qui fait foi.
@@ -150,10 +161,24 @@ export default function CompetitionDetail() {
       </View>
 
       {comp.status === 'pending' ? (
+        <>
+          <View style={styles.pendingBanner}>
+            <Ionicons name="hourglass-outline" size={16} color={colors.coral} />
+            <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+              En attente de validation par {comp.clubName ?? 'le club hôte'}. Ton tournoi sera visible une fois accepté.
+            </Txt>
+          </View>
+          {comp.createdByMe && hostClub?.contactPhone ? (
+            <View style={{ marginTop: spacing.sm }}>
+              <Button label={`Contacter ${hostClub.name}`} icon="logo-whatsapp" variant="secondary" onPress={contactClub} full />
+            </View>
+          ) : null}
+        </>
+      ) : comp.status === 'rejected' ? (
         <View style={styles.pendingBanner}>
-          <Ionicons name="hourglass-outline" size={16} color={colors.coral} />
+          <Ionicons name="close-circle-outline" size={16} color={colors.danger} />
           <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-            En attente de validation par {comp.clubName ?? 'le club hôte'}. Ton tournoi sera visible une fois accepté.
+            Ce tournoi n'a pas été retenu par {comp.clubName ?? 'le club hôte'}.
           </Txt>
         </View>
       ) : null}

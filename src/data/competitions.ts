@@ -7,6 +7,7 @@ export type Competition = {
   title: string;
   organizerType: 'club' | 'joueur';
   organizer: string;
+  organizerId?: string; // id serveur de l'organisateur (tournois serveur) — sert au « c'est moi »
   clubId?: string;
   clubName?: string;
   date: string; // libellé d'affichage (jour de DÉBUT)
@@ -19,18 +20,25 @@ export type Competition = {
   level: string;
   reward: string; // récompense / dotation
   fee: string; // frais d'inscription
-  slots: number;
+  slots: number; // nombre d'ÉQUIPES (capacité)
   registered: number;
   official?: boolean;
   createdByMe?: boolean;
+  // Tournoi serveur (synchronisé) vs seed/local : pilote l'écriture (RPC) côté store.
+  server?: boolean;
+  // Terrains et créneaux PRÉCIS réservés au tournoi (bloqués). Vides = ancien comportement
+  // (tout le club bloqué ce jour-là) — gardé pour les seeds de démonstration.
+  courtNames?: string[];
+  timeSlots?: string[];
+  commission?: number; // frais fixe PadelConnect figé à la création (tournois joueurs)
   // Modération : un tournoi créé par un JOUEUR reste « pending » jusqu'à validation du
-  // club hôte. Club / seeds → visibles directement (absence de statut = approuvé).
-  status?: 'pending' | 'approved';
+  // club hôte (« rejected » s'il est refusé). Club / seeds → visibles directement.
+  status?: 'pending' | 'approved' | 'rejected';
 };
 
-// Tournoi visible publiquement (listes, accueil, fiche club) : tout sauf « en attente ».
+// Tournoi visible publiquement (listes, accueil, fiche club) : ni « en attente », ni « refusé ».
 export function isTournamentPublic(c: Competition): boolean {
-  return c.status !== 'pending';
+  return c.status !== 'pending' && c.status !== 'rejected';
 }
 
 // Libellé de date : « du X au Y » si le tournoi s'étale sur plusieurs jours, sinon le jour seul.

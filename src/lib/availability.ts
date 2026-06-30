@@ -30,22 +30,57 @@ export function courtsFor(club: Club, clubCourts: Record<string, string[]>): str
   return clubCourts[club.id] ?? defaultCourts(club);
 }
 
-// Une compétition au club ce jour-là bloque tous ses terrains. Pour un tournoi multi-jours,
-// le blocage couvre toute la plage début → fin (endDateKey), pas seulement le jour de début.
+// Un tournoi a-t-il lieu à ce club ce jour-là ? (n'importe lequel, plage début → fin incluse)
+// Sert aux vues CLUB (planning) : le gérant veut savoir qu'un tournoi se tient, même partiel.
 export function hasCompetition(clubId: string, dateKey: string, comps: Competition[]): boolean {
   return comps.some((c) => c.clubId === clubId && dateKey >= c.dateKey && dateKey <= (c.endDateKey ?? c.dateKey));
 }
 
-// Terrains encore libres d'un club à (jour, heure) — réservés ET bloqués hors app exclus.
+// Un tournoi SANS terrains ni créneaux précis (seeds de démo) bloque TOUT le club ce jour-là.
+// Les tournois serveur ciblent des terrains/créneaux précis → blocage géré créneau par créneau
+// dans freeCourts (ce helper ne signale donc QUE le blocage « journée entière »).
+export function hasFullDayCompetition(clubId: string, dateKey: string, comps: Competition[]): boolean {
+  return comps.some(
+    (c) =>
+      c.clubId === clubId &&
+      dateKey >= c.dateKey &&
+      dateKey <= (c.endDateKey ?? c.dateKey) &&
+      (c.courtNames?.length ?? 0) === 0 &&
+      (c.timeSlots?.length ?? 0) === 0,
+  );
+}
+
+// Terrains bloqués par un tournoi à (club, jour, heure). 'all' = tout le club (tournoi sans
+// précision) ; sinon la liste des terrains réservés au tournoi à ce créneau précis.
+function competitionBlockedCourts(clubId: string, dateKey: string, time: string, comps: Competition[]): 'all' | string[] {
+  const blocked = new Set<string>();
+  for (const c of comps) {
+    if (c.clubId !== clubId) continue;
+    if (!(dateKey >= c.dateKey && dateKey <= (c.endDateKey ?? c.dateKey))) continue;
+    const courts = c.courtNames ?? [];
+    const slots = c.timeSlots ?? [];
+    if (courts.length === 0 && slots.length === 0) return 'all'; // seed : bloque tout le club ce jour
+    if (slots.length > 0 && !slots.includes(time)) continue; // ce créneau n'est pas concerné
+    if (courts.length === 0) return 'all'; // créneaux précis, mais tous les terrains à ces heures
+    for (const ct of courts) blocked.add(ct);
+  }
+  return [...blocked];
+}
+
+// Terrains encore libres d'un club à (jour, heure) — réservés, bloqués hors app ET retenus
+// par un tournoi exclus. Un tournoi ne bloque QUE ses terrains/créneaux déclarés.
 export function freeCourts(club: Club, dateKey: string, time: string, ctx: AvailCtx): string[] {
-  if (hasCompetition(club.id, dateKey, ctx.comps)) return [];
+  const compBlocked = competitionBlockedCourts(club.id, dateKey, time, ctx.comps);
+  if (compBlocked === 'all') return [];
   const taken = ctx.reservations.filter((r) => r.clubId === club.id && r.dateKey === dateKey && r.time === time).map((r) => r.court);
   // Terrains pris par d'AUTRES joueurs (occupation serveur) — invisibles dans mes résas.
   const occupied = (ctx.occupancy ?? [])
     .filter((o) => o.clubId === club.id && o.dateKey === dateKey && o.time === time)
     .map((o) => o.court);
   const blocked = ctx.blocked.filter((b) => b.clubId === club.id && b.dateKey === dateKey && b.time === time).map((b) => b.court);
-  return courtsFor(club, ctx.clubCourts).filter((c) => !taken.includes(c) && !occupied.includes(c) && !blocked.includes(c));
+  return courtsFor(club, ctx.clubCourts).filter(
+    (c) => !compBlocked.includes(c) && !taken.includes(c) && !occupied.includes(c) && !blocked.includes(c),
+  );
 }
 
 // Grille des horaires = union des créneaux ouverts par les clubs (triée).

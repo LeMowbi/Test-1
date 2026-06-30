@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast';
 import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
 import { CommissionRates } from '@/components/operator/CommissionRates';
 import { ManagerAccess } from '@/components/operator/ManagerAccess';
+import { TournamentFee } from '@/components/operator/TournamentFee';
 import { NewsEditor } from '@/components/operator/NewsEditor';
 import { opStyles } from '@/components/operator/styles';
 import { activeClubs, clubs as baseClubs, findClub, manageableClubs } from '@/data/clubs';
@@ -39,6 +40,7 @@ export default function Operateur() {
     operatorCreateClub,
     fetchSupportMessages,
     setSupportMessageStatus,
+    setTournamentFee,
   } = useApp();
   const toast = useToast();
   const { refreshControl } = usePullToRefresh();
@@ -474,6 +476,12 @@ export default function Operateur() {
           onSet={operatorSetClubCommission}
           toast={toast}
         />
+      </View>
+
+      {/* Frais fixe des tournois organisés par des JOUEURS (commission PadelConnect). */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Frais des tournois joueurs" />
+        <TournamentFee fee={state.tournamentFee} onSet={setTournamentFee} toast={toast} />
       </View>
 
       {/* Demandes reçues sur le SERVEUR — un gérant a utilisé « Inscrire mon club ». */}

@@ -3,8 +3,9 @@
 
 import type { CustomClub } from '@/data/clubs';
 import type { ClubConfig } from '@/lib/clubsServer';
+import type { ServerCompetitions } from '@/lib/competitionsServer';
 import type { MyParticipation } from '@/lib/reservations';
-import type { AppState } from './AppContext';
+import type { AppState, CompResult } from './AppContext';
 
 export const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 export const clampLevel = (n: number) => Math.min(7, Math.max(1, Math.round(n * 100) / 100));
@@ -51,6 +52,7 @@ export const initialState: AppState = {
   customClubs: [],
   clubStatus: {},
   clubCommission: {},
+  tournamentFee: 5000, // frais fixe par défaut des tournois joueurs (réglable par l'opérateur)
   role: 'player',
   serverManagedClubId: null,
   serverUserId: null,
@@ -117,6 +119,46 @@ export function loggedOutState(s: AppState): AppState {
     compResults: {},
     officialResults: [],
   };
+}
+
+// Tournois serveur → tranches du store. Les tournois serveur remplacent l'ancien `myCompetitions`
+// (les seeds de démo restent à part). Les clôtures serveur (winner/podium) rejouent compResults,
+// et mes inscriptions serveur rejouent compRegistrations — en PRÉSERVANT à chaque fois ce qui
+// concerne les seeds/local (id absent de la liste serveur). null = échec réseau → on garde l'existant.
+export function competitionSlices(
+  s: AppState,
+  sc: ServerCompetitions | null,
+  regs: Record<string, string> | null,
+): Pick<AppState, 'myCompetitions' | 'compResults' | 'compRegistrations'> {
+  const comps = sc ? sc.comps : s.myCompetitions;
+  const serverIds = new Set(comps.filter((c) => c.server).map((c) => c.id));
+
+  let compResults = s.compResults;
+  if (sc) {
+    const seedResults = Object.fromEntries(Object.entries(s.compResults).filter(([id]) => !serverIds.has(id)));
+    const serverResults: Record<string, CompResult> = {};
+    for (const [id, cl] of Object.entries(sc.closes)) {
+      // closedAt stable d'un rafraîchissement à l'autre (sinon re-render inutile à chaque fetch).
+      serverResults[id] = {
+        winner: cl.winner ?? '',
+        second: cl.second,
+        third: cl.third,
+        loser: cl.loser,
+        closedAt: s.compResults[id]?.closedAt ?? Date.now(),
+      };
+    }
+    compResults = { ...seedResults, ...serverResults };
+  }
+
+  let compRegistrations = s.compRegistrations;
+  if (regs) {
+    const seedRegs = Object.fromEntries(Object.entries(s.compRegistrations).filter(([id]) => !serverIds.has(id)));
+    const serverRegs: AppState['compRegistrations'] = {};
+    for (const [id, partner] of Object.entries(regs)) serverRegs[id] = { partner, at: s.compRegistrations[id]?.at ?? Date.now() };
+    compRegistrations = { ...seedRegs, ...serverRegs };
+  }
+
+  return { myCompetitions: comps, compResults, compRegistrations };
 }
 
 // Invitations → deux listes : celles à inclure dans « mes réservations » (tout sauf refusées)

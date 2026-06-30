@@ -25,6 +25,19 @@ import {
   upsertClubOverride,
 } from '@/lib/clubsServer';
 import { removeClubPhotoFile, uploadClubPhoto } from '@/lib/clubPhotos';
+import {
+  approveCompetition as approveCompetitionRpc,
+  closeCompetition as closeCompetitionRpc,
+  createCompetition as createCompetitionRpc,
+  deleteCompetition as deleteCompetitionRpc,
+  fetchCompetitions,
+  fetchMyCompRegistrations,
+  fetchTournamentFee,
+  registerCompetition as registerCompetitionRpc,
+  rejectCompetition as rejectCompetitionRpc,
+  setTournamentFee as setTournamentFeeRpc,
+  unregisterCompetition as unregisterCompetitionRpc,
+} from '@/lib/competitionsServer';
 import type { Competition } from '@/data/competitions';
 import type { Review } from '@/data/reviews';
 import { type Friend } from '@/data/user';
@@ -48,6 +61,7 @@ import { phoneToAuthEmail, supabase } from '@/lib/supabase';
 import {
   clampLevel,
   clubConfigSlices,
+  competitionSlices,
   frAuthError,
   initialState,
   loggedOutState,
@@ -176,6 +190,7 @@ export type AppState = {
   customClubs: CustomClub[]; // clubs inscrits via l'app (activation par l'opérateur)
   clubStatus: Record<string, 'active' | 'coming_soon' | 'hidden'>; // statut piloté par l'opérateur (tout club)
   clubCommission: Record<string, number>; // taux de commission propre à chaque club (vu opérateur)
+  tournamentFee: number; // frais fixe (FCFA) appliqué aux tournois JOUEURS — réglé par l'opérateur
   // RÔLE vérifié côté serveur (Supabase) — la VRAIE sécurité des espaces.
   //  - 'operator' : toi (PadelConnect). 'club' : un gérant. 'player' : par défaut.
   // Un joueur ne peut pas se promouvoir (protégé par un trigger côté serveur).
@@ -241,14 +256,16 @@ type AppContextType = {
     loserName?: string,
     loserIsMe?: boolean,
     podium?: { second?: string; third?: string }, // americano : 2ᵉ/3ᵉ place
-  ) => void;
+  ) => Promise<void>;
   setRemindersOn: (on: boolean) => void;
   setReserverView: (v: 'Par heure' | 'Par club') => void;
-  addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => void;
-  approveCompetition: (id: string) => void; // le club hôte valide un tournoi créé par un joueur
-  deleteCompetition: (id: string) => void; // annulation / refus d'un tournoi (créateur ou club hôte)
-  registerCompetition: (id: string, partner: string) => void;
-  unregisterCompetition: (id: string) => void;
+  addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => Promise<{ ok: boolean }>;
+  approveCompetition: (id: string) => Promise<void>; // le club hôte valide un tournoi créé par un joueur
+  rejectCompetition: (id: string) => Promise<void>; // le club hôte refuse un tournoi créé par un joueur
+  deleteCompetition: (id: string) => Promise<void>; // annulation / suppression (créateur ou club hôte)
+  registerCompetition: (id: string, partner: string) => Promise<void>;
+  unregisterCompetition: (id: string) => Promise<void>;
+  setTournamentFee: (amount: number) => Promise<{ ok: boolean }>; // opérateur : frais fixe tournois joueurs
   // Réservations : SERVEUR = source de vérité quand connecté (sinon miroir local, démo).
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy' | 'userId'>) => Promise<boolean>;
   cancelReservation: (id: string) => Promise<boolean>;
@@ -457,7 +474,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Réservations : le serveur est la source de vérité → on remplace le miroir local
       // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
       // via RLS), l'occupation de TOUS (disponibilité), et les clubs ajoutés côté serveur.
-      const [reservationsRes, occ, parts, serverClubs, overrides, clubStatus, configs, commissions, boosts, friends] = await Promise.all([
+      const [
+        reservationsRes,
+        occ,
+        parts,
+        serverClubs,
+        overrides,
+        clubStatus,
+        configs,
+        commissions,
+        boosts,
+        friends,
+        serverComps,
+        compRegs,
+        tournamentFee,
+      ] = await Promise.all([
         fetchReservations(),
         fetchOccupancy(),
         fetchMyParticipations(userId),
@@ -468,6 +499,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchClubCommissions(),
         fetchClubBoosts(),
         fetchFriends(),
+        fetchCompetitions(userId),
+        fetchMyCompRegistrations(),
+        fetchTournamentFee(),
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       const { active: activeParts, pending: pendingParts } = splitParticipations(parts);
@@ -493,6 +527,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         clubInfo: { ...s.clubInfo, ...overrides },
         // Config club partagée (horaires, terrains, offres, coachs, photos).
         ...clubConfigSlices(s, configs),
+        // Tournois serveur (visibles par tous, synchronisés) + mes inscriptions + clôtures.
+        ...competitionSlices(s, serverComps, compRegs),
+        tournamentFee: tournamentFee ?? s.tournamentFee,
       }));
       // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses).
       if (reservationsRes.ok) {
@@ -504,6 +541,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     } catch {
       // getSession a échoué (réseau) : on reste sur l'état local hydraté, sans crash.
     }
+  }, []);
+
+  // Recharge les tournois serveur + mes inscriptions et les fusionne (foreground et après
+  // une création/inscription/clôture). null = échec réseau → on garde l'existant.
+  const refreshCompetitions = useCallback(async (userId: string) => {
+    const [serverComps, compRegs] = await Promise.all([fetchCompetitions(userId), fetchMyCompRegistrations()]);
+    if (!serverComps && !compRegs) return;
+    setState((s) => ({ ...s, ...competitionSlices(s, serverComps, compRegs) }));
   }, []);
 
   useEffect(() => {
@@ -575,6 +620,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       void fetchClubConfigs().then((configs) => {
         if (ok()) setState((s) => ({ ...s, ...clubConfigSlices(s, configs) }));
       });
+      // Tournois créés/validés/clôturés sur un autre appareil : on relit pour rester à jour.
+      if (ok()) void refreshCompetitions(userId);
       // Rafraîchit le RÔLE/profil : si l'opérateur vient d'accorder l'accès gérant (#39), le
       // gérant voit son Espace Club apparaître au retour dans l'app, sans réinstaller.
       void supabase
@@ -593,7 +640,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
     });
     return () => sub.remove();
-  }, [state.serverUserId]);
+  }, [state.serverUserId, refreshCompetitions]);
 
   // Expiration AUTOMATIQUE des boosts « Sponsorisé » : à l'ouverture et à chaque retour au
   // premier plan, on retire ceux dont la date est dépassée — aucun badge doré ne traîne
@@ -801,7 +848,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // dernière), et si TU étais inscrit met à jour ton palmarès. Tournoi OFFICIEL :
       // équipe vainqueure +0.50 / équipe dernière −0.25 (bornés 1.0–7.0). Participation,
       // tournoi amical, ou place intermédiaire : palmarès seulement, niveau inchangé.
-      closeCompetition: (comp, winnerName, winnerIsMe, loserName, loserIsMe, podium) =>
+      closeCompetition: async (comp, winnerName, winnerIsMe, loserName, loserIsMe, podium) => {
+        // Tournoi serveur : on fige le podium côté serveur (visible par tous) AVANT le local.
+        const serverComp = state.myCompetitions.find((c) => c.id === comp.id && c.server);
+        if (serverComp) {
+          const ok = await closeCompetitionRpc(comp.id, {
+            winner: winnerName,
+            second: podium?.second,
+            third: podium?.third,
+            loser: loserName,
+          });
+          if (!ok) return; // le serveur a refusé (droits) → on ne fige rien localement
+        }
+        // Palmarès + niveau du joueur : LOCAL (progression personnelle), pour les deux types.
         setState((s) => {
           if (s.compResults[comp.id]) return s; // déjà clôturé
           const compResults = {
@@ -835,7 +894,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               ...s.officialResults,
             ],
           };
-        }),
+        });
+        if (serverComp && state.serverUserId) void refreshCompetitions(state.serverUserId); // reflète « clôturé »
+      },
       setRemindersOn: (on) => {
         setState((s) => ({ ...s, remindersOn: on }));
         // (Dé)programme les rappels locaux pour MES résas à venir (pas celles des autres,
@@ -844,28 +905,98 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         void syncMatchReminders(upcoming, on);
       },
       setReserverView: (v) => setState((s) => ({ ...s, reserverView: v })),
-      addCompetition: (c) => setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true }, ...s.myCompetitions] })),
-      // Le club hôte valide un tournoi créé par un joueur (« en attente » → visible).
-      approveCompetition: (id) =>
-        setState((s) => ({ ...s, myCompetitions: s.myCompetitions.map((c) => (c.id === id ? { ...c, status: 'approved' } : c)) })),
-      deleteCompetition: (id) =>
+      // Création : serveur (visible par tous, synchronisé) si connecté — club → publié direct,
+      // joueur → en attente de validation du club hôte. Sinon ajout local (démo hors session).
+      addCompetition: async (c) => {
+        if (state.serverUserId) {
+          const newId = await createCompetitionRpc({
+            title: c.title,
+            organizerType: c.organizerType,
+            organizerName: c.organizer,
+            clubId: c.clubId,
+            clubName: c.clubName,
+            dateKey: c.dateKey,
+            endDateKey: c.endDateKey,
+            courts: c.courtNames ?? [],
+            slots: c.timeSlots ?? [],
+            capacity: c.slots,
+            fee: c.fee,
+            reward: c.reward,
+            format: c.format,
+            level: c.level,
+          });
+          if (!newId) return { ok: false };
+          await refreshCompetitions(state.serverUserId);
+          return { ok: true };
+        }
+        setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true, server: false }, ...s.myCompetitions] }));
+        return { ok: true };
+      },
+      // Le club hôte (ou l'opérateur) valide un tournoi créé par un joueur (« en attente » → visible).
+      approveCompetition: async (id) => {
+        const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
+        if (serverComp) {
+          const ok = await approveCompetitionRpc(id);
+          if (ok && state.serverUserId) await refreshCompetitions(state.serverUserId);
+          return;
+        }
+        setState((s) => ({ ...s, myCompetitions: s.myCompetitions.map((c) => (c.id === id ? { ...c, status: 'approved' } : c)) }));
+      },
+      // Le club hôte refuse un tournoi joueur « en attente » → « refusé » (jamais publié).
+      rejectCompetition: async (id) => {
+        const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
+        if (serverComp) {
+          const ok = await rejectCompetitionRpc(id);
+          if (ok && state.serverUserId) await refreshCompetitions(state.serverUserId);
+          return;
+        }
+        setState((s) => ({ ...s, myCompetitions: s.myCompetitions.map((c) => (c.id === id ? { ...c, status: 'rejected' } : c)) }));
+      },
+      deleteCompetition: async (id) => {
+        const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
+        if (serverComp) {
+          const ok = await deleteCompetitionRpc(id);
+          if (!ok) return; // le serveur a refusé (droits) → on ne retire rien localement
+        }
         setState((s) => {
           const regs = { ...s.compRegistrations };
           delete regs[id];
           return { ...s, myCompetitions: s.myCompetitions.filter((c) => c.id !== id), compRegistrations: regs };
-        }),
-      registerCompetition: (id, partner) =>
+        });
+      },
+      registerCompetition: async (id, partner) => {
+        const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
+        if (serverComp) {
+          const ok = await registerCompetitionRpc(id, partner);
+          if (!ok) return; // tournoi complet / non publié / échec
+        }
         setState((s) =>
           s.compRegistrations[id]
             ? s
             : { ...s, compRegistrations: { ...s.compRegistrations, [id]: { partner: partner.trim() || 'Partenaire', at: Date.now() } } },
-        ),
-      unregisterCompetition: (id) =>
+        );
+        if (serverComp && state.serverUserId) void refreshCompetitions(state.serverUserId); // maj du compteur d'inscrits
+      },
+      unregisterCompetition: async (id) => {
+        const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
+        if (serverComp) {
+          const ok = await unregisterCompetitionRpc(id);
+          if (!ok) return;
+        }
         setState((s) => {
           const next = { ...s.compRegistrations };
           delete next[id];
           return { ...s, compRegistrations: next };
-        }),
+        });
+        if (serverComp && state.serverUserId) void refreshCompetitions(state.serverUserId);
+      },
+      // Opérateur : règle le frais fixe appliqué aux futurs tournois joueurs.
+      setTournamentFee: async (amount) => {
+        const ok = await setTournamentFeeRpc(amount);
+        if (!ok) return { ok: false };
+        setState((s) => ({ ...s, tournamentFee: Math.max(0, Math.round(amount)) }));
+        return { ok: true };
+      },
       addReservation: async (r) => {
         // Garde-fou : on ne réserve jamais un créneau dont l'heure de début est passée.
         if (r.startsAt <= Date.now()) return false;
@@ -1378,7 +1509,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState(initialState);
       },
     }),
-    [state, hydrated, stats, myReservations, loadSession],
+    [state, hydrated, stats, myReservations, loadSession, refreshCompetitions],
   );
 
   return <AppContext.Provider value={api}>{children}</AppContext.Provider>;

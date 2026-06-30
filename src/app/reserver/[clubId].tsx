@@ -15,7 +15,7 @@ import { seedCompetitions } from '@/data/competitions';
 import { addReservationToCalendar } from '@/lib/calendar';
 import { openWhatsApp } from '@/lib/contact';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
-import { courtsFor, freeCourts, hasCompetition, openSlotsFor, type AvailCtx } from '@/lib/availability';
+import { courtsFor, freeCourts, hasFullDayCompetition, openSlotsFor, type AvailCtx } from '@/lib/availability';
 import { nextDays, slotTimestamp, type DayOption } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
 import { minPrice, priceForSlot, priceTiersFor } from '@/lib/pricing';
@@ -74,7 +74,9 @@ export default function ReserverScreen() {
   };
   const openSlots = openSlotsFor(club, state.clubSlots);
   const allCourts = courtsFor(club, state.clubCourts);
-  const compToday = !!day && hasCompetition(club.id, day.key, ctx.comps);
+  // Bannière « journée fermée » seulement si un tournoi bloque TOUT le club ; un tournoi sur
+  // des terrains/créneaux précis laisse les autres réservables (géré créneau par créneau).
+  const compToday = !!day && hasFullDayCompetition(club.id, day.key, ctx.comps);
   const free = day && slot ? freeCourts(club, day.key, slot, ctx) : [];
 
   // A-L2 : pré-sélectionner le 1er terrain libre dès que jour + créneau sont choisis.

@@ -3,9 +3,11 @@ import { useMemo, useRef, useState } from 'react';
 import { ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
+import { useToast } from '@/components/Toast';
 import { Button, Txt } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { COMP_FORMATS } from '@/data/competitions';
+import { courtsFor, openSlotsFor } from '@/lib/availability';
 import { nextDays, type DayOption } from '@/lib/days';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
@@ -51,6 +53,7 @@ export default function NouvelleCompetition() {
   const router = useRouter();
   const params = useLocalSearchParams<{ as?: string; clubId?: string }>();
   const { state, addCompetition } = useApp();
+  const toast = useToast();
   // « asClub » (tournoi OFFICIEL, publié direct) n'est autorisé qu'aux comptes club/opérateur :
   // on le verrouille sur le RÔLE, pas seulement sur le paramètre d'URL — sinon un joueur
   // pourrait forger « ?as=club » et créer un tournoi officiel (puis s'attribuer du niveau).
@@ -71,12 +74,26 @@ export default function NouvelleCompetition() {
   const [format, setFormat] = useState(COMP_FORMATS[2]);
   const [level, setLevel] = useState('Tous niveaux');
   const [slots, setSlots] = useState(8);
+  const [courts, setCourts] = useState<string[]>([]); // terrains réservés au tournoi (multi-sélection)
+  const [times, setTimes] = useState<string[]>([]); // créneaux réservés au tournoi (multi-sélection)
+  const [submitting, setSubmitting] = useState(false);
   // Erreurs par champ — affichées au tap sur « Publier » (aucun tap silencieux).
   const [errors, setErrors] = useState<{ title?: string; date?: string; host?: string }>({});
   const scrollRef = useRef<ScrollView>(null);
   const datePos = useRef(0);
 
-  const create = () => {
+  // Club hôte résolu (club si compte club, sinon le club choisi par le joueur) → ses terrains
+  // et créneaux réels, pour que l'organisateur réserve des terrains/heures PRÉCIS (pas tout).
+  const host = asClub ? club : findClub(hostId ?? undefined, state.customClubs, state.clubInfo);
+  const hostCourts = host ? courtsFor(host, state.clubCourts) : [];
+  const hostSlots = host ? openSlotsFor(host, state.clubSlots) : [];
+  const toggleCourt = (c: string) => setCourts((cur) => (cur.includes(c) ? cur.filter((x) => x !== c) : [...cur, c]));
+  const toggleTime = (t: string) => setTimes((cur) => (cur.includes(t) ? cur.filter((x) => x !== t) : [...cur, t]));
+
+  const isPlayerTournament = !asClub;
+
+  const create = async () => {
+    if (submitting) return;
     const e: { title?: string; date?: string; host?: string } = {};
     if (title.trim().length < 3) e.title = 'Indique un titre (3 lettres minimum).';
     if (!day) e.date = 'Choisis une date.';
@@ -87,8 +104,8 @@ export default function NouvelleCompetition() {
       scrollRef.current?.scrollTo({ y: e.title ? 0 : Math.max(0, datePos.current - 24), animated: true });
       return;
     }
-    const host = asClub ? club : findClub(hostId ?? undefined, state.customClubs, state.clubInfo);
-    addCompetition({
+    setSubmitting(true);
+    const res = await addCompetition({
       title: title.trim(),
       organizerType: asClub ? 'club' : 'joueur',
       organizer: asClub ? (club?.name ?? 'Club') : (state.account?.firstName ?? 'Joueur'),
@@ -106,9 +123,18 @@ export default function NouvelleCompetition() {
       slots,
       registered: 0,
       official: asClub,
+      // Terrains/créneaux PRÉCIS réservés au tournoi (vides = tout le club ce jour-là).
+      courtNames: courts,
+      timeSlots: times,
       // Club → publié direct ; joueur → en attente de validation du club hôte.
       status: asClub ? 'approved' : 'pending',
     });
+    setSubmitting(false);
+    if (!res.ok) {
+      toast.show('Création impossible — réessaie dans un instant.', { icon: 'alert-circle' });
+      return;
+    }
+    toast.show(asClub ? 'Tournoi publié ✓' : 'Demande envoyée au club ✓');
     router.replace(asClub ? '/club-admin' : '/competitions');
   };
 
@@ -235,8 +261,48 @@ export default function NouvelleCompetition() {
         </View>
       ) : null}
 
+      {/* Terrains & créneaux réservés au tournoi — choix PRÉCIS (pas forcément tout le club).
+          Disponible dès que le club hôte est connu. Rien de coché = tout le club ce(s) jour(s). */}
+      {host ? (
+        <>
+          <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
+            Terrains réservés au tournoi
+          </Txt>
+          <View style={styles.wrap}>
+            {hostCourts.map((c) => (
+              <Chip key={c} label={c} active={courts.includes(c)} onPress={() => toggleCourt(c)} />
+            ))}
+          </View>
+
+          <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
+            Créneaux réservés au tournoi
+          </Txt>
+          <View style={styles.wrap}>
+            {hostSlots.map((t) => (
+              <Chip key={t} label={t} active={times.includes(t)} onPress={() => toggleTime(t)} />
+            ))}
+          </View>
+          <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+            Sélectionne les terrains et les heures à bloquer. Si tu ne choisis rien, tout le club est réservé ce(s) jour(s)-là.
+          </Txt>
+        </>
+      ) : null}
+
+      {/* Frais fixe PadelConnect (tournois joueurs) — transparence à l'organisateur. */}
+      {isPlayerTournament && state.tournamentFee > 0 ? (
+        <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
+          Frais d'organisation PadelConnect : {state.tournamentFee.toLocaleString('fr-FR')} FCFA (réglés au club, reversés à PadelConnect).
+        </Txt>
+      ) : null}
+
       <View style={{ marginTop: spacing.xl }}>
-        <Button label={asClub ? 'Publier le tournoi' : 'Envoyer pour validation'} icon="trophy" onPress={create} full />
+        <Button
+          label={submitting ? 'Envoi…' : asClub ? 'Publier le tournoi' : 'Envoyer pour validation'}
+          icon="trophy"
+          onPress={create}
+          disabled={submitting}
+          full
+        />
       </View>
     </Screen>
   );

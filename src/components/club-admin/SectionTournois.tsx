@@ -9,7 +9,7 @@ import { colors, spacing } from '@/theme';
 
 export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comps: Competition[]; onCloseComp: (id: string) => void }) {
   const router = useRouter();
-  const { state, approveCompetition, deleteCompetition } = useApp();
+  const { state, approveCompetition, rejectCompetition } = useApp();
 
   // Demandes de tournoi : créés par un joueur, en attente de validation de CE club.
   const tournamentRequests = state.myCompetitions.filter(
@@ -42,7 +42,7 @@ export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comp
                 </View>
               </View>
               <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
-                <Button size="sm" label="Refuser" icon="close" variant="danger" onPress={() => deleteCompetition(c.id)} />
+                <Button size="sm" label="Refuser" icon="close" variant="danger" onPress={() => rejectCompetition(c.id)} />
                 <View style={{ flex: 1 }}>
                   <Button size="sm" label="Valider & publier" icon="checkmark" onPress={() => approveCompetition(c.id)} full />
                 </View>
@@ -109,8 +109,8 @@ export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comp
         )}
       </View>
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-        Un tournoi bloque automatiquement tes terrains ce jour-là. Une fois la date passée, clôture-le en désignant l'équipe vainqueure :
-        les joueurs inscrits sont mis à jour.
+        Un tournoi bloque les terrains et créneaux que tu as choisis (ou tout le club si tu n'en précises aucun). Une fois la date passée,
+        clôture-le en désignant l'équipe vainqueure : les joueurs inscrits sont mis à jour.
       </Txt>
     </>
   );
