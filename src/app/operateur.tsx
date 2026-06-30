@@ -13,8 +13,6 @@ import { fcfa } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
 import { colors, font, radius, shadows, spacing } from '@/theme';
 
-const PAY_PCT = Math.round(COMMISSION_RATE * 100);
-
 export default function Operateur() {
   const {
     state,
@@ -31,6 +29,7 @@ export default function Operateur() {
     operatorSetBaseStatus,
     operatorGrantClubAccess,
     operatorRevokeClubAccess,
+    operatorSetClubCommission,
     operatorCreateClub,
     fetchSupportMessages,
     setSupportMessageStatus,
@@ -178,14 +177,17 @@ export default function Operateur() {
     g.items.push(r);
     groups.set(r.clubId, g);
   }
+  // Taux de commission PROPRE au club (accord négocié) — repli sur le taux par défaut (10 %).
+  const rateOf = (clubId: string) => state.clubCommission[clubId] ?? COMMISSION_RATE;
   const rows = [...groups.entries()]
-    .map(([clubId, g]) => ({ clubId, ...g, commission: Math.round(g.revenue * COMMISSION_RATE) }))
+    .map(([clubId, g]) => ({ clubId, ...g, rate: rateOf(clubId), commission: Math.round(g.revenue * rateOf(clubId)) }))
     .sort((a, b) => b.revenue - a.revenue);
 
-  // Commission cumulée DEPUIS LE LANCEMENT (toutes semaines) — chiffre vitrine.
+  // Commission cumulée DEPUIS LE LANCEMENT (toutes semaines) — chiffre vitrine. Chaque résa est
+  // commissionnée au taux de SON club (pas un taux global), pour rester exact.
   const allTimePlayedRes = state.reservations.filter((r) => isPlayed(r));
   const allTimePlayed = allTimePlayedRes.length;
-  const allTimeCommission = Math.round(allTimePlayedRes.reduce((s, r) => s + priceOf(r), 0) * COMMISSION_RATE);
+  const allTimeCommission = Math.round(allTimePlayedRes.reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0));
 
   const totalCount = rows.reduce((s, r) => s + r.count, 0);
   const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
@@ -227,7 +229,7 @@ export default function Operateur() {
       `*PadelConnect — Décompte semaine ${weekLabel(week)}*\n${row.clubName}\n\n` +
       `Parties jouées : ${row.count}\n` +
       `Volume estimé : ${fcfa(row.revenue)}\n` +
-      `Commission PadelConnect (${PAY_PCT}%) : *${fcfa(row.commission)}*\n` +
+      `Commission PadelConnect (${Math.round(row.rate * 100)}%) : *${fcfa(row.commission)}*\n` +
       `À régler par Wave 🙏\n\n` +
       `Détail :\n${lines}`;
     const phone = (findClub(row.clubId, state.customClubs, state.clubInfo) as { contactPhone?: string } | undefined)?.contactPhone ?? '';
@@ -356,7 +358,7 @@ export default function Operateur() {
                       {r.clubName}
                     </Txt>
                     <Txt variant="muted">
-                      {r.count} résa{r.count > 1 ? 's' : ''} · volume ≈ {fcfa(r.revenue)}
+                      {r.count} résa{r.count > 1 ? 's' : ''} · volume ≈ {fcfa(r.revenue)} · {Math.round(r.rate * 100)}%
                     </Txt>
                   </View>
                   <View style={{ alignItems: 'flex-end', gap: 4 }}>
@@ -402,6 +404,18 @@ export default function Operateur() {
             );
           })
         )}
+      </View>
+
+      {/* Commission propre à chaque club (accords négociés différents). */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Commission par club" />
+        <CommissionRates
+          clubs={manageableList}
+          rates={state.clubCommission}
+          defaultRate={COMMISSION_RATE}
+          onSet={operatorSetClubCommission}
+          toast={toast}
+        />
       </View>
 
       {/* Demandes reçues sur le SERVEUR — un gérant a utilisé « Inscrire mon club ». */}
@@ -864,6 +878,95 @@ function NewsEditor({
           />
         ) : null}
       </View>
+    </Card>
+  );
+}
+
+// Commission par club : l'opérateur fixe le % négocié avec chaque club (repli sur le défaut).
+function CommissionRates({
+  clubs,
+  rates,
+  defaultRate,
+  onSet,
+  toast,
+}: {
+  clubs: { id: string; name: string; area: string }[];
+  rates: Record<string, number>;
+  defaultRate: number;
+  onSet: (clubId: string, rate: number) => Promise<{ ok: boolean }>;
+  toast: ReturnType<typeof useToast>;
+}) {
+  const [open, setOpen] = useState(false);
+  const [draft, setDraft] = useState<Record<string, string>>({});
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const save = async (clubId: string) => {
+    const raw = draft[clubId];
+    const pct = Number((raw ?? '').replace(',', '.'));
+    if (busy || !Number.isFinite(pct) || pct < 0 || pct > 100) {
+      toast.show('Entre un pourcentage entre 0 et 100', { icon: 'alert-circle' });
+      return;
+    }
+    setBusy(clubId);
+    const { ok } = await onSet(clubId, pct / 100);
+    setBusy(null);
+    if (ok) {
+      setDraft((d) => ({ ...d, [clubId]: '' }));
+      toast.show('Commission mise à jour ✅');
+    } else {
+      toast.show('Changement impossible — réessaie', { icon: 'alert-circle' });
+    }
+  };
+
+  return (
+    <Card>
+      <Txt variant="small" color={colors.textMuted}>
+        Par défaut {Math.round(defaultRate * 100)} %. Tu peux fixer un taux différent pour chaque club selon ton accord — il s'applique
+        aussitôt au décompte.
+      </Txt>
+      <Button
+        size="sm"
+        variant="ghost"
+        label={open ? 'Masquer les taux' : 'Régler les taux par club'}
+        icon={open ? 'chevron-up' : 'options'}
+        onPress={() => setOpen((v) => !v)}
+        full
+      />
+      {open
+        ? clubs.map((c, i) => {
+            const current = Math.round((rates[c.id] ?? defaultRate) * 100);
+            const custom = rates[c.id] !== undefined;
+            return (
+              <View key={c.id}>
+                {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body" style={{ fontWeight: '600' }} numberOfLines={1}>
+                      {c.name}
+                    </Txt>
+                    <Txt variant="muted">
+                      Actuel : {current}%{custom ? '' : ' (défaut)'}
+                    </Txt>
+                  </View>
+                  <TextInput
+                    value={draft[c.id] ?? ''}
+                    onChangeText={(t) => setDraft((d) => ({ ...d, [c.id]: t }))}
+                    placeholder={`${current}`}
+                    placeholderTextColor={colors.textFaint}
+                    keyboardType="numeric"
+                    style={[styles.clubInput, { width: 64, marginTop: 0, textAlign: 'center' }]}
+                  />
+                  <Button
+                    size="sm"
+                    label={busy === c.id ? '…' : 'OK'}
+                    onPress={() => save(c.id)}
+                    disabled={busy === c.id || !(draft[c.id] ?? '').trim()}
+                  />
+                </View>
+              </View>
+            );
+          })
+        : null}
     </Card>
   );
 }

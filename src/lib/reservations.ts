@@ -132,6 +132,35 @@ export async function fetchCancelledReservations(): Promise<Reservation[]> {
   return (data ?? []).map((r) => rowToReservation(r as Row));
 }
 
+// Absences (no-show) du périmètre (RLS) — pour un compte club/opérateur, ce sont les absences
+// de son club. Trace conservée (status='no_show' posé par mark_no_show). Plus récent d'abord.
+export async function fetchNoShowReservations(): Promise<Reservation[]> {
+  const { data, error } = await supabase.from('reservations').select('*').eq('status', 'no_show').order('starts_at', { ascending: false });
+  if (error) return [];
+  return (data ?? []).map((r) => rowToReservation(r as Row));
+}
+
+// Le club (ou l'opérateur) marque une réservation comme « pas venu » (ou annule l'absence).
+// Fonction serveur (SECURITY DEFINER) qui vérifie le rôle/le club. false si refusé/conflit.
+export async function markNoShowRow(id: string, value: boolean): Promise<boolean> {
+  const { data, error } = await supabase.rpc('mark_no_show', { p_id: id, p_value: value });
+  return !error && data === true;
+}
+
+// Fiabilité des joueurs (annulations + absences) par id de compte — club/opérateur seulement.
+export type Reliability = { cancelled: number; noShow: number };
+export async function fetchReliability(userIds: string[]): Promise<Record<string, Reliability>> {
+  const ids = [...new Set(userIds.filter(Boolean))];
+  if (ids.length === 0) return {};
+  const { data, error } = await supabase.rpc('player_reliability', { p_user_ids: ids });
+  if (error) return {};
+  const out: Record<string, Reliability> = {};
+  for (const r of (data ?? []) as { user_id: string; cancelled: number; no_show: number }[]) {
+    out[r.user_id] = { cancelled: r.cancelled ?? 0, noShow: r.no_show ?? 0 };
+  }
+  return out;
+}
+
 // Réservation PARTAGÉE : rattache les amis invités (par leur numéro) à la réservation.
 // La résolution numéro → compte se fait côté serveur (fonction SECURITY DEFINER), donc on
 // n'expose jamais les profils. Les non-inscrits sont simplement ignorés.

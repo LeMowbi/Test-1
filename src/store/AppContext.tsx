@@ -9,12 +9,14 @@ import {
   approveClubRequest as approveClubRequestRpc,
   createClub as createClubRpc,
   fetchClubOverrides,
+  fetchClubCommissions,
   fetchClubConfigs,
   fetchClubStatus,
   fetchServerClubs,
   grantClubAccessByPhone as grantClubAccessByPhoneRpc,
   revokeClubAccessByPhone as revokeClubAccessByPhoneRpc,
   setBaseClubStatus as setBaseClubStatusRpc,
+  setClubCommission as setClubCommissionRpc,
   setClubStatus as setClubStatusRpc,
   upsertClubConfig,
   upsertClubOverride,
@@ -27,6 +29,7 @@ import { type Friend } from '@/data/user';
 import {
   cancelReservationRow,
   fetchMyParticipations,
+  markNoShowRow,
   respondInvitation as respondInvitationRpc,
   type MyParticipation,
   fetchOccupancy,
@@ -160,6 +163,7 @@ type AppState = {
   operatorPayments: Record<string, 'sent' | 'paid'>; // « clubId:AAAA-MM » → statut de règlement
   customClubs: CustomClub[]; // clubs inscrits via l'app (activation par l'opérateur)
   clubStatus: Record<string, 'active' | 'coming_soon' | 'hidden'>; // statut piloté par l'opérateur (tout club)
+  clubCommission: Record<string, number>; // taux de commission propre à chaque club (vu opérateur)
   // RÔLE vérifié côté serveur (Supabase) — la VRAIE sécurité des espaces.
   //  - 'operator' : toi (PadelConnect). 'club' : un gérant. 'player' : par défaut.
   // Un joueur ne peut pas se promouvoir (protégé par un trigger côté serveur).
@@ -226,6 +230,7 @@ const initialState: AppState = {
   operatorPayments: {},
   customClubs: [],
   clubStatus: {},
+  clubCommission: {},
   role: 'player',
   serverManagedClubId: null,
   serverUserId: null,
@@ -282,6 +287,7 @@ function loggedOutState(s: AppState): AppState {
     pendingInvitationIds: [],
     occupancy: [],
     customClubs: s.customClubs.filter((c) => !c.fromServer),
+    clubCommission: {}, // donnée opérateur : on la purge à la déconnexion
     level: initialState.level,
     friends: [],
     favoriteClubIds: [],
@@ -392,6 +398,10 @@ type AppContextType = {
   // Opérateur : accorde / retire l'accès « Espace Club » à un joueur via son numéro (tout club).
   operatorGrantClubAccess: (phone: string, clubId: string) => Promise<{ ok: boolean; name?: string }>;
   operatorRevokeClubAccess: (phone: string) => Promise<{ ok: boolean; name?: string }>;
+  // Opérateur : commission propre à un club (taux 0–1, ex. 0.12 = 12 %).
+  operatorSetClubCommission: (clubId: string, rate: number) => Promise<{ ok: boolean }>;
+  // Club / opérateur : marque une réservation « pas venu » (absence comptée, créneau libéré).
+  markNoShow: (id: string) => Promise<boolean>;
   operatorCreateClub: (input: {
     name: string;
     area: string;
@@ -563,7 +573,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Réservations : le serveur est la source de vérité → on remplace le miroir local
       // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
       // via RLS), l'occupation de TOUS (disponibilité), et les clubs ajoutés côté serveur.
-      const [reservationsRes, occ, parts, serverClubs, overrides, clubStatus, configs] = await Promise.all([
+      const [reservationsRes, occ, parts, serverClubs, overrides, clubStatus, configs, commissions] = await Promise.all([
         fetchReservations(),
         fetchOccupancy(),
         fetchMyParticipations(userId),
@@ -571,6 +581,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchClubOverrides(),
         fetchClubStatus(),
         fetchClubConfigs(),
+        fetchClubCommissions(),
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       const { active: activeParts, pending: pendingParts } = splitParticipations(parts);
@@ -584,6 +595,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         pendingInvitationIds: pendingParts,
         customClubs: mergeServerClubs(s.customClubs, serverClubs),
         clubStatus,
+        clubCommission: commissions, // vide pour les non-opérateurs (RLS)
         // Pages club éditées par les gérants (serveur) → visibles par tous. On fusionne au-dessus
         // des éventuelles surcharges locales (le serveur fait foi pour les clubs qu'il connaît).
         clubInfo: { ...s.clubInfo, ...overrides },
@@ -1023,6 +1035,24 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
         return true;
       },
+      // Le club (ou l'opérateur) marque une réservation « pas venu » : la fonction serveur la
+      // passe en 'no_show' (créneau libéré, absence comptée). On retire la résa du miroir local
+      // et l'occupation correspondante, comme pour une annulation. false si refusé.
+      markNoShow: async (id) => {
+        const res = state.reservations.find((r) => r.id === id);
+        const ok = await markNoShowRow(id, true);
+        if (!ok) return false;
+        setState((s) => ({
+          ...s,
+          reservations: s.reservations.filter((r) => r.id !== id),
+          occupancy: res
+            ? s.occupancy.filter(
+                (o) => !(o.clubId === res.clubId && o.dateKey === res.dateKey && o.time === res.time && o.court === res.court),
+              )
+            : s.occupancy,
+        }));
+        return true;
+      },
       // Réservation partagée : l'invité accepte ou refuse. Mise à jour optimiste (on retire
       // l'invitation des « à confirmer » ; si refus, on retire aussi la résa de ma liste), puis
       // on confirme côté serveur — en cas d'échec on rejoue l'état précédent.
@@ -1290,6 +1320,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Le gérant le voit apparaître au prochain retour dans l'app (rafraîchissement du rôle).
       operatorGrantClubAccess: async (phone, clubId) => grantClubAccessByPhoneRpc(phone, clubId),
       operatorRevokeClubAccess: async (phone) => revokeClubAccessByPhoneRpc(phone),
+      // Opérateur : fixe la commission propre à un club (taux 0–1). Met à jour l'état local
+      // pour que le décompte se recalcule aussitôt avec le bon pourcentage.
+      operatorSetClubCommission: async (clubId, rate) => {
+        const ok = await setClubCommissionRpc(clubId, rate);
+        if (ok) setState((s) => ({ ...s, clubCommission: { ...s.clubCommission, [clubId]: rate } }));
+        return { ok };
+      },
       // Opérateur : pré-charge un club « Bientôt » côté serveur (il apparaît aussitôt en liste).
       operatorCreateClub: async (input) => {
         const res = await createClubRpc(input);

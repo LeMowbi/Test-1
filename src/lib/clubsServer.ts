@@ -157,6 +157,21 @@ export async function setBaseClubStatus(clubId: string, status: 'active' | 'comi
   return !error && data === true;
 }
 
+// Commission propre à chaque club (lue par l'opérateur) → { clubId: taux } (0.10 = 10 %).
+export async function fetchClubCommissions(): Promise<Record<string, number>> {
+  const { data, error } = await supabase.from('club_commission').select('club_id, rate');
+  if (error) return {};
+  const out: Record<string, number> = {};
+  for (const r of (data ?? []) as { club_id: string; rate: number }[]) out[r.club_id] = r.rate;
+  return out;
+}
+
+// Opérateur : fixe la commission (taux 0–1) d'un club. false si refusé/échec.
+export async function setClubCommission(clubId: string, rate: number): Promise<boolean> {
+  const { data, error } = await supabase.rpc('set_club_commission', { p_club_id: clubId, p_rate: rate });
+  return !error && data === true;
+}
+
 // Opérateur : donne l'accès « Espace Club » à un joueur (par son numéro) pour un club donné —
 // n'importe quel club, y compris les 9 de base. Renvoie le nom du joueur promu si trouvé.
 export async function grantClubAccessByPhone(phone: string, clubId: string): Promise<{ ok: boolean; name?: string }> {

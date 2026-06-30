@@ -10,7 +10,7 @@ import { type Club } from '@/data/clubs';
 import { hasCompetition } from '@/lib/availability';
 import { nextDays, weekKeyOf, weekLabel } from '@/lib/days';
 import { openWhatsApp } from '@/lib/contact';
-import { fetchCancelledReservations } from '@/lib/reservations';
+import { fetchCancelledReservations, fetchNoShowReservations, fetchReliability, type Reliability } from '@/lib/reservations';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
 import { colors, radius, shadows, spacing } from '@/theme';
 
@@ -25,7 +25,7 @@ export function SectionReservations({
   comps: import('@/data/competitions').Competition[];
   onSelectCell: (cell: SelectedCell) => void;
 }) {
-  const { state, blockSlot, unblockSlot, confirmReservationByClub } = useApp();
+  const { state, blockSlot, unblockSlot, confirmReservationByClub, markNoShow } = useApp();
   const toast = useToast();
   const [planDayKey, setPlanDayKey] = useState<string | null>(null);
   const [showBlockForm, setShowBlockForm] = useState(false);
@@ -33,11 +33,16 @@ export function SectionReservations({
   // Annulations récentes du club (serveur) : un joueur a annulé → le créneau s'est libéré.
   // On garde la trace (status='cancelled') pour prévenir le club (cf. fonction serveur 09).
   const [cancelled, setCancelled] = useState<Reservation[]>([]);
+  // Absences (no-show) marquées par le club : trace conservée (status='no_show').
+  const [noShows, setNoShows] = useState<Reservation[]>([]);
+  const reloadTraces = () => {
+    void fetchCancelledReservations().then((rows) => setCancelled(rows.filter((r) => r.clubId === club.id)));
+    void fetchNoShowReservations().then((rows) => setNoShows(rows.filter((r) => r.clubId === club.id)));
+  };
   useEffect(() => {
     let alive = true;
-    fetchCancelledReservations().then((rows) => {
-      if (alive) setCancelled(rows.filter((r) => r.clubId === club.id));
-    });
+    void fetchCancelledReservations().then((rows) => alive && setCancelled(rows.filter((r) => r.clubId === club.id)));
+    void fetchNoShowReservations().then((rows) => alive && setNoShows(rows.filter((r) => r.clubId === club.id)));
     return () => {
       alive = false;
     };
@@ -45,6 +50,48 @@ export function SectionReservations({
 
   const now = Date.now();
   const clubRes = state.reservations.filter((r) => r.clubId === club.id);
+
+  // Fiabilité des joueurs (annulations + absences) pour tous ceux présents dans ce club —
+  // un joueur peu fiable devient repérable. Rechargé quand la liste des joueurs change.
+  const [reliability, setReliability] = useState<Record<string, Reliability>>({});
+  const playerIds = [...new Set([...clubRes, ...cancelled, ...noShows].map((r) => r.userId).filter(Boolean))];
+  const playerIdsKey = playerIds.slice().sort().join(',');
+  useEffect(() => {
+    if (!playerIdsKey) return;
+    let alive = true;
+    void fetchReliability(playerIdsKey.split(',')).then((rel) => alive && setReliability(rel));
+    return () => {
+      alive = false;
+    };
+  }, [playerIdsKey]);
+
+  // Badge d'alerte sous le nom d'un joueur peu fiable (≥1 annulation ou absence).
+  const reliabilityNote = (userId?: string) => {
+    const rel = userId ? reliability[userId] : undefined;
+    if (!rel || (rel.cancelled === 0 && rel.noShow === 0)) return null;
+    const parts: string[] = [];
+    if (rel.cancelled > 0) parts.push(`${rel.cancelled} annulation${rel.cancelled > 1 ? 's' : ''}`);
+    if (rel.noShow > 0) parts.push(`${rel.noShow} absence${rel.noShow > 1 ? 's' : ''}`);
+    return (
+      <View style={styles.relNote}>
+        <Ionicons name="warning-outline" size={12} color={colors.coral} />
+        <Txt variant="small" color={colors.coral} style={{ fontSize: 11 }}>
+          {parts.join(' · ')}
+        </Txt>
+      </View>
+    );
+  };
+
+  // Le club marque une absence : créneau libéré + absence comptée (même après l'appel tardif).
+  const onMarkNoShow = (r: Reservation) =>
+    void markNoShow(r.id).then((ok) => {
+      if (ok) {
+        toast.show('Absence enregistrée');
+        reloadTraces();
+      } else {
+        toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
+      }
+    });
   // « Jouée » = heure de fin passée (la même règle que côté joueur — base de la commission).
   const upcomingRes = clubRes.filter((r) => !isPlayed(r, now)).sort((a, b) => a.startsAt - b.startsAt);
   const pastRes = clubRes.filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt);
@@ -260,6 +307,7 @@ export function SectionReservations({
                       {r.bookedBy.phone ? ` · ${r.bookedBy.phone}` : ''}
                     </Txt>
                   ) : null}
+                  {reliabilityNote(r.userId)}
                 </View>
                 {r.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="amber" />}
               </View>
@@ -293,6 +341,9 @@ export function SectionReservations({
                   />
                 ) : null}
               </View>
+              {/* Le joueur n'est pas venu (y c. annulation tardive par téléphone) : libère le
+                  créneau et compte l'absence. S'il est venu, rien à faire. */}
+              <Button size="sm" label="Pas venu" icon="person-remove-outline" variant="ghost" onPress={() => onMarkNoShow(r)} full />
             </Card>
           ))
         )}
@@ -322,8 +373,43 @@ export function SectionReservations({
                         {r.bookedBy.name}
                       </Txt>
                     ) : null}
+                    {reliabilityNote(r.userId)}
                   </View>
                   <Tag label="Annulée" tone="coral" />
+                </View>
+              </View>
+            ))}
+          </Card>
+        </View>
+      ) : null}
+
+      {/* Absences (no-show) — joueurs marqués « pas venu » par le club. */}
+      {noShows.length > 0 ? (
+        <View style={{ marginTop: spacing.xl }}>
+          <SectionHeader title={`Absences · ${noShows.length}`} />
+          <Card>
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.sm }}>
+              <Ionicons name="warning-outline" size={16} color={colors.coral} />
+              <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                Joueurs qui ne sont pas venus (ou ont annulé trop tard par téléphone). C'est compté dans leur fiabilité.
+              </Txt>
+            </View>
+            {noShows.slice(0, 8).map((r, i) => (
+              <View key={r.id}>
+                {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body" style={{ fontWeight: '600' }}>
+                      {r.date} · {r.time} · {r.court}
+                    </Txt>
+                    {r.bookedBy ? (
+                      <Txt variant="small" color={colors.textFaint}>
+                        {r.bookedBy.name}
+                      </Txt>
+                    ) : null}
+                    {reliabilityNote(r.userId)}
+                  </View>
+                  <Tag label="Absent" tone="coral" />
                 </View>
               </View>
             ))}
@@ -377,6 +463,7 @@ export function SectionReservations({
 
 const styles = StyleSheet.create({
   stats: { flexDirection: 'row', gap: spacing.sm },
+  relNote: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 2 },
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
