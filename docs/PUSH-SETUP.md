@@ -39,13 +39,18 @@ par Supabase dans la fonction — rien à configurer.)
 
 Dashboard Supabase → **Database → Webhooks** → *Create a new hook* :
 
-- **Réservation → club** : table `reservations`, événement **INSERT** → appelle la fonction
-  `notify-club`.
-- **Invitation acceptée → auteur** (notif sociale, optionnel) : table
-  `reservation_participants`, événement **UPDATE** → même fonction `notify-club`.
+- **Réservation → club** ET **Confirmation → joueur** : table `reservations`, événements
+  **INSERT _et_ UPDATE** (coche les deux) → appelle la fonction `notify-club`.
+  - INSERT = nouvelle réservation → notifie le **gérant** du club.
+  - UPDATE = le gérant confirme (case `club_confirmed`) → notifie le **joueur** (« Réservation
+    confirmée ✅ »).
+  - ⚠️ Si tu avais déjà créé le hook `reservations` en INSERT seul, **édite-le** pour cocher
+    aussi **UPDATE** (sinon la notif de confirmation au joueur ne partira pas).
+- **Invitation acceptée → auteur** (notif sociale) : table `reservation_participants`,
+  événement **UPDATE** → même fonction `notify-club`.
 
-La fonction lit la table d'origine et envoie au bon destinataire (gérant du club, ou auteur
-de la réservation).
+La fonction lit la table + le type d'événement et envoie au bon destinataire (gérant du club,
+joueur, ou auteur de la réservation).
 
 ## 5. Tester
 
