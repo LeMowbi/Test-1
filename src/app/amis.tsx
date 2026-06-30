@@ -4,7 +4,9 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
 import { PlayerSheet, type PlayerLike } from '@/components/PlayerSheet';
 import { Screen } from '@/components/Screen';
-import { Button, Card, Divider, EmptyState, Txt } from '@/components/ui';
+import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
+import { findPlayerByPhone } from '@/lib/friends';
+import { openWhatsApp } from '@/lib/contact';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -16,10 +18,32 @@ export default function AmisScreen() {
   const [tapError, setTapError] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null); // ami en cours de retrait (confirmation)
   const [openPlayer, setOpenPlayer] = useState<PlayerLike | null>(null);
+  // Recherche serveur par numéro : 'idle' avant recherche, 'found'/'notfound' après.
+  const [searching, setSearching] = useState(false);
+  const [search, setSearch] = useState<'idle' | 'found' | 'notfound'>('idle');
+  const [foundLevel, setFoundLevel] = useState<number | undefined>(undefined);
 
   const openFriend = (f: { id: string; name: string; level?: number }) => setOpenPlayer({ id: f.id, name: f.name, level: f.level });
 
   const ready = name.trim().length >= 2;
+  const phoneReady = phone.replace(/\D/g, '').length >= 8;
+
+  // Cherche le joueur par son numéro côté serveur. Trouvé → on préremplit son vrai nom.
+  const doSearch = async () => {
+    if (!phoneReady || searching) return;
+    setSearching(true);
+    setSearch('idle');
+    const found = await findPlayerByPhone(phone);
+    setSearching(false);
+    if (found) {
+      setName(found.name);
+      setFoundLevel(found.level);
+      setSearch('found');
+    } else {
+      setSearch('notfound');
+    }
+  };
+
   // Le bouton reste tapable : un tap sans nom affiche l'erreur (au lieu d'un silence).
   const submit = () => {
     if (!ready) {
@@ -27,9 +51,23 @@ export default function AmisScreen() {
       return;
     }
     setTapError(false);
-    addFriend(name, phone);
+    addFriend(name, phone, search === 'found' ? foundLevel : undefined);
     setName('');
     setPhone('');
+    setSearch('idle');
+    setFoundLevel(undefined);
+  };
+
+  const invite = () =>
+    openWhatsApp(
+      phone,
+      'Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes. https://apps.apple.com/app/id6785261310',
+    );
+
+  // Le numéro change → la recherche précédente n'est plus valable.
+  const onPhone = (t: string) => {
+    setPhone(t);
+    if (search !== 'idle') setSearch('idle');
   };
 
   return (
@@ -92,7 +130,45 @@ export default function AmisScreen() {
           <Card>
             <Txt variant="h3">Ajouter un ami</Txt>
             <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
-              Par numéro : il devient ton ami dès qu'il installe PadelConnect.
+              Cherche-le par son numéro : s'il est sur PadelConnect, on le retrouve. Sinon, invite-le.
+            </Txt>
+            <TextInput
+              value={phone}
+              onChangeText={onPhone}
+              placeholder="Numéro (+225…)"
+              placeholderTextColor={colors.textFaint}
+              keyboardType="phone-pad"
+              style={styles.input}
+            />
+            <View style={{ marginTop: spacing.sm, opacity: phoneReady ? 1 : 0.5 }}>
+              <Button size="sm" label={searching ? 'Recherche…' : 'Rechercher'} icon="search" variant="secondary" onPress={doSearch} pill />
+            </View>
+
+            {search === 'found' ? (
+              <View style={styles.foundBox}>
+                <Avatar name={name} size={40} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="body" style={{ fontWeight: '600' }}>
+                    {name}
+                  </Txt>
+                  <Txt variant="small" color={colors.textMuted}>
+                    {foundLevel !== undefined ? `Niveau ${foundLevel.toFixed(1)} · ` : ''}sur PadelConnect
+                  </Txt>
+                </View>
+                <Tag label="Trouvé" tone="green" icon="checkmark" />
+              </View>
+            ) : search === 'notfound' ? (
+              <View style={styles.foundBox}>
+                <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                  Personne avec ce numéro sur PadelConnect. Invite-le à s'inscrire.
+                </Txt>
+                <Button size="sm" label="Inviter" icon="logo-whatsapp" variant="secondary" onPress={invite} />
+              </View>
+            ) : null}
+
+            <Divider style={{ marginVertical: spacing.md }} />
+            <Txt variant="small" color={colors.textFaint}>
+              {search === 'found' ? 'Tu peux ajuster le nom avant d’ajouter.' : 'Ou ajoute-le manuellement par son nom.'}
             </Txt>
             <TextInput
               value={name}
@@ -106,22 +182,9 @@ export default function AmisScreen() {
                 Indique au moins le nom (2 caractères).
               </Txt>
             ) : null}
-            <TextInput
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Numéro (+225…) — optionnel"
-              placeholderTextColor={colors.textFaint}
-              keyboardType="phone-pad"
-              style={styles.input}
-            />
             <View style={{ marginTop: spacing.md, opacity: ready ? 1 : 0.5 }}>
               <Button size="sm" label="Ajouter l'ami" icon="person-add" onPress={submit} pill />
             </View>
-            {!ready ? (
-              <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-                Le nom est obligatoire pour ajouter un ami.
-              </Txt>
-            ) : null}
           </Card>
         </View>
       </View>
@@ -151,6 +214,15 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: spacing.sm,
     marginTop: spacing.sm,
+    backgroundColor: colors.surfaceAlt,
+    borderRadius: radius.md,
+    padding: spacing.sm,
+  },
+  foundBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
     backgroundColor: colors.surfaceAlt,
     borderRadius: radius.md,
     padding: spacing.sm,

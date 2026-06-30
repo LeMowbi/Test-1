@@ -326,7 +326,7 @@ type AppContextType = {
   // Réservation partagée : l'invité accepte (accept=true) ou refuse son invitation.
   respondInvitation: (reservationId: string, accept: boolean) => Promise<boolean>;
   confirmReservationByClub: (id: string) => Promise<boolean>;
-  addFriend: (name: string, phone: string) => void;
+  addFriend: (name: string, phone: string, level?: number) => void;
   removeFriend: (id: string) => void;
   toggleFavorite: (clubId: string) => void;
   addClubPhoto: (clubId: string, uri: string) => void;
@@ -993,11 +993,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
         return true;
       },
-      addFriend: (name, phone) =>
+      addFriend: (name, phone, level) =>
         setState((s) => {
           const n = name.trim();
           if (n.length < 2) return s;
-          return { ...s, friends: [{ id: uid(), name: n, phone: phone.trim() || undefined }, ...s.friends] };
+          // Anti-doublon : même numéro (10 derniers chiffres) → on ne ré-ajoute pas.
+          const digits = phone.replace(/\D/g, '').slice(-10);
+          if (digits.length >= 8 && s.friends.some((f) => (f.phone ?? '').replace(/\D/g, '').slice(-10) === digits)) return s;
+          return { ...s, friends: [{ id: uid(), name: n, phone: phone.trim() || undefined, level }, ...s.friends] };
         }),
       removeFriend: (id) => setState((s) => ({ ...s, friends: s.friends.filter((f) => f.id !== id) })),
       toggleFavorite: (clubId) =>
