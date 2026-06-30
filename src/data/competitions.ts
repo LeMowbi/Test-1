@@ -89,7 +89,7 @@ export const seedCompetitions: Competition[] = [
     id: 'c3',
     title: 'Défi entre amis — Riviera',
     organizerType: 'joueur',
-    organizer: 'Moustapha',
+    organizer: 'Awa',
     date: D[4].label,
     dateKey: D[4].key,
     format: 'Mini-tournoi 4 équipes',

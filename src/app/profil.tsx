@@ -31,7 +31,7 @@ function trophyTier(t: Trophy): { tier: number; name: string | null; next: numbe
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { state, stats, setRemindersOn, signOut, updateAccount, deleteAccount } = useApp();
+  const { state, stats, setRemindersOn, signOut, updateAccount, deleteAccount, updateEmail } = useApp();
   const { account, level, friends, officialResults } = state;
 
   const [editing, setEditing] = useState(false);
@@ -40,6 +40,20 @@ export default function ProfilScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [signOutSheet, setSignOutSheet] = useState(false);
+  // Ajout / changement d'e-mail (confirmation par lien).
+  const [emailSheet, setEmailSheet] = useState(false);
+  const [emailDraft, setEmailDraft] = useState('');
+  const [emailBusy, setEmailBusy] = useState(false);
+  const [emailMsg, setEmailMsg] = useState<string | null>(null);
+  const submitEmail = async () => {
+    if (emailBusy) return;
+    setEmailBusy(true);
+    setEmailMsg(null);
+    const res = await updateEmail(emailDraft);
+    setEmailBusy(false);
+    if (res.ok) setEmailMsg(`Lien de confirmation envoyé à ${emailDraft.trim().toLowerCase()}. Ouvre-le pour valider.`);
+    else setEmailMsg(res.error ?? 'Impossible — réessaie.');
+  };
 
   const confirmDelete = async () => {
     if (deleting) return;
@@ -380,6 +394,26 @@ export default function ProfilScreen() {
         </Card>
       </View>
 
+      {/* Adresse e-mail du compte — ajout/changement (confirmation par lien). */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Mon compte" />
+        <Card
+          onPress={() => {
+            setEmailDraft(account.email ?? '');
+            setEmailMsg(null);
+            setEmailSheet(true);
+          }}
+          style={styles.cta}
+        >
+          <IconCircle icon="mail-outline" color={colors.purple} bg={colors.purpleSoft} />
+          <View style={{ flex: 1 }}>
+            <Txt variant="h3">Adresse e-mail</Txt>
+            <Txt variant="muted">{account.email ? account.email : 'Aucune — touche pour en ajouter une'}</Txt>
+          </View>
+          <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+        </Card>
+      </View>
+
       <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
         <Button label="Mentions légales & CGU" icon="document-text-outline" variant="ghost" onPress={() => router.push('/legal')} />
         <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={() => setSignOutSheet(true)} />
@@ -456,6 +490,42 @@ export default function ProfilScreen() {
             full
           />
           <Button label="Annuler" variant="ghost" onPress={() => setDeleteSheet(false)} disabled={deleting} full />
+        </View>
+      </BottomSheet>
+
+      {/* Ajouter / changer l'e-mail — un lien de confirmation est envoyé à la nouvelle adresse. */}
+      <BottomSheet
+        visible={emailSheet}
+        title={account.email ? 'Changer mon e-mail' : 'Ajouter un e-mail'}
+        subtitle="On envoie un lien de confirmation à cette adresse. Le changement s'applique après le clic."
+        onClose={() => {
+          if (!emailBusy) setEmailSheet(false);
+        }}
+      >
+        <View style={{ gap: spacing.sm }}>
+          <TextInput
+            value={emailDraft}
+            onChangeText={setEmailDraft}
+            placeholder="ton.nom@email.com"
+            placeholderTextColor={colors.textFaint}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.input}
+          />
+          {emailMsg ? (
+            <Txt variant="small" color={colors.textMuted}>
+              {emailMsg}
+            </Txt>
+          ) : null}
+          <Button
+            label={emailBusy ? 'Envoi…' : 'Envoyer le lien de confirmation'}
+            icon="mail"
+            onPress={submitEmail}
+            disabled={emailBusy}
+            full
+          />
+          <Button label="Fermer" variant="ghost" onPress={() => setEmailSheet(false)} disabled={emailBusy} full />
         </View>
       </BottomSheet>
     </Screen>

@@ -259,7 +259,7 @@ export default function Onboarding() {
               setEmail(t);
               clearError('email');
             }}
-            placeholder="ex. moustapha@email.com"
+            placeholder="ex. ton.nom@email.com"
             keyboardType="email-address"
             autoCapitalize="none"
             error={errors.email}
@@ -305,7 +305,7 @@ export default function Onboarding() {
               setFirstName(t);
               clearError('firstName');
             }}
-            placeholder="Ex. Moustapha"
+            placeholder="Ton prénom"
             autoCapitalize="words"
             error={errors.firstName}
             onLayout={(y) => {
@@ -319,7 +319,7 @@ export default function Onboarding() {
               setLastName(t);
               clearError('lastName');
             }}
-            placeholder="Ex. Bitar"
+            placeholder="Ton nom"
             autoCapitalize="words"
             error={errors.lastName}
             onLayout={(y) => {

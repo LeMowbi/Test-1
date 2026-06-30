@@ -13,49 +13,41 @@ import { colors, radius, spacing } from '@/theme';
 export default function AmisScreen() {
   const router = useRouter();
   const { state, addFriend, removeFriend } = useApp();
-  const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
-  const [tapError, setTapError] = useState(false);
   const [removeId, setRemoveId] = useState<string | null>(null); // ami en cours de retrait (confirmation)
   const [openPlayer, setOpenPlayer] = useState<PlayerLike | null>(null);
-  // Recherche serveur par numéro : 'idle' avant recherche, 'found'/'notfound' après.
+  // Recherche serveur par numéro : on n'ajoute QUE de vrais joueurs PadelConnect (pas de nom fictif).
   const [searching, setSearching] = useState(false);
+  const [found, setFound] = useState<{ name: string; level?: number } | null>(null);
   const [search, setSearch] = useState<'idle' | 'found' | 'notfound'>('idle');
-  const [foundLevel, setFoundLevel] = useState<number | undefined>(undefined);
 
   const openFriend = (f: { id: string; name: string; level?: number }) => setOpenPlayer({ id: f.id, name: f.name, level: f.level });
 
-  const ready = name.trim().length >= 2;
   const phoneReady = phone.replace(/\D/g, '').length >= 8;
 
-  // Cherche le joueur par son numéro côté serveur. Trouvé → on préremplit son vrai nom.
+  // Cherche le joueur par son numéro côté serveur. On n'ajoute que s'il a un VRAI compte.
   const doSearch = async () => {
     if (!phoneReady || searching) return;
     setSearching(true);
     setSearch('idle');
-    const found = await findPlayerByPhone(phone);
+    const res = await findPlayerByPhone(phone);
     setSearching(false);
-    if (found) {
-      setName(found.name);
-      setFoundLevel(found.level);
+    if (res) {
+      setFound(res);
       setSearch('found');
     } else {
+      setFound(null);
       setSearch('notfound');
     }
   };
 
-  // Le bouton reste tapable : un tap sans nom affiche l'erreur (au lieu d'un silence).
-  const submit = () => {
-    if (!ready) {
-      setTapError(true);
-      return;
-    }
-    setTapError(false);
-    addFriend(name, phone, search === 'found' ? foundLevel : undefined);
-    setName('');
+  // Ajoute le joueur RÉEL trouvé (son vrai nom + niveau viennent du serveur).
+  const addFound = () => {
+    if (!found) return;
+    addFriend(found.name, phone, found.level);
     setPhone('');
+    setFound(null);
     setSearch('idle');
-    setFoundLevel(undefined);
   };
 
   const invite = () =>
@@ -130,7 +122,7 @@ export default function AmisScreen() {
           <Card>
             <Txt variant="h3">Ajouter un ami</Txt>
             <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
-              Cherche-le par son numéro : s'il est sur PadelConnect, on le retrouve. Sinon, invite-le.
+              Entre son numéro : s'il est déjà sur PadelConnect, tu l'ajoutes en un tap. Sinon, invite-le à s'inscrire.
             </Txt>
             <TextInput
               value={phone}
@@ -144,19 +136,24 @@ export default function AmisScreen() {
               <Button size="sm" label={searching ? 'Recherche…' : 'Rechercher'} icon="search" variant="secondary" onPress={doSearch} pill />
             </View>
 
-            {search === 'found' ? (
-              <View style={styles.foundBox}>
-                <Avatar name={name} size={40} />
-                <View style={{ flex: 1 }}>
-                  <Txt variant="body" style={{ fontWeight: '600' }}>
-                    {name}
-                  </Txt>
-                  <Txt variant="small" color={colors.textMuted}>
-                    {foundLevel !== undefined ? `Niveau ${foundLevel.toFixed(1)} · ` : ''}sur PadelConnect
-                  </Txt>
+            {search === 'found' && found ? (
+              <>
+                <View style={styles.foundBox}>
+                  <Avatar name={found.name} size={40} />
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body" style={{ fontWeight: '600' }}>
+                      {found.name}
+                    </Txt>
+                    <Txt variant="small" color={colors.textMuted}>
+                      {found.level !== undefined ? `Niveau ${found.level.toFixed(1)} · ` : ''}sur PadelConnect
+                    </Txt>
+                  </View>
+                  <Tag label="Vérifié" tone="green" icon="checkmark" />
                 </View>
-                <Tag label="Trouvé" tone="green" icon="checkmark" />
-              </View>
+                <View style={{ marginTop: spacing.md }}>
+                  <Button size="sm" label={`Ajouter ${found.name}`} icon="person-add" onPress={addFound} pill />
+                </View>
+              </>
             ) : search === 'notfound' ? (
               <View style={styles.foundBox}>
                 <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
@@ -165,26 +162,6 @@ export default function AmisScreen() {
                 <Button size="sm" label="Inviter" icon="logo-whatsapp" variant="secondary" onPress={invite} />
               </View>
             ) : null}
-
-            <Divider style={{ marginVertical: spacing.md }} />
-            <Txt variant="small" color={colors.textFaint}>
-              {search === 'found' ? 'Tu peux ajuster le nom avant d’ajouter.' : 'Ou ajoute-le manuellement par son nom.'}
-            </Txt>
-            <TextInput
-              value={name}
-              onChangeText={setName}
-              placeholder="Nom de l'ami"
-              placeholderTextColor={colors.textFaint}
-              style={styles.input}
-            />
-            {tapError || (name.length > 0 && !ready) ? (
-              <Txt variant="small" color={colors.danger} style={{ marginTop: spacing.xs }}>
-                Indique au moins le nom (2 caractères).
-              </Txt>
-            ) : null}
-            <View style={{ marginTop: spacing.md, opacity: ready ? 1 : 0.5 }}>
-              <Button size="sm" label="Ajouter l'ami" icon="person-add" onPress={submit} pill />
-            </View>
           </Card>
         </View>
       </View>

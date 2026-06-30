@@ -12,25 +12,28 @@ export const DAY_MS = 24 * HOUR_MS;
 
 export type DayOption = { label: string; value: number; key: string };
 
+// Clé du jour EN HEURE D'ABIDJAN (UTC+0), pas dans le fuseau de l'appareil — pour rester
+// cohérent avec slotTimestamp (heure des créneaux). Ainsi « aujourd'hui » est toujours le
+// bon jour calendaire d'Abidjan, même si le téléphone est réglé sur un autre fuseau.
 export function dayKey(d: Date): string {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, '0');
-  const day = String(d.getDate()).padStart(2, '0');
+  const y = d.getUTCFullYear();
+  const m = String(d.getUTCMonth() + 1).padStart(2, '0');
+  const day = String(d.getUTCDate()).padStart(2, '0');
   return `${y}-${m}-${day}`;
 }
 
 // `from` permet d'injecter une date de référence (tests déterministes) ; par défaut,
 // maintenant. Génère n jours consécutifs SANS trou — les deux premiers portent un
-// libellé amical AVEC le numéro du jour (« Aujourd'hui 12 », « Demain 13 ») pour rester
-// sans ambiguïté le soir, les suivants leur nom de jour.
+// libellé amical AVEC le numéro du jour (« Aujourd'hui 12 », « Demain 13 »), les suivants
+// leur nom de jour. Tout est calculé en heure d'Abidjan (midi UTC = repère stable d'affichage).
 export function nextDays(n: number, from: Date = new Date()): DayOption[] {
-  const now = from;
+  const base = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate(), 12, 0, 0);
   return Array.from({ length: n }, (_, i) => {
-    const d = new Date(now);
-    d.setDate(now.getDate() + i);
-    d.setHours(0, 0, 0, 0);
-    const label = i === 0 ? `Aujourd'hui ${d.getDate()}` : i === 1 ? `Demain ${d.getDate()}` : `${DAYS[d.getDay()]} ${d.getDate()}`;
-    return { label, value: d.getTime(), key: dayKey(d) };
+    const ts = base + i * DAY_MS;
+    const d = new Date(ts);
+    const label =
+      i === 0 ? `Aujourd'hui ${d.getUTCDate()}` : i === 1 ? `Demain ${d.getUTCDate()}` : `${DAYS[d.getUTCDay()]} ${d.getUTCDate()}`;
+    return { label, value: ts, key: dayKey(d) };
   });
 }
 
@@ -51,8 +54,8 @@ const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 // (Jamais relatif — pour les documents de facturation.)
 export function dateKeyLabel(key: string): string {
   const [y, m, d] = key.split('-').map(Number);
-  const date = new Date(y, m - 1, d);
-  return `${DAYS_SHORT[date.getDay()]} ${d} ${MONTHS[m - 1]}`;
+  const date = new Date(Date.UTC(y, m - 1, d, 12));
+  return `${DAYS_SHORT[date.getUTCDay()]} ${d} ${MONTHS[m - 1]}`;
 }
 
 // ——— Semaine calendaire (lundi → dimanche) — base de la facturation hebdomadaire ———
@@ -60,29 +63,26 @@ export function dateKeyLabel(key: string): string {
 // Clé stable d'une semaine = la date de son LUNDI (AAAA-MM-JJ).
 export function weekKeyOf(ts: number): string {
   const d = new Date(ts);
-  d.setHours(0, 0, 0, 0);
-  const dow = (d.getDay() + 6) % 7; // lundi = 0
-  d.setDate(d.getDate() - dow);
-  return dayKey(d);
+  const dow = (d.getUTCDay() + 6) % 7; // lundi = 0
+  const monday = Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate() - dow, 12);
+  return dayKey(new Date(monday));
 }
 
 function weekStart(key: string): Date {
   const [y, m, d] = key.split('-').map(Number);
-  return new Date(y, m - 1, d);
+  return new Date(Date.UTC(y, m - 1, d, 12));
 }
 
 // Libellé lisible : « du 8 au 14 juin » (ou « du 29 juin au 5 juil. » à cheval).
 export function weekLabel(key: string): string {
   const start = weekStart(key);
-  const end = new Date(start);
-  end.setDate(start.getDate() + 6);
-  if (start.getMonth() === end.getMonth()) return `du ${start.getDate()} au ${end.getDate()} ${MONTHS[end.getMonth()]}`;
-  return `du ${start.getDate()} ${MONTHS[start.getMonth()]} au ${end.getDate()} ${MONTHS[end.getMonth()]}`;
+  const end = new Date(start.getTime() + 6 * DAY_MS);
+  if (start.getUTCMonth() === end.getUTCMonth()) return `du ${start.getUTCDate()} au ${end.getUTCDate()} ${MONTHS[end.getUTCMonth()]}`;
+  return `du ${start.getUTCDate()} ${MONTHS[start.getUTCMonth()]} au ${end.getUTCDate()} ${MONTHS[end.getUTCMonth()]}`;
 }
 
 // Semaine précédente / suivante.
 export function addWeeks(key: string, n: number): string {
   const d = weekStart(key);
-  d.setDate(d.getDate() + 7 * n);
-  return dayKey(d);
+  return dayKey(new Date(d.getTime() + 7 * n * DAY_MS));
 }

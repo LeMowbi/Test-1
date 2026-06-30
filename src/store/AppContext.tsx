@@ -283,6 +283,8 @@ type AppContextType = {
   signInWithEmail: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   // Recharge la session (profil + données) — appelé après la confirmation d'e-mail (deep link).
   refreshSession: () => Promise<void>;
+  // Ajouter / changer l'e-mail du compte (confirmation par lien envoyé à la nouvelle adresse).
+  updateEmail: (email: string) => Promise<{ ok: boolean; error?: string }>;
   // Connexion serveur héritée — téléphone + mot de passe (comptes créés avant l'e-mail).
   signInWithPhone: (phone: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   // Mot de passe oublié : envoi d'un lien de réinitialisation par e-mail.
@@ -768,6 +770,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       refreshSession: loadSession,
+      // Ajouter / changer l'e-mail du compte : Supabase envoie un lien de confirmation à la
+      // NOUVELLE adresse ; le changement ne s'applique qu'après le clic sur ce lien.
+      updateEmail: async (email) => {
+        const clean = email.trim().toLowerCase();
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return { ok: false, error: 'Adresse e-mail invalide.' };
+        const { error } = await supabase.auth.updateUser({ email: clean }, { emailRedirectTo: Linking.createURL('auth-callback') });
+        if (error) return { ok: false, error: frAuthError(error.message) };
+        return { ok: true };
+      },
       // Connexion serveur héritée — comptes créés AVANT l'e-mail, via le téléphone (e-mail
       // interne sans SMS). On se connecte puis on délègue à loadSession : une SEULE source
       // de vérité pour le chargement profil + résas + occupation (pas de doublon à maintenir).

@@ -137,10 +137,10 @@ export function SectionReservations({
             return (
               <Pressable key={d.key} onPress={() => setPlanDayKey(d.key)} style={[styles.dayPill, active && styles.dayPillActive]}>
                 <Txt variant="small" color={active ? colors.onSignature : colors.textFaint} style={{ fontSize: 10, fontWeight: '700' }}>
-                  {['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'][dd.getDay()]}
+                  {['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'][dd.getUTCDay()]}
                 </Txt>
                 <Txt variant="h3" color={active ? colors.onSignature : colors.text} style={{ fontSize: 16 }}>
-                  {dd.getDate()}
+                  {dd.getUTCDate()}
                 </Txt>
               </Pressable>
             );

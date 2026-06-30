@@ -89,10 +89,10 @@ export default function ReserverScreen() {
             return (
               <Pressable key={d.key} onPress={() => pickDay(d)} style={[styles.dayPill, active && styles.dayPillActive]}>
                 <Txt variant="small" color={active ? colors.onSignature : colors.textFaint} style={{ fontSize: 10, fontWeight: '700' }}>
-                  {i === 0 ? 'AUJ.' : DOW[dd.getDay()]}
+                  {i === 0 ? 'AUJ.' : DOW[dd.getUTCDay()]}
                 </Txt>
                 <Txt variant="h3" color={active ? colors.onSignature : colors.text} style={{ fontSize: 18 }}>
-                  {dd.getDate()}
+                  {dd.getUTCDate()}
                 </Txt>
               </Pressable>
             );

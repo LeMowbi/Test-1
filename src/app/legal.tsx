@@ -1,5 +1,6 @@
 import { Screen } from '@/components/Screen';
 import { Card, Txt } from '@/components/ui';
+import { SUPPORT_EMAIL } from '@/lib/operator';
 import { colors, spacing } from '@/theme';
 
 // Mentions légales & CGU — rédigées pour refléter le fonctionnement RÉEL de l'app
@@ -31,8 +32,8 @@ export default function Legal() {
       <Card style={{ marginTop: spacing.md }}>
         <Txt variant="h3">Réservations, annulations & niveau</Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
-          Une réservation peut être annulée gratuitement jusqu'à 5 heures avant le créneau ; passé ce délai, l'annulation n'est plus possible
-          dans l'application. Une annulation libère le créneau et reste visible du club concerné.
+          Une réservation peut être annulée gratuitement jusqu'à 5 heures avant le créneau ; passé ce délai, l'annulation n'est plus
+          possible dans l'application. Une annulation libère le créneau et reste visible du club concerné.
         </Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
           Le niveau de jeu évolue uniquement via les tournois officiels : c'est l'organisateur qui désigne l'équipe gagnante à la fin (pas
@@ -58,7 +59,7 @@ export default function Legal() {
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
           PadelConnect · Abidjan, Côte d'Ivoire
         </Txt>
-        <Txt variant="muted">moustaphabitar01@gmail.com</Txt>
+        <Txt variant="muted">{SUPPORT_EMAIL}</Txt>
       </Card>
 
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.lg, textAlign: 'center' }}>
