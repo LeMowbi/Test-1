@@ -23,7 +23,7 @@ const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 export default function Onboarding() {
   const router = useRouter();
-  const { signUpWithEmail, signInWithEmail, signInWithPhone, loadDemo } = useApp();
+  const { signUpWithEmail, signInWithEmail, signInWithPhone } = useApp();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -93,7 +93,8 @@ export default function Onboarding() {
       referralCode: referralCode.trim() || undefined,
     });
     setBusy(false);
-    if (res.needsConfirm) setSentTo(email.trim().toLowerCase()); // → écran « Vérifie ta boîte mail »
+    if (res.needsConfirm)
+      setSentTo(email.trim().toLowerCase()); // → écran « Vérifie ta boîte mail »
     else if (res.ok) router.replace('/');
     else setAuthError(res.error ?? 'Inscription impossible. Réessaie.');
   };
@@ -113,11 +114,6 @@ export default function Onboarding() {
       setSignInOpen(false);
       router.replace('/');
     } else setSiError(res.error ?? 'Connexion impossible.');
-  };
-
-  const demo = () => {
-    loadDemo();
-    router.replace('/');
   };
 
   const clearError = (k: FieldKey) => setErrors((cur) => (cur[k] ? { ...cur, [k]: undefined } : cur));
@@ -381,9 +377,8 @@ export default function Onboarding() {
             </View>
           ) : null}
 
-          <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+          <View style={{ marginTop: spacing.xl }}>
             <Button label={busy ? 'Création…' : 'Créer mon profil'} icon="checkmark" onPress={create} disabled={busy} full />
-            <Button label="Découvrir en démo" icon="play" variant="secondary" onPress={demo} full />
           </View>
 
           <Pressable onPress={() => setSignInOpen(true)} style={{ marginTop: spacing.lg, alignItems: 'center' }}>
@@ -475,7 +470,9 @@ function SignInSheet({
     <BottomSheet
       visible={visible}
       title="Se connecter"
-      subtitle={byEmail ? 'Retrouve ton compte avec ton e-mail et ton mot de passe.' : 'Connexion par numéro (comptes créés avant l’e-mail).'}
+      subtitle={
+        byEmail ? 'Retrouve ton compte avec ton e-mail et ton mot de passe.' : 'Connexion par numéro (comptes créés avant l’e-mail).'
+      }
       onClose={onClose}
     >
       <View style={{ gap: spacing.md }}>

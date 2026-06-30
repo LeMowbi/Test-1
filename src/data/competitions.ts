@@ -37,7 +37,7 @@ const D = nextDays(8);
 const yesterday = dayKey(new Date(Date.now() - 86400000));
 const lastWeek = dayKey(new Date(Date.now() - 7 * 86400000));
 
-// IDs des tournois de démo « terminés » — réutilisés par loadDemo (inscription/clôture).
+// IDs des tournois « terminés » du catalogue d'exemple (un à clôturer, un déjà clôturé).
 export const DEMO_FINISHED_COMP = 'c-fin'; // terminé hier, à clôturer par le club
 export const DEMO_CLOSED_COMP = 'c-clos'; // déjà clôturé la semaine dernière
 

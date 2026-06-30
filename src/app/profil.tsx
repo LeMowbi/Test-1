@@ -17,11 +17,10 @@ import { colors, gradients, radius, spacing } from '@/theme';
 
 export default function ProfilScreen() {
   const router = useRouter();
-  const { state, stats, setRemindersOn, signOut, resetAll, loadDemo, updateAccount } = useApp();
+  const { state, stats, setRemindersOn, signOut, updateAccount } = useApp();
   const { account, level, friends, officialResults } = state;
 
   const [editing, setEditing] = useState(false);
-  const [confirmReset, setConfirmReset] = useState(false);
   const [photoSheet, setPhotoSheet] = useState(false);
 
   if (!account) return null;
@@ -328,23 +327,6 @@ export default function ProfilScreen() {
       <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
         <Button label="Mentions légales & CGU" icon="document-text-outline" variant="ghost" onPress={() => router.push('/legal')} />
         <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={signOut} />
-        <Button
-          label={confirmReset ? 'Réinitialiser et relancer la démo' : 'Réinitialiser la démo'}
-          icon="refresh"
-          variant={confirmReset ? 'danger' : 'ghost'}
-          onPress={() => {
-            if (confirmReset) {
-              // Tout effacer (y compris la clé persistée) PUIS relancer une démo propre
-              // et revenir à l'accueil — sans repasser par l'écran d'inscription.
-              resetAll();
-              loadDemo();
-              router.replace('/');
-            } else {
-              setConfirmReset(true);
-              setTimeout(() => setConfirmReset(false), 4000);
-            }
-          }}
-        />
       </View>
 
       {/* Photo de profil : changer (recadrée + compressée) ou revenir aux initiales */}

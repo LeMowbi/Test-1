@@ -7,11 +7,8 @@ import { AppState as RNAppState } from 'react-native';
 import { clubs, type Club, type CustomClub, type PriceTier } from '@/data/clubs';
 import { approveClubRequest as approveClubRequestRpc, fetchServerClubs } from '@/lib/clubsServer';
 import type { Competition } from '@/data/competitions';
-import { DEMO_CLOSED_COMP, DEMO_FINISHED_COMP } from '@/data/competitions';
 import type { Review } from '@/data/reviews';
-import { seedFriends, type Friend } from '@/data/user';
-import { dayKey, nextDays } from '@/lib/days';
-import { priceForSlot } from '@/lib/pricing';
+import { type Friend } from '@/data/user';
 import {
   deleteReservationRow,
   fetchMyParticipations,
@@ -199,9 +196,8 @@ const initialState: AppState = {
   myCompetitions: [],
   reservations: [],
   favoriteClubIds: [],
-  // Un compte RÉEL démarre sans ami (les amis de démo ne vivent que dans loadDemo).
-  // Sinon « Mes amis · 4 », le trophée « 5 amis » à 4/5 et la relance « 0 ami »
-  // seraient faux dès l'inscription.
+  // Un compte démarre sans ami : sinon « Mes amis · 4 », le trophée « 5 amis » à 4/5
+  // et la relance « 0 ami » seraient faux dès l'inscription.
   friends: [],
   officialResults: [],
   compRegistrations: {},
@@ -247,7 +243,6 @@ type AppContextType = {
   myReservations: Reservation[]; // mes réservations seules (cf. memo) — pour tout écran perso
   setAccount: (a: Account) => void;
   updateAccount: (patch: Partial<Account>) => void;
-  loadDemo: () => void;
   // Inscription serveur PRINCIPALE — e-mail (confirmé) + mot de passe, le téléphone est
   // conservé (sans SMS) pour que les clubs puissent joindre les joueurs. `needsConfirm`
   // = true quand l'e-mail de confirmation vient d'être envoyé (pas encore de session).
@@ -563,9 +558,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   const myReservations = useMemo(
     () =>
       state.serverUserId
-        ? state.reservations.filter(
-            (r) => !r.userId || r.userId === state.serverUserId || state.participantReservationIds.includes(r.id),
-          )
+        ? state.reservations.filter((r) => !r.userId || r.userId === state.serverUserId || state.participantReservationIds.includes(r.id))
         : state.reservations,
     [state.reservations, state.serverUserId, state.participantReservationIds],
   );
@@ -580,75 +573,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       myReservations,
       setAccount: (a) => setState((s) => ({ ...s, account: a })),
       updateAccount: (patch) => setState((s) => ({ ...s, account: s.account ? { ...s.account, ...patch } : s.account })),
-      loadDemo: () => {
-        // Le parcours « Invité Démo » est HORS session : on coupe toute session serveur
-        // pour éviter qu'au prochain lancement l'app recharge un vrai compte par-dessus.
-        supabase.auth.signOut().catch(() => {});
-        void syncMatchReminders([], false);
-        setState(() => {
-          const now = Date.now();
-          const demain = nextDays(2)[1]; // jour « Demain » stable
-          const lastWeek = new Date(now - 3 * 86400000);
-          const findSeed = (id: string) => clubs.find((c) => c.id === id)!;
-          return {
-            ...initialState,
-            account: { firstName: 'Invité', lastName: 'Démo', phone: '+225 07 00 00 00 00', birthDate: '12/08/1998', gender: 'nd' },
-            level: 3.5,
-            friends: seedFriends, // les amis de démo n'existent que dans ce parcours « Invité »
-            favoriteClubIds: ['padelta'],
-            reservations: [
-              {
-                id: uid(),
-                clubId: 'district-club',
-                clubName: 'District Club',
-                court: 'Terrain 1',
-                date: demain.label,
-                dateKey: demain.key,
-                time: '18:00',
-                startsAt: demain.value + 18 * 3600000,
-                price: priceForSlot(findSeed('district-club'), '18:00'),
-                players: 4,
-                invited: [],
-                bookedBy: { name: 'Invité Démo', phone: '+225 07 00 00 00 00' },
-                createdAt: now,
-              },
-              {
-                id: uid(),
-                clubId: 'padel-zone-4',
-                clubName: 'Padel Zone 4',
-                court: 'Terrain 2',
-                date: 'Sem. dernière',
-                dateKey: dayKey(lastWeek),
-                time: '18:00',
-                startsAt: now - 3 * 86400000,
-                price: priceForSlot(findSeed('padel-zone-4'), '18:00'),
-                players: 4,
-                invited: [],
-                bookedBy: { name: 'Invité Démo', phone: '+225 07 00 00 00 00' },
-                clubConfirmed: true,
-                createdAt: now - 3 * 86400000,
-              },
-            ],
-            // L'utilisateur démo est inscrit aux 2 tournois terminés : un à clôturer (le
-            // gérant désignera le vainqueur) + un déjà clôturé (il a participé, pas gagné).
-            compRegistrations: {
-              [DEMO_FINISHED_COMP]: { partner: 'Karim', at: now },
-              [DEMO_CLOSED_COMP]: { partner: 'Karim', at: now },
-            },
-            compResults: { [DEMO_CLOSED_COMP]: { winner: 'Awa & Yann', closedAt: now - 6 * 86400000 } },
-            officialResults: [
-              {
-                id: uid(),
-                compId: DEMO_CLOSED_COMP,
-                title: 'Americano officiel — Padel Zone 4',
-                result: 'played',
-                at: now - 6 * 86400000,
-                levelAfter: 3.5,
-              },
-            ],
-          };
-        });
-      },
       // ── Inscription par E-MAIL (parcours principal) ────────────────────────
       // E-mail réel + mot de passe ; le téléphone est conservé (sans SMS). Avec la
       // confirmation d'e-mail activée côté Supabase, le compte est créé mais SANS session :
