@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, TextInput, View } from 'react-native';
+import { Pressable, Share, StyleSheet, TextInput, View } from 'react-native';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
@@ -266,6 +266,25 @@ export default function Operateur() {
     setPaymentStatus(row.clubId, week, 'sent');
   };
 
+  // Export de TOUTE la semaine (tableau CSV, séparateur « ; ») à partager (comptabilité).
+  const exportWeek = () => {
+    if (rows.length === 0) {
+      toast.show('Rien à exporter sur cette semaine', { icon: 'alert-circle' });
+      return;
+    }
+    const header = 'Club;Parties;Volume(FCFA);Taux(%);Commission(FCFA);Statut';
+    const body = rows
+      .map((r) => {
+        const st = statusOf(r.clubId);
+        const label = st === 'paid' ? 'Payé' : st === 'sent' ? 'Décompte envoyé' : 'À facturer';
+        return `${r.clubName};${r.count};${r.revenue};${Math.round(r.rate * 100)};${r.commission};${label}`;
+      })
+      .join('\n');
+    const total = `TOTAL;${totalCount};${totalRevenue};;${totalCommission};`;
+    const message = `PadelConnect — Décompte semaine ${weekLabel(week)}\n\n${header}\n${body}\n${total}`;
+    void Share.share({ message });
+  };
+
   // Garde d'accès : l'Espace opérateur n'est rendu que si le RÔLE serveur === 'operator'.
   // (La vraie barrière reste la Row Level Security côté Supabase.)
   if (!canAccessOperator(state.role)) return null;
@@ -367,6 +386,7 @@ export default function Operateur() {
             {weekUpcoming > 1 ? 's' : ''} une fois jouée{weekUpcoming > 1 ? 's' : ''}).
           </Txt>
         ) : null}
+        <Button size="sm" variant="ghost" label="Exporter la semaine (tableau)" icon="download-outline" onPress={exportWeek} full />
       </Card>
 
       <View style={{ marginTop: spacing.xl }}>
