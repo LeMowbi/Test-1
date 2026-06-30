@@ -1,5 +1,4 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
@@ -25,7 +24,6 @@ const BLOCK_REASONS = ['Résa téléphone/WhatsApp', 'Entretien', 'Privatisé', 
 const CLUB_TYPES: Club['type'][] = ['Couvert', 'Extérieur', 'Mixte'];
 
 export default function ClubAdmin() {
-  const router = useRouter();
   const {
     state,
     setManagedClub,
@@ -193,12 +191,6 @@ export default function ClubAdmin() {
           <Ionicons name={showSignup ? 'chevron-down' : 'add-circle-outline'} size={16} color={colors.blue} />
           <Txt variant="small" color={colors.blue} style={{ fontWeight: '700' }}>
             Ton club n'est pas dans la liste ? Inscris-le
-          </Txt>
-        </Pressable>
-        <Pressable onPress={() => router.push('/pourquoi')} style={styles.signupLink}>
-          <Ionicons name="sparkles-outline" size={15} color={colors.textMuted} />
-          <Txt variant="small" color={colors.textMuted} style={{ fontWeight: '600' }}>
-            Pourquoi rejoindre PadelConnect ?
           </Txt>
         </Pressable>
 

@@ -81,6 +81,16 @@ export default function InscrireClub() {
         </Txt>
       </Card>
 
+      {/* Argumentaire : ce que le club gagne à rejoindre PadelConnect (écran dédié). */}
+      <Card onPress={() => router.push('/pourquoi')} style={styles.whyLink}>
+        <IconCircle icon="sparkles-outline" color={colors.amber} bg={colors.amberSoft} />
+        <View style={{ flex: 1 }}>
+          <Txt variant="h3">Pourquoi rejoindre PadelConnect ?</Txt>
+          <Txt variant="muted">Plus de réservations, zéro paperasse, une page pro.</Txt>
+        </View>
+        <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+      </Card>
+
       <Card style={{ marginTop: spacing.md }}>
         <Txt variant="label" color={colors.textFaint}>
           INFOS DU CLUB
@@ -168,5 +178,6 @@ const styles = StyleSheet.create({
     marginTop: spacing.sm,
   },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
+  whyLink: { marginTop: spacing.sm, flexDirection: 'row', alignItems: 'center', gap: spacing.md },
   privacy: { flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginTop: spacing.sm },
 });
