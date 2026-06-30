@@ -73,13 +73,18 @@ export function SectionMonClub({ club }: { club: Club }) {
     Share.share({ message: `Bonjour PadelConnect, je souhaite booster le profil de ${club.name} (paiement par Wave).` }).catch(() => {});
 
   const photosFull = photos.length >= MAX_CLUB_PHOTOS;
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
   const addPhotoFromDevice = async () => {
     if (photosFull) {
       toast.show(`Maximum ${MAX_CLUB_PHOTOS} photos par club`, { icon: 'alert-circle' });
       return;
     }
     const uri = await pickImage();
-    if (uri) addClubPhoto(club.id, uri);
+    if (!uri) return;
+    // La photo est envoyée au serveur (visible par tous) : court délai → on signale l'envoi.
+    setUploadingPhoto(true);
+    await addClubPhoto(club.id, uri);
+    setUploadingPhoto(false);
   };
   const addPhotoFromUrl = () => {
     if (photosFull) {
@@ -154,10 +159,10 @@ export function SectionMonClub({ club }: { club: Club }) {
               </View>
             ))}
             {photosFull ? null : (
-              <Pressable onPress={addPhotoFromDevice} style={styles.addTile}>
-                <Ionicons name="camera-outline" size={22} color={colors.signature} />
+              <Pressable onPress={addPhotoFromDevice} style={styles.addTile} disabled={uploadingPhoto}>
+                <Ionicons name={uploadingPhoto ? 'cloud-upload-outline' : 'camera-outline'} size={22} color={colors.signature} />
                 <Txt variant="small" color={colors.signature} style={{ marginTop: 4 }}>
-                  Ajouter
+                  {uploadingPhoto ? 'Envoi…' : 'Ajouter'}
                 </Txt>
               </Pressable>
             )}

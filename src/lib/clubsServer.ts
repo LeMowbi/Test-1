@@ -51,6 +51,57 @@ export async function upsertClubOverride(clubId: string, o: ClubOverride): Promi
   return !error && data === true;
 }
 
+// ─── Config de club partagée (horaires, terrains, offres, coachs, photos) ──────
+export type ClubOffer = { id: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string };
+export type ClubCoach = { id: string; name: string; specialty: string; phone?: string };
+export type ClubConfig = {
+  slots?: string[];
+  courts?: string[];
+  offers?: ClubOffer[];
+  coaches?: ClubCoach[];
+  photos?: string[];
+};
+
+type ClubConfigRow = {
+  club_id: string;
+  slots: string[] | null;
+  courts: string[] | null;
+  offers: ClubOffer[] | null;
+  coaches: ClubCoach[] | null;
+  photos: string[] | null;
+};
+
+// Toutes les configs de club → { clubId: config } pour fusion dans le store au chargement.
+export async function fetchClubConfigs(): Promise<Record<string, ClubConfig>> {
+  const { data, error } = await supabase.from('club_config').select('*');
+  if (error) return {};
+  const out: Record<string, ClubConfig> = {};
+  for (const r of (data ?? []) as ClubConfigRow[]) {
+    out[r.club_id] = {
+      slots: r.slots ?? undefined,
+      courts: r.courts ?? undefined,
+      offers: r.offers ?? undefined,
+      coaches: r.coaches ?? undefined,
+      photos: r.photos ?? undefined,
+    };
+  }
+  return out;
+}
+
+// Le gérant pousse SA config (mise à jour partielle : seuls les champs fournis changent).
+// Le serveur refuse si ce n'est pas son club. false si refusé/échec.
+export async function upsertClubConfig(clubId: string, c: ClubConfig): Promise<boolean> {
+  const { data, error } = await supabase.rpc('upsert_club_config', {
+    p_club_id: clubId,
+    p_slots: c.slots ?? null,
+    p_courts: c.courts ?? null,
+    p_offers: c.offers ?? null,
+    p_coaches: c.coaches ?? null,
+    p_photos: c.photos ?? null,
+  });
+  return !error && data === true;
+}
+
 type ClubOverrideRow = {
   club_id: string;
   name: string | null;

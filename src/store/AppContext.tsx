@@ -9,14 +9,18 @@ import {
   approveClubRequest as approveClubRequestRpc,
   createClub as createClubRpc,
   fetchClubOverrides,
+  fetchClubConfigs,
   fetchClubStatus,
   fetchServerClubs,
   grantClubAccessByPhone as grantClubAccessByPhoneRpc,
   revokeClubAccessByPhone as revokeClubAccessByPhoneRpc,
   setBaseClubStatus as setBaseClubStatusRpc,
   setClubStatus as setClubStatusRpc,
+  upsertClubConfig,
   upsertClubOverride,
+  type ClubConfig,
 } from '@/lib/clubsServer';
+import { removeClubPhotoFile, uploadClubPhoto } from '@/lib/clubPhotos';
 import type { Competition } from '@/data/competitions';
 import type { Review } from '@/data/reviews';
 import { type Friend } from '@/data/user';
@@ -247,6 +251,25 @@ const initialState: AppState = {
 // le même appareil ne récupère rien du précédent. On conserve uniquement d'éventuels clubs
 // démo créés en local (les clubs venus du serveur se rechargeront à la prochaine session).
 // Utilisé par signOut, la révocation externe (SIGNED_OUT) et la suppression de compte.
+// Config club serveur → tranches du store. Le serveur fait foi pour les clubs qu'il connaît ;
+// on ne remplace une tranche locale que si le serveur la fournit (slice présent). Mutualisé
+// entre le chargement de session et le rafraîchissement au retour au premier plan.
+function clubConfigSlices(s: AppState, configs: Record<string, ClubConfig>) {
+  const clubSlots = { ...s.clubSlots };
+  const clubCourts = { ...s.clubCourts };
+  const clubOffers = { ...s.clubOffers };
+  const clubCoaches = { ...s.clubCoaches };
+  const clubPhotos = { ...s.clubPhotos };
+  for (const [id, c] of Object.entries(configs)) {
+    if (c.slots) clubSlots[id] = c.slots;
+    if (c.courts) clubCourts[id] = c.courts;
+    if (c.offers) clubOffers[id] = c.offers;
+    if (c.coaches) clubCoaches[id] = c.coaches;
+    if (c.photos) clubPhotos[id] = c.photos;
+  }
+  return { clubSlots, clubCourts, clubOffers, clubCoaches, clubPhotos };
+}
+
 function loggedOutState(s: AppState): AppState {
   return {
     ...s,
@@ -325,7 +348,7 @@ type AppContextType = {
   addFriend: (name: string, phone: string, level?: number) => void;
   removeFriend: (id: string) => void;
   toggleFavorite: (clubId: string) => void;
-  addClubPhoto: (clubId: string, uri: string) => void;
+  addClubPhoto: (clubId: string, uri: string) => Promise<void>;
   removeClubPhoto: (clubId: string, uri: string) => void;
   addClubOffer: (clubId: string, kind: 'offre' | 'actu' | 'evenement', title: string, detail: string) => void;
   removeClubOffer: (clubId: string, id: string) => void;
@@ -540,13 +563,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Réservations : le serveur est la source de vérité → on remplace le miroir local
       // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
       // via RLS), l'occupation de TOUS (disponibilité), et les clubs ajoutés côté serveur.
-      const [reservationsRes, occ, parts, serverClubs, overrides, clubStatus] = await Promise.all([
+      const [reservationsRes, occ, parts, serverClubs, overrides, clubStatus, configs] = await Promise.all([
         fetchReservations(),
         fetchOccupancy(),
         fetchMyParticipations(userId),
         fetchServerClubs(),
         fetchClubOverrides(),
         fetchClubStatus(),
+        fetchClubConfigs(),
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       const { active: activeParts, pending: pendingParts } = splitParticipations(parts);
@@ -563,6 +587,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Pages club éditées par les gérants (serveur) → visibles par tous. On fusionne au-dessus
         // des éventuelles surcharges locales (le serveur fait foi pour les clubs qu'il connaît).
         clubInfo: { ...s.clubInfo, ...overrides },
+        // Config club partagée (horaires, terrains, offres, coachs, photos).
+        ...clubConfigSlices(s, configs),
       }));
       // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses).
       if (reservationsRes.ok) {
@@ -629,6 +655,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (!ok()) return;
         setClubStatusMap(clubStatus);
         setState((s) => ({ ...s, clubStatus }));
+      });
+      // Config club (horaires, terrains, offres, coachs, photos) éditée par un gérant ailleurs :
+      // on relit pour que la disponibilité et la fiche restent à jour sans réinstaller.
+      void fetchClubConfigs().then((configs) => {
+        if (ok()) setState((s) => ({ ...s, ...clubConfigSlices(s, configs) }));
       });
       // Rafraîchit le RÔLE/profil : si l'opérateur vient d'accorder l'accès gérant (#39), le
       // gérant voit son Espace Club apparaître au retour dans l'app, sans réinstaller.
@@ -1041,24 +1072,51 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ? s.favoriteClubIds.filter((x) => x !== clubId)
             : [...s.favoriteClubIds, clubId],
         })),
-      addClubPhoto: (clubId, uri) =>
+      // Photo de club : un fichier local est d'abord ENVOYÉ au Storage (URL publique) pour que
+      // les joueurs la voient sur tous les appareils ; une URL https est gardée telle quelle.
+      // Puis on enregistre la liste des photos côté serveur (config club).
+      addClubPhoto: async (clubId, uri) => {
+        if (!uri) return;
+        const current = state.clubPhotos[clubId] ?? [];
+        if (current.length >= MAX_CLUB_PHOTOS) return;
+        let finalUrl = uri;
+        if (state.serverUserId && !/^https?:\/\//.test(uri)) {
+          const uploaded = await uploadClubPhoto(clubId, uri);
+          if (uploaded) finalUrl = uploaded;
+        }
         setState((s) => {
           const existing = s.clubPhotos[clubId] ?? [];
           // Plafond pour éviter de dépasser le quota de stockage local (perte de photos).
-          if (!uri || existing.includes(uri) || existing.length >= MAX_CLUB_PHOTOS) return s;
-          return { ...s, clubPhotos: { ...s.clubPhotos, [clubId]: [...existing, uri] } };
-        }),
+          if (existing.includes(finalUrl) || existing.length >= MAX_CLUB_PHOTOS) return s;
+          const next = [...existing, finalUrl];
+          if (s.serverUserId) void upsertClubConfig(clubId, { photos: next });
+          return { ...s, clubPhotos: { ...s.clubPhotos, [clubId]: next } };
+        });
+      },
       removeClubPhoto: (clubId, uri) =>
-        setState((s) => ({ ...s, clubPhotos: { ...s.clubPhotos, [clubId]: (s.clubPhotos[clubId] ?? []).filter((x) => x !== uri) } })),
+        setState((s) => {
+          const next = (s.clubPhotos[clubId] ?? []).filter((x) => x !== uri);
+          if (s.serverUserId) {
+            void upsertClubConfig(clubId, { photos: next });
+            void removeClubPhotoFile(uri); // best-effort : retire aussi le fichier du Storage
+          }
+          return { ...s, clubPhotos: { ...s.clubPhotos, [clubId]: next } };
+        }),
       addClubOffer: (clubId, kind, title, detail) =>
         setState((s) => {
           const t = title.trim();
           if (!t) return s;
           const existing = s.clubOffers[clubId] ?? [];
-          return { ...s, clubOffers: { ...s.clubOffers, [clubId]: [{ id: uid(), kind, title: t, detail: detail.trim() }, ...existing] } };
+          const next = [{ id: uid(), kind, title: t, detail: detail.trim() }, ...existing];
+          if (s.serverUserId) void upsertClubConfig(clubId, { offers: next });
+          return { ...s, clubOffers: { ...s.clubOffers, [clubId]: next } };
         }),
       removeClubOffer: (clubId, id) =>
-        setState((s) => ({ ...s, clubOffers: { ...s.clubOffers, [clubId]: (s.clubOffers[clubId] ?? []).filter((o) => o.id !== id) } })),
+        setState((s) => {
+          const next = (s.clubOffers[clubId] ?? []).filter((o) => o.id !== id);
+          if (s.serverUserId) void upsertClubConfig(clubId, { offers: next });
+          return { ...s, clubOffers: { ...s.clubOffers, [clubId]: next } };
+        }),
       addClubCoach: (clubId, name, specialty, phone) =>
         setState((s) => {
           const n = name.trim();
@@ -1068,16 +1126,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const p = phone.trim();
           const normPhone = p ? (p.startsWith('+') ? p : `+225 ${p}`) : undefined;
           const existing = s.clubCoaches[clubId] ?? [];
-          return {
-            ...s,
-            clubCoaches: {
-              ...s.clubCoaches,
-              [clubId]: [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach', phone: normPhone }, ...existing],
-            },
-          };
+          const next = [{ id: uid(), name: n, specialty: specialty.trim() || 'Coach', phone: normPhone }, ...existing];
+          if (s.serverUserId) void upsertClubConfig(clubId, { coaches: next });
+          return { ...s, clubCoaches: { ...s.clubCoaches, [clubId]: next } };
         }),
       removeClubCoach: (clubId, id) =>
-        setState((s) => ({ ...s, clubCoaches: { ...s.clubCoaches, [clubId]: (s.clubCoaches[clubId] ?? []).filter((c) => c.id !== id) } })),
+        setState((s) => {
+          const next = (s.clubCoaches[clubId] ?? []).filter((c) => c.id !== id);
+          if (s.serverUserId) void upsertClubConfig(clubId, { coaches: next });
+          return { ...s, clubCoaches: { ...s.clubCoaches, [clubId]: next } };
+        }),
       setClubInfo: (clubId, patch) =>
         setState((s) => {
           const merged = { ...s.clubInfo[clubId], ...patch };
@@ -1289,8 +1347,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           managedClubId: s.managedClubId === id ? 'padelta' : s.managedClubId,
         })),
       setManagedClub: (id) => setState((s) => ({ ...s, managedClubId: id })),
-      setClubSlots: (clubId, slots) => setState((s) => ({ ...s, clubSlots: { ...s.clubSlots, [clubId]: [...slots].sort() } })),
-      setClubCourts: (clubId, courts) => setState((s) => ({ ...s, clubCourts: { ...s.clubCourts, [clubId]: courts } })),
+      // Horaires/terrains : le gérant connecté pousse au serveur (visible par TOUS les joueurs,
+      // change la disponibilité réelle). Le serveur refuse si ce n'est pas son club → reste local.
+      setClubSlots: (clubId, slots) =>
+        setState((s) => {
+          const next = [...slots].sort();
+          if (s.serverUserId) void upsertClubConfig(clubId, { slots: next });
+          return { ...s, clubSlots: { ...s.clubSlots, [clubId]: next } };
+        }),
+      setClubCourts: (clubId, courts) =>
+        setState((s) => {
+          if (s.serverUserId) void upsertClubConfig(clubId, { courts });
+          return { ...s, clubCourts: { ...s.clubCourts, [clubId]: courts } };
+        }),
       // Fermer un créneau hors app. Garde-fous : jamais dans le passé, jamais par-dessus
       // une réservation PadelConnect, jamais en double.
       blockSlot: (b, startsAt) => {
