@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useMemo, useState } from 'react';
-import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
+import { Linking, Pressable, RefreshControl, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { ClubCard } from '@/components/ClubCard';
 import { Screen } from '@/components/Screen';
@@ -17,9 +17,15 @@ function norm(s: string): string {
 }
 
 export default function ClubsScreen() {
-  const { state } = useApp();
+  const { state, refreshSession } = useApp();
   const [filter, setFilter] = useState('Tous');
   const [query, setQuery] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await refreshSession();
+    setRefreshing(false);
+  };
 
   const all = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs, state.clubInfo]);
   const list = useMemo(() => {
@@ -34,7 +40,16 @@ export default function ClubsScreen() {
   }, [all, query, filter, state.favoriteClubIds, state.boostedClubIds]);
 
   return (
-    <Screen back title="Clubs" subtitle={`${all.length} clubs de padel à Abidjan`}>
+    <Screen
+      back
+      title="Clubs"
+      subtitle={`${all.length} clubs de padel à Abidjan`}
+      refreshControl={
+        state.serverUserId ? (
+          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={colors.signature} colors={[colors.signature]} />
+        ) : undefined
+      }
+    >
       {/* Recherche par nom ou quartier */}
       <View style={styles.search}>
         <Ionicons name="search" size={17} color={colors.textMuted} />
