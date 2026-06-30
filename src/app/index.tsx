@@ -12,7 +12,7 @@ import { Screen } from '@/components/Screen';
 import { Card, SectionHeader, Txt } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { isTournamentPublic, seedCompetitions } from '@/data/competitions';
-import { DAY_MS, dayKey } from '@/lib/days';
+import { DAY_MS, dateKeyLabel, dayKey } from '@/lib/days';
 import { initials, perPlayer } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -192,7 +192,7 @@ export default function HomeScreen() {
     const share = upcoming.price ? `\nPrévois ${perPlayer(upcoming.price)} chacun.` : '';
     openWhatsApp(
       '',
-      `On joue au padel ! 🎾\n${upcoming.clubName} — ${upcoming.date} à ${upcoming.time} (session 1h30)\n${upcoming.court}${who}${share}\nRéservé via PadelConnect.`,
+      `On joue au padel ! 🎾\n${upcoming.clubName} — ${dateKeyLabel(upcoming.dateKey)} à ${upcoming.time} (session 1h30)\n${upcoming.court}${who}${share}\nRéservé via PadelConnect.`,
     );
   };
 

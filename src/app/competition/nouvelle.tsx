@@ -59,7 +59,9 @@ export default function NouvelleCompetition() {
   // Tournoi créé par un JOUEUR : il choisit le club hôte, qui devra valider.
   const hosts = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs, state.clubInfo]);
 
-  const dates = useMemo(() => nextDays(7), []);
+  // Tournois : planification jusqu'à ~6 semaines à l'avance (un tournoi s'organise bien plus
+  // tôt qu'une simple réservation, limitée à la semaine).
+  const dates = useMemo(() => nextDays(42), []);
   const [title, setTitle] = useState('');
   const [reward, setReward] = useState('');
   const [fee, setFee] = useState('');

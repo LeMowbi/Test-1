@@ -11,7 +11,7 @@ import { useToast } from '@/components/Toast';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
 import { openWhatsApp } from '@/lib/contact';
 import { hapticSuccess } from '@/lib/haptics';
-import { dayKey } from '@/lib/days';
+import { dateKeyLabel, dayKey } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
 import { openMaps } from '@/lib/maps';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -67,7 +67,7 @@ export default function ReservationsScreen() {
     const share = r.price ? `\nPrévois ${perPlayer(r.price)} chacun.` : '';
     openWhatsApp(
       '',
-      `On joue au padel ! 🎾\n${r.clubName} — ${r.date} à ${r.time} (session 1h30)\n${r.court}${who}${share}\nRéservé via PadelConnect.`,
+      `On joue au padel ! 🎾\n${r.clubName} — ${dateKeyLabel(r.dateKey)} à ${r.time} (session 1h30)\n${r.court}${who}${share}\nRéservé via PadelConnect.`,
     );
   };
 
@@ -98,7 +98,7 @@ export default function ReservationsScreen() {
                     {r.clubName}
                   </Txt>
                   <Txt variant="muted">
-                    {r.date} · {r.time} · {r.court}
+                    {dateKeyLabel(r.dateKey)} · {r.time} · {r.court}
                   </Txt>
                   {r.bookedBy ? (
                     <Txt variant="small" color={colors.textFaint} style={{ marginTop: 2 }}>
@@ -302,7 +302,7 @@ export default function ReservationsScreen() {
                       {r.clubName}
                     </Txt>
                     <Txt variant="muted">
-                      {r.date} · {r.time} · {r.court}
+                      {dateKeyLabel(r.dateKey)} · {r.time} · {r.court}
                     </Txt>
                   </View>
                   <Tag label="Jouée" tone="blue" />

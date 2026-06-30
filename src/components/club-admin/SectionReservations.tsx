@@ -8,7 +8,7 @@ import { LegendDot } from '@/components/club-admin/LegendDot';
 import { QuickBlock } from '@/components/club-admin/QuickBlock';
 import { type Club } from '@/data/clubs';
 import { hasCompetition } from '@/lib/availability';
-import { nextDays, weekKeyOf, weekLabel } from '@/lib/days';
+import { dateKeyLabel, nextDays, weekKeyOf, weekLabel } from '@/lib/days';
 import { openWhatsApp } from '@/lib/contact';
 import { fetchCancelledReservations, fetchNoShowReservations, fetchReliability, type Reliability } from '@/lib/reservations';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
@@ -296,7 +296,7 @@ export function SectionReservations({
                 <IconCircle icon="time" color={colors.signature} bg={colors.signatureSoft} size={40} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="h3" style={{ fontSize: 15 }}>
-                    {r.date} · {r.time}
+                    {dateKeyLabel(r.dateKey)} · {r.time}
                   </Txt>
                   <Txt variant="muted">
                     {r.court} · {r.players} joueur{r.players > 1 ? 's' : ''}
@@ -335,7 +335,7 @@ export function SectionReservations({
                     onPress={() =>
                       openWhatsApp(
                         r.bookedBy!.phone,
-                        `Bonjour ${r.bookedBy!.name}, votre réservation du ${r.date} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`,
+                        `Bonjour ${r.bookedBy!.name}, votre réservation du ${dateKeyLabel(r.dateKey)} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`,
                       )
                     }
                   />
@@ -366,7 +366,7 @@ export function SectionReservations({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                   <View style={{ flex: 1 }}>
                     <Txt variant="body" style={{ fontWeight: '600' }}>
-                      {r.date} · {r.time} · {r.court}
+                      {dateKeyLabel(r.dateKey)} · {r.time} · {r.court}
                     </Txt>
                     {r.bookedBy ? (
                       <Txt variant="small" color={colors.textFaint}>
@@ -400,7 +400,7 @@ export function SectionReservations({
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                   <View style={{ flex: 1 }}>
                     <Txt variant="body" style={{ fontWeight: '600' }}>
-                      {r.date} · {r.time} · {r.court}
+                      {dateKeyLabel(r.dateKey)} · {r.time} · {r.court}
                     </Txt>
                     {r.bookedBy ? (
                       <Txt variant="small" color={colors.textFaint}>
@@ -439,7 +439,7 @@ export function SectionReservations({
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                     <View style={{ flex: 1 }}>
                       <Txt variant="body" style={{ fontWeight: '600' }}>
-                        {r.date} · {r.time} · {r.court}
+                        {dateKeyLabel(r.dateKey)} · {r.time} · {r.court}
                       </Txt>
                       {r.bookedBy ? (
                         <Txt variant="small" color={colors.textFaint}>
