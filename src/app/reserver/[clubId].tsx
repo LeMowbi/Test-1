@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
@@ -17,7 +18,7 @@ import { nextDays, slotTimestamp, type DayOption } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
 import { minPrice, priceForSlot, priceTiersFor } from '@/lib/pricing';
 import { useApp } from '@/store/AppContext';
-import { colors, radius, spacing } from '@/theme';
+import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
 export default function ReserverScreen() {
   const params = useLocalSearchParams<{ clubId: string; dateKey?: string; time?: string }>();
@@ -128,14 +129,19 @@ export default function ReserverScreen() {
   if (done) {
     return (
       <Screen back title="Réservation">
-        <Card style={{ alignItems: 'center', paddingVertical: spacing.xl, marginTop: spacing.lg }}>
-          <Ionicons name="checkmark-circle" size={56} color={colors.green} />
-          <Txt variant="h2" style={{ marginTop: spacing.md }}>
+        {/* En-tête de succès — dégradé signature pour un retour premium et clair. */}
+        <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.successHero}>
+          <View style={styles.successBadge}>
+            <Ionicons name="checkmark" size={36} color={colors.onSignature} />
+          </View>
+          <Txt variant="h2" color={colors.onSignature} style={{ marginTop: spacing.md }}>
             Terrain réservé !
           </Txt>
-          <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
-            Le club la reçoit dans son Espace Club et la confirme. Retrouve-la à tout moment dans « Mes réservations ».
+          <Txt variant="small" color={colors.onPhoto} style={{ marginTop: 4, textAlign: 'center' }}>
+            Le club la reçoit dans son Espace Club et la confirme. Retrouve-la dans « Mes réservations ».
           </Txt>
+        </LinearGradient>
+        <Card style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
           <View style={styles.summary}>
             <Row label="Club" value={club.name} />
             <Row label="Terrain" value={effectiveCourt!} />
@@ -411,6 +417,23 @@ const styles = StyleSheet.create({
     marginTop: spacing.md,
   },
   priceRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.lg },
-  summary: { alignSelf: 'stretch', marginTop: spacing.lg, gap: spacing.sm },
+  summary: { alignSelf: 'stretch', marginTop: spacing.xs, gap: spacing.sm },
+  successHero: {
+    alignItems: 'center',
+    borderRadius: radius.xl,
+    paddingVertical: spacing.xl,
+    paddingHorizontal: spacing.lg,
+    marginTop: spacing.lg,
+    marginBottom: spacing.md,
+    ...shadows.e2,
+  },
+  successBadge: {
+    width: 72,
+    height: 72,
+    borderRadius: radius.pill,
+    backgroundColor: colors.onPhotoSoft,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
 });
