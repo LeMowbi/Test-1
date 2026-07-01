@@ -882,12 +882,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       setLevel: (n) => setState((s) => ({ ...s, level: clampLevel(n) })),
-      // Clôture par l'ORGANISATEUR : fige le vainqueur (et, en option, l'équipe classée
-      // dernière), et si TU étais inscrit met à jour ton palmarès. Tournoi OFFICIEL :
-      // équipe vainqueure +0.50 / équipe dernière −0.25 (bornés 1.0–7.0). Participation,
-      // tournoi amical, ou place intermédiaire : palmarès seulement, niveau inchangé.
+      // Clôture par l'ORGANISATEUR (ou le club hôte) : fige le vainqueur + podium. Le NIVEAU des
+      // joueurs inscrits est attribué UNE SEULE FOIS côté serveur (close_competition, tournois
+      // officiels) → jamais recalculé côté client (pas de double attribution à la réinstallation).
       closeCompetition: async (comp, winnerName, winnerIsMe, loserName, loserIsMe, podium) => {
-        // Tournoi serveur : on fige le podium côté serveur (visible par tous) AVANT le local.
         const serverComp = state.myCompetitions.find((c) => c.id === comp.id && c.server);
         if (serverComp) {
           const ok = await closeCompetitionRpc(comp.id, {
@@ -896,9 +894,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             third: podium?.third,
             loser: loserName,
           });
-          if (!ok) return; // le serveur a refusé (droits) → on ne fige rien localement
+          if (!ok) return; // le serveur a refusé (droits)
+          if (state.serverUserId) {
+            // Rejoue clôture + palmarès depuis le serveur, puis relit MON niveau (mis à jour côté
+            // serveur si j'ai gagné/perdu) pour l'afficher immédiatement.
+            await refreshCompetitions(state.serverUserId);
+            void supabase
+              .from('profiles')
+              .select('level')
+              .eq('id', state.serverUserId)
+              .maybeSingle()
+              .then(({ data }) => data && setState((s) => ({ ...s, level: clampLevel(Number(data.level ?? s.level)) })));
+          }
+          return;
         }
-        // Palmarès + niveau du joueur : LOCAL (progression personnelle), pour les deux types.
+        // Mode LOCAL (démo hors session, tournoi non serveur) : palmarès + niveau locaux.
         setState((s) => {
           if (s.compResults[comp.id]) return s; // déjà clôturé
           const compResults = {
@@ -933,7 +943,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ],
           };
         });
-        if (serverComp && state.serverUserId) void refreshCompetitions(state.serverUserId); // reflète « clôturé »
       },
       setRemindersOn: (on) => {
         setState((s) => ({ ...s, remindersOn: on }));

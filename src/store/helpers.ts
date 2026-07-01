@@ -162,35 +162,42 @@ export function competitionSlices(
   }
 
   const base = { myCompetitions: comps, compResults, compRegistrations, level: s.level, officialResults: s.officialResults };
-
-  // Attribution du NIVEAU + PALMARÈS pour MES tournois serveur clôturés — de façon IDEMPOTENTE.
-  // Indispensable : un tournoi officiel est clôturé par le CLUB (non inscrit) → le vrai vainqueur
-  // ne déclenche jamais closeCompetition ; c'est ici, à son prochain rafraîchissement, qu'on met à
-  // jour son niveau (+0.50 gagnant / −0.25 dernier, tournois officiels) et son palmarès.
   if (!sc || !s.account) return base;
-  let level = s.level;
-  const officialResults = [...s.officialResults];
-  let awarded = false;
+
+  // PALMARÈS (affichage) de MES tournois serveur clôturés — DÉRIVÉ des clôtures serveur et
+  // reconstruit à chaque fois (idempotent, sûr à la réinstallation). Le NIVEAU, lui, est attribué
+  // UNE SEULE FOIS côté serveur à la clôture (close_competition) → on ne le recalcule jamais ici.
+  const serverCompIds = new Set(comps.filter((c) => c.server).map((c) => c.id));
+  const serverResults: OfficialResult[] = [];
   for (const c of comps) {
     if (!c.server) continue;
     const close = sc.closes[c.id];
     if (!close) continue; // pas encore clôturé
     const reg = compRegistrations[c.id];
     if (!reg) continue; // je n'étais pas inscrit
-    if (officialResults.some((o) => o.compId === c.id)) continue; // déjà attribué (idempotence)
     const myTeam = `${s.account.firstName ?? 'Toi'} & ${reg.partner}`;
-    let result: OfficialResult['result'] = 'played';
-    if (c.official && close.winner && myTeam === close.winner) {
-      level = clampLevel(level + LEVEL_STEP);
-      result = 'win';
-    } else if (c.official && close.loser && myTeam === close.loser) {
-      level = clampLevel(level - LEVEL_PENALTY);
-      result = 'last';
-    }
-    officialResults.unshift({ id: uid(), compId: c.id, title: c.title, result, at: Date.now(), levelAfter: level });
-    awarded = true;
+    const result: OfficialResult['result'] =
+      c.official && close.winner && myTeam === close.winner
+        ? 'win'
+        : c.official && close.loser && myTeam === close.loser
+          ? 'last'
+          : 'played';
+    // id déterministe + `at`/`levelAfter` stables → aucune churn de re-render d'un fetch à l'autre.
+    const prev = s.officialResults.find((o) => o.compId === c.id);
+    serverResults.push({
+      id: `srv-${c.id}`,
+      compId: c.id,
+      title: c.title,
+      result,
+      at: prev?.at ?? Date.now(),
+      levelAfter: prev?.levelAfter ?? s.level,
+    });
   }
-  return awarded ? { ...base, level, officialResults } : base;
+  // On conserve les palmarès locaux éventuels (compId absent des tournois serveur) et on
+  // remplace ceux des tournois serveur par la version dérivée.
+  const keptLocal = s.officialResults.filter((o) => !o.compId || !serverCompIds.has(o.compId));
+  const officialResults = [...serverResults, ...keptLocal];
+  return { ...base, officialResults };
 }
 
 // Invitations → deux listes : celles à inclure dans « mes réservations » (tout sauf refusées)

@@ -29,6 +29,15 @@ Trois nouveautés serveur, livrées ensemble. Tout est **idempotent** (relançab
 > Remarque : `29_hardening.sql` remplace des fonctions de `19` et `24` (create or replace) — c'est
 > normal et sans risque de relancer.
 
+## Réglage Supabase (une seule fois) — mot de passe oublié
+
+Pour que le lien « Mot de passe oublié ? » rouvre l'app sur l'écran de nouveau mot de passe :
+
+**Authentication → URL Configuration → Redirect URLs** → ajoute :
+- `padelco://reset-password`
+
+(en plus de `padelco://auth-callback` et `padelco://` déjà présents).
+
 ## Ce que ça change pour toi
 
 - **Boosts** : dans l'Espace opérateur, activer un boost le rend visible par **tous** les

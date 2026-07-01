@@ -290,18 +290,44 @@ as $$
 declare
   v_owner uuid;
   v_club text;
+  v_official boolean;
+  v_winner text := nullif(trim(coalesce(p_winner, '')), '');
+  v_loser text := nullif(trim(coalesce(p_loser, '')), '');
 begin
-  select organizer_id, club_id into v_owner, v_club from public.competitions where id = p_id and status = 'published';
+  -- Le garde `status = 'published'` rend la clôture IDEMPOTENTE : un 2ᵉ appel ne retrouve rien
+  -- (déjà 'closed') → aucune ré-attribution de niveau. C'est la clé de la non-corruption.
+  select organizer_id, club_id, official into v_owner, v_club, v_official
+    from public.competitions where id = p_id and status = 'published';
   if v_owner is null then return false; end if;
   if v_owner <> auth.uid() and not public.can_manage_club(v_club) then return false; end if;
   update public.competitions
     set status = 'closed',
-        winner = nullif(trim(coalesce(p_winner, '')), ''),
+        winner = v_winner,
         second = nullif(trim(coalesce(p_second, '')), ''),
         third = nullif(trim(coalesce(p_third, '')), ''),
-        loser = nullif(trim(coalesce(p_loser, '')), ''),
+        loser = v_loser,
         closed_at = now()
     where id = p_id;
+
+  -- Tournoi OFFICIEL : le NIVEAU des joueurs inscrits évolue UNE SEULE FOIS, ici, côté serveur
+  -- (source de vérité). +0.50 pour le vainqueur, −0.25 pour la dernière équipe (bornes 1–7).
+  -- Seul le compte inscrit (dont l'équipe « Prénom & Partenaire » correspond) est concerné.
+  if v_official then
+    if v_winner is not null then
+      update public.profiles pr
+        set level = least(7, greatest(1, coalesce(pr.level, 3) + 0.5))
+        from public.competition_registrations rg
+        where rg.competition_id = p_id and rg.user_id = pr.id
+          and trim(coalesce(pr.first_name, '') || ' & ' || rg.partner) = v_winner;
+    end if;
+    if v_loser is not null then
+      update public.profiles pr
+        set level = least(7, greatest(1, coalesce(pr.level, 3) - 0.25))
+        from public.competition_registrations rg
+        where rg.competition_id = p_id and rg.user_id = pr.id
+          and trim(coalesce(pr.first_name, '') || ' & ' || rg.partner) = v_loser;
+    end if;
+  end if;
   return true;
 end;
 $$;
