@@ -41,7 +41,7 @@ export const colors = {
 
   text: '#15211C', // encre principale (quasi-noir vert)
   textMuted: '#6B7A70', // texte secondaire
-  textFaint: '#9AA097', // tertiaire / placeholder
+  textFaint: '#7C857B', // tertiaire / placeholder (assombri : contraste WCAG suffisant sur beige)
 
   hairline: '#E7E1D4', // séparateurs internes
   scrim: 'rgba(12,26,22,0.55)', // overlay bas de photo + fond des bottom sheets
