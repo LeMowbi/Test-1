@@ -14,10 +14,15 @@
 - [ ] **Google Play Console** — 25 USD une fois — https://play.google.com/console (obligatoire pour Android sur le Play Store).
 - [ ] (Plus tard, version connectée) **Supabase** + fournisseur **SMS** — voir GUIDE-LANCEMENT.md (chantier §B serveur).
 
-## 2. Éléments légaux (obligatoires, à faire valider une fois)
-- [ ] **Politique de confidentialité** rédigée + **hébergée à une URL publique** (Apple et Google l'exigent). L'écran « légal » de l'app est un brouillon de démo — à faire valider par un juriste (conformité **ARTCI** Côte d'Ivoire).
-- [ ] **CGU** (conditions générales d'utilisation).
-- [ ] Renseigner ces URLs dans App Store Connect et Play Console.
+## 2. Éléments légaux (obligatoires)
+- [x] **Politique de confidentialité** rédigée : `docs/privacy.html` (page autonome, reflète le
+      fonctionnement réel — compte, photos, contacts, notifications). ✅
+- [ ] **L'héberger à une URL publique** et la coller dans App Store Connect + Play Console
+      → étapes détaillées dans **`docs/APP-STORE-CONFORMITE.md`**.
+- [x] **CGU / Mentions légales** : dans l'app (écran « Mentions légales & CGU »), à jour. ✅
+- [ ] Étiquettes **App Privacy** (déclaration des données) : réponses exactes prêtes dans
+      **`docs/APP-STORE-CONFORMITE.md`** §2.
+- [ ] (Recommandé) faire relire par un juriste pour la conformité **ARTCI** (Côte d'Ivoire).
 
 ## 3. Éléments marketing (à préparer)
 - [ ] **Icône** 1024×1024 (déjà présente, opaque ✅).

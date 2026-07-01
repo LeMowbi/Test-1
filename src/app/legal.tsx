@@ -49,6 +49,13 @@ export default function Legal() {
           que les réservations le concernant, et l'opérateur de PadelConnect le strict nécessaire au suivi du service.
         </Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
+          Avec ton accord uniquement : ta <Txt style={{ fontWeight: '700' }}>photo</Txt> de profil ou de club est stockée pour l'affichage ;
+          l'accès à tes <Txt style={{ fontWeight: '700' }}>contacts</Txt> sert seulement à retrouver un ami par son numéro au moment où tu
+          le choisis (on ne copie jamais ton carnet d'adresses) ; les <Txt style={{ fontWeight: '700' }}>notifications</Txt> t'informent de
+          tes réservations, invitations et tournois. PadelConnect ne vend pas tes données et ne les utilise pas pour te pister entre
+          applications.
+        </Txt>
+        <Txt variant="body" style={{ marginTop: spacing.sm }}>
           Tu peux supprimer ton compte et toutes tes données à tout moment depuis Profil → « Supprimer mon compte » (action définitive), ou
           en nous écrivant à l'adresse ci-dessous. Le traitement respecte la réglementation ivoirienne (ARTCI) sur les données personnelles.
         </Txt>
