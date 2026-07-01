@@ -54,6 +54,10 @@ create table if not exists public.competitions (
   closed_at timestamptz
 );
 
+-- Idempotence : si la table existait DÉJÀ (première version, sans ce champ), « create table
+-- if not exists » ne l'ajoute pas → on force la colonne ici pour que le re-run soit sûr.
+alter table public.competitions add column if not exists organizer_phone text;
+
 create index if not exists competitions_status_idx on public.competitions (status);
 create index if not exists competitions_club_idx on public.competitions (club_id);
 
@@ -89,6 +93,9 @@ grant execute on function public.can_manage_club(text) to authenticated;
 
 -- Tournois VISIBLES (+ nombre d'inscrits) : publiés/clôturés pour tous ; « en attente »/
 -- « refusé » seulement pour l'organisateur et le club hôte (ou l'opérateur).
+-- Idempotence : le type de retour a évolué (colonnes organizer_phone + teams) → « create or
+-- replace » refuserait de changer le type. On DROP d'abord (sans risque, recréée juste après).
+drop function if exists public.fetch_competitions();
 create or replace function public.fetch_competitions()
 returns table (
   id uuid, organizer_id uuid, organizer_type text, organizer_name text, organizer_phone text,
@@ -138,6 +145,9 @@ $$;
 grant execute on function public.fetch_my_registrations() to authenticated;
 
 -- Crée un tournoi. Club → publié direct (officiel). Joueur → « en attente » + frais fixe figé.
+-- Idempotence : la 1ʳᵉ version n'avait pas p_organizer_phone → on retire l'ancienne surcharge
+-- (14 arguments) pour ne pas laisser deux versions de la fonction cohabiter.
+drop function if exists public.create_competition(text, text, text, text, text, text, text, text[], text[], int, text, text, text, text);
 create or replace function public.create_competition(
   p_title text, p_organizer_type text, p_organizer_name text, p_organizer_phone text,
   p_club_id text, p_club_name text, p_date_key text, p_end_date_key text,
