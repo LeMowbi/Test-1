@@ -3,9 +3,9 @@
 //   • reservations INSERT  → notif au(x) GÉRANT(s) du club (nouvelle réservation).
 //   • reservations UPDATE (club_confirmed passe à true) → notif au JOUEUR (résa confirmée).
 //   • reservation_participants UPDATE (accepted) → notif à l'AUTEUR (un invité a accepté).
-//   • competitions INSERT (tournoi JOUEUR en attente) → notif au(x) gérant(s) du club hôte
-//     (à valider) ET à l'OPÉRATEUR (frais à encaisser).
-//   • competitions UPDATE (pending → published) → notif à l'ORGANISATEUR (tournoi validé).
+//   • competitions INSERT (tournoi JOUEUR en attente) → notif au(x) gérant(s) du club hôte (à valider).
+//   • competitions UPDATE (pending → published) → notif à l'ORGANISATEUR (tournoi validé) ET, si
+//     frais > 0, à l'OPÉRATEUR (« frais à encaisser ») — donc seulement après validation du club.
 //   • friend_requests INSERT (pending) → notif au DESTINATAIRE (nouvelle demande d'ami).
 //   • friend_requests UPDATE (→ accepted) → notif à l'EXPÉDITEUR (demande acceptée).
 // L'envoi passe par l'API Push d'Expo (pas besoin de gérer APNs soi-même : Expo route vers

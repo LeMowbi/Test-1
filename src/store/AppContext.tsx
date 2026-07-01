@@ -603,8 +603,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // Recharge les tournois serveur + mes inscriptions et les fusionne (foreground et après
   // une création/inscription/clôture). null = échec réseau → on garde l'existant.
   const refreshCompetitions = useCallback(async (userId: string) => {
+    const epoch = sessionEpochRef.current;
     const [serverComps, compRegs] = await Promise.all([fetchCompetitions(userId), fetchMyCompRegistrations()]);
     if (!serverComps && !compRegs) return;
+    if (sessionEpochRef.current !== epoch) return; // déconnexion pendant la requête → pas d'écriture tardive
     setState((s) => ({ ...s, ...competitionSlices(s, serverComps, compRegs) }));
   }, []);
 
@@ -1236,12 +1238,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return res;
       },
       respondFriendRequest: async (requestId, accept) => {
+        const epoch = sessionEpochRef.current;
         const ok = await respondFriendRequestOnServer(requestId, accept);
-        if (!ok) return false;
+        if (!ok || sessionEpochRef.current !== epoch) return ok; // déconnexion pendant la requête
         // On retire la demande de la liste « reçues » et, si acceptée, on recharge la liste d'amis
         // (le lien mutuel vient d'être créé côté serveur → id stable, nom, niveau à jour).
         setState((s) => ({ ...s, friendRequests: s.friendRequests.filter((r) => r.requestId !== requestId) }));
-        if (accept) void fetchFriends().then((friends) => friends && setState((s) => ({ ...s, friends })));
+        if (accept)
+          void fetchFriends().then((friends) => friends && sessionEpochRef.current === epoch && setState((s) => ({ ...s, friends })));
         return true;
       },
       removeFriend: (id) => {

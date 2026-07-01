@@ -37,7 +37,7 @@ export default function Legal() {
         </Txt>
         <Txt variant="body" style={{ marginTop: spacing.sm }}>
           Le niveau de jeu évolue uniquement via les tournois officiels : c'est l'organisateur qui désigne l'équipe gagnante à la fin (pas
-          d'auto-déclaration). Le parrainage est un programme de reconnaissance (badges, classement) sans contrepartie monétaire.
+          d'auto-déclaration). Le parrainage permet d'inviter des amis à rejoindre PadelConnect, sans contrepartie monétaire.
         </Txt>
       </Card>
 

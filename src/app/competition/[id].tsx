@@ -618,7 +618,9 @@ export default function CompetitionDetail() {
             />
           </View>
           <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-            Prototype : inscription enregistrée sur l'appareil. Le règlement se fait au club.
+            {comp.server
+              ? 'Inscription enregistrée et visible par le club. Le règlement se fait au club.'
+              : 'Inscription enregistrée sur cet appareil. Le règlement se fait au club.'}
           </Txt>
         </View>
       )}

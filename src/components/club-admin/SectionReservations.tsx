@@ -165,7 +165,7 @@ export function SectionReservations({
       <View style={styles.stats}>
         <StatTile value={upcomingRes.length} label="À venir" color={colors.signature} bg={colors.signatureSoft} />
         <StatTile value={pastRes.length} label="Jouées" color={colors.green} bg={colors.greenSoft} />
-        <StatTile value={clubRes.length} label="Total" color={colors.green} bg={colors.greenSoft} />
+        <StatTile value={clubRes.length} label="Total" color={colors.blue} bg={colors.blueSoft} />
       </View>
 
       {/* Bloquer un créneau réservé hors app (téléphone, WhatsApp, sur place) */}
@@ -284,6 +284,7 @@ export function SectionReservations({
             <LegendDot color={colors.signature} label="Réservé" />
             <LegendDot color={colors.surface} label="Libre" />
             <LegendDot color={colors.surfaceBeige} label="Bloqué" />
+            <LegendDot color={colors.purple} label="Tournoi" />
           </View>
           <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
             Touche une case pour voir le détail du créneau ou bloquer un terrain.
