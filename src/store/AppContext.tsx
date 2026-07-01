@@ -14,8 +14,10 @@ import {
   fetchClubCommissions,
   fetchClubConfigs,
   fetchClubStatus,
+  fetchOperatorPayments,
   fetchServerClubs,
   setClubBoost as setClubBoostRpc,
+  setOperatorPayment as setOperatorPaymentRpc,
   grantClubAccessByPhone as grantClubAccessByPhoneRpc,
   revokeClubAccessByPhone as revokeClubAccessByPhoneRpc,
   setBaseClubStatus as setBaseClubStatusRpc,
@@ -43,9 +45,12 @@ import type { Review } from '@/data/reviews';
 import { type Friend } from '@/data/user';
 import { addFriendByPhone, fetchFriends, removeFriendOnServer } from '@/lib/friends';
 import {
+  blockSlotRow,
   cancelReservationRow,
+  fetchBlockedSlots,
   fetchMyParticipations,
   markNoShowRow,
+  unblockSlotRow,
   respondInvitation as respondInvitationRpc,
   fetchOccupancy,
   fetchReservations,
@@ -498,6 +503,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         serverComps,
         compRegs,
         tournamentFee,
+        blocked,
+        opPayments,
       ] = await Promise.all([
         fetchReservations(),
         fetchOccupancy(),
@@ -512,6 +519,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchCompetitions(userId),
         fetchMyCompRegistrations(),
         fetchTournamentFee(),
+        fetchBlockedSlots(),
+        fetchOperatorPayments(),
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       const { active: activeParts, pending: pendingParts } = splitParticipations(parts);
@@ -541,6 +550,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Tournois serveur (visibles par tous, synchronisés) + mes inscriptions + clôtures.
         ...competitionSlices(s, serverComps, compRegs),
         tournamentFee: tournamentFee ?? s.tournamentFee,
+        // Créneaux fermés hors app (serveur) : source de vérité, visibles par tous les joueurs.
+        blockedSlots: blocked ?? s.blockedSlots,
+        // Règlements opérateur (persistants). Vide pour les non-opérateurs (RLS).
+        operatorPayments: opPayments ?? s.operatorPayments,
       }));
       // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses).
       if (reservationsRes.ok) {
@@ -608,6 +621,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       // Amis ajoutés/retirés sur un autre appareil : on relit pour garder la liste à jour.
       void fetchFriends().then((friends) => friends && ok() && setState((s) => ({ ...s, friends })));
+      // Créneaux fermés par un club (sur un autre appareil) → dispo à jour partout.
+      void fetchBlockedSlots().then((blocked) => blocked && ok() && setState((s) => ({ ...s, blockedSlots: blocked })));
+      // Règlements opérateur (persistants) — vide pour les non-opérateurs (RLS).
+      void fetchOperatorPayments().then((op) => op && ok() && setState((s) => ({ ...s, operatorPayments: op })));
       void fetchServerClubs().then(
         (serverClubs) => serverClubs && ok() && setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) })),
       );
@@ -1266,14 +1283,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         });
         return { ok: true };
       },
-      setPaymentStatus: (clubId, weekKey, status) =>
+      setPaymentStatus: (clubId, weekKey, status) => {
+        const k = `${clubId}:${weekKey}`;
+        // Persistance SERVEUR (opérateur) : le statut « Payé / envoyé » survit à une réinstallation
+        // ou à un 2ᵉ appareil (sinon des sommes déjà réglées réapparaissaient « à facturer »).
+        if (state.serverUserId) void setOperatorPaymentRpc(k, status);
         setState((s) => {
           const next = { ...s.operatorPayments };
-          const k = `${clubId}:${weekKey}`;
           if (status === 'tofacture') delete next[k];
           else next[k] = status;
           return { ...s, operatorPayments: next };
-        }),
+        });
+      },
       requestClub: ({ name, area, type, courts, priceFrom, contactPhone }) =>
         setState((s) => {
           const n = name.trim();
@@ -1493,16 +1514,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           x.clubId === b.clubId && x.dateKey === b.dateKey && x.time === b.time && x.court === b.court;
         if (state.reservations.some(sameSlot)) return false;
         if (state.blockedSlots.some(sameSlot)) return false;
+        // Persistance SERVEUR : le blocage devient RÉEL (visible par tous, empêche vraiment la
+        // réservation via le trigger) et survit à la réinstallation. Optimiste + réconcilié au fetch.
+        if (state.serverUserId) void blockSlotRow(b);
         setState((s) => ({ ...s, blockedSlots: [...s.blockedSlots, b] }));
         return true;
       },
-      unblockSlot: (clubId, dateKey, time, court) =>
+      unblockSlot: (clubId, dateKey, time, court) => {
+        if (state.serverUserId) void unblockSlotRow(clubId, dateKey, time, court);
         setState((s) => ({
           ...s,
           blockedSlots: s.blockedSlots.filter(
             (x) => !(x.clubId === clubId && x.dateKey === dateKey && x.time === time && x.court === court),
           ),
-        })),
+        }));
+      },
       // L'opérateur publie/met à jour l'actu d'accueil. On ne régénère l'id (ce qui la
       // fait RÉAPPARAÎTRE chez les joueurs qui l'avaient fermée) QUE si le contenu change.
       setOperatorNews: (news) =>

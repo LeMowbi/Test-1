@@ -4,7 +4,7 @@
 
 import { slotTimestamp } from './days';
 import { supabase } from './supabase';
-import type { Invited, Reservation } from '@/store/AppContext';
+import type { BlockedSlot, Invited, Reservation } from '@/store/AppContext';
 
 // Occupation d'un créneau (sans identité) — alimente la disponibilité cross-joueur.
 export type SlotOccupancy = { clubId: string; dateKey: string; time: string; court: string };
@@ -91,8 +91,44 @@ export async function insertReservation(
     .insert(reservationToRow(input, userId, bookedBy))
     .select()
     .single();
-  if (error) return { ok: false, conflict: (error as { code?: string }).code === '23505' };
+  // 23505 = créneau déjà pris (contrainte unique) ; 23514 = fermé hors app ou réservé à un
+  // tournoi (barrière serveur, cf. 27_blocked_slots.sql). Dans les deux cas : indisponible.
+  if (error) {
+    const code = (error as { code?: string }).code;
+    return { ok: false, conflict: code === '23505' || code === '23514' };
+  }
   return { ok: true, reservation: rowToReservation(data as Row) };
+}
+
+// ─── Créneaux fermés hors app (blocked_slots serveur) ──────────────────────────
+// null = échec réseau → l'appelant garde l'existant.
+export async function fetchBlockedSlots(): Promise<BlockedSlot[] | null> {
+  const { data, error } = await supabase.from('blocked_slots').select('club_id, date_key, time, court, reason');
+  if (error) return null;
+  return (data ?? []).map((r: { club_id: string; date_key: string; time: string; court: string; reason: string | null }) => ({
+    clubId: r.club_id,
+    dateKey: r.date_key,
+    time: r.time,
+    court: r.court,
+    reason: r.reason ?? '',
+  }));
+}
+
+// Ferme un créneau côté serveur (gérant du club). false si refusé (déjà réservé / droits).
+export async function blockSlotRow(b: BlockedSlot): Promise<boolean> {
+  const { data, error } = await supabase.rpc('block_slot', {
+    p_club_id: b.clubId,
+    p_date_key: b.dateKey,
+    p_time: b.time,
+    p_court: b.court,
+    p_reason: b.reason,
+  });
+  return !error && data === true;
+}
+
+export async function unblockSlotRow(clubId: string, dateKey: string, time: string, court: string): Promise<boolean> {
+  const { data, error } = await supabase.rpc('unblock_slot', { p_club_id: clubId, p_date_key: dateKey, p_time: time, p_court: court });
+  return !error && data === true;
 }
 
 // Annulation : passe par la fonction serveur (SECURITY DEFINER) qui vérifie l'auteur ET le

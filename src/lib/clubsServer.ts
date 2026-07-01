@@ -202,6 +202,22 @@ export async function setClubCommission(clubId: string, rate: number): Promise<b
   return !error && data === true;
 }
 
+// Suivi des règlements opérateur (persistant serveur) → { key: 'sent' | 'paid' }. null = échec
+// réseau (l'appelant garde l'existant). Vide pour les non-opérateurs (RLS).
+export async function fetchOperatorPayments(): Promise<Record<string, 'sent' | 'paid'> | null> {
+  const { data, error } = await supabase.from('operator_payments').select('key, status');
+  if (error) return null;
+  const out: Record<string, 'sent' | 'paid'> = {};
+  for (const r of (data ?? []) as { key: string; status: 'sent' | 'paid' }[]) out[r.key] = r.status;
+  return out;
+}
+
+// Opérateur : fixe (ou retire, avec 'tofacture') le statut de règlement d'une clé. false si refusé.
+export async function setOperatorPayment(key: string, status: 'sent' | 'paid' | 'tofacture'): Promise<boolean> {
+  const { data, error } = await supabase.rpc('set_operator_payment', { p_key: key, p_status: status });
+  return !error && data === true;
+}
+
 // Opérateur : donne l'accès « Espace Club » à un joueur (par son numéro) pour un club donné —
 // n'importe quel club, y compris les 9 de base. Renvoie le nom du joueur promu si trouvé.
 export async function grantClubAccessByPhone(phone: string, clubId: string): Promise<{ ok: boolean; name?: string }> {
