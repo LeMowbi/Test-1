@@ -9,8 +9,10 @@ Rien n'est urgent au point de casser l'app : ce sont des durcissements de sécur
 
 Corrige deux points :
 
-- **Niveau à l'inscription** : le niveau de départ est désormais **forcé à 3.0 côté serveur**
-  (on n'écoute plus une valeur envoyée par l'app). Le niveau n'évolue plus que par les tournois.
+- **Niveau à l'inscription** : le joueur **choisit toujours** son niveau de départ à la première
+  connexion (fonctionnalité conservée). On se contente de le **borner à [1–7] côté serveur** pour
+  qu'une valeur aberrante ne bloque jamais la création du compte. Le niveau n'évolue ensuite que
+  par les tournois.
 - **Clôture de tournoi** : le +0.50 / −0.25 n'est attribué que si le nom d'équipe désigne **une
   seule** inscription du tournoi (empêche un « vol » de points par deux équipes de même nom).
 

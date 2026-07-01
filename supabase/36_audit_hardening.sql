@@ -1,11 +1,11 @@
 -- PadelConnect — Durcissements d'audit (à coller dans Supabase → SQL Editor → Run). Idempotent.
 --
 -- Deux corrections issues de l'audit :
---   1) NIVEAU À L'INSCRIPTION : `handle_new_user` copiait `level` depuis les métadonnées CLIENT
---      (user_metadata). Un appelant forgeant lui-même supabase.auth.signUp pouvait donc se donner
---      un niveau de départ arbitraire (borné 1–7 par la contrainte, mais quand même choisi).
---      Règle du projet : le niveau n'est attribué QUE par les tournois (close_competition).
---      → on FORCE 3.0 à la création ; le metadata `level` est ignoré.
+--   1) NIVEAU À L'INSCRIPTION : le joueur CHOISIT son niveau de départ à la première connexion
+--      (fonctionnalité voulue, avec le message d'honnêteté). On garde ce choix, mais on le BORNE
+--      à [1.0, 7.0] côté serveur : ainsi une valeur hors bornes (forgée ou aberrante) ne fait plus
+--      échouer la création du profil et ne peut pas dépasser 7. Le niveau n'évolue ensuite que via
+--      close_competition (protégé par le trigger protect_level, migration 34).
 --   2) ATTRIBUTION DE NIVEAU (close_competition) : le vainqueur/perdant était apparié par la
 --      chaîne « prénom & partenaire », 100 % contrôlée par l'utilisateur. Deux équipes d'un même
 --      tournoi portant la même chaîne créaient une collision (un joueur pouvait « voler » le +0.50).
@@ -24,8 +24,9 @@ declare
   ref_code text;
   ref_id uuid;
 begin
-  -- Profil (créé une seule fois). `level` FORCÉ à 3.0 : il n'évoluera ensuite que via
-  -- close_competition (tournois officiels), protégé par le trigger protect_level (migration 34).
+  -- Profil (créé une seule fois). `level` = niveau CHOISI par le joueur à l'inscription (défaut 3.0),
+  -- borné [1.0, 7.0] côté serveur → jamais d'échec d'INSERT ni de valeur hors bornes. Il n'évolue
+  -- ensuite que via close_competition (protégé par le trigger protect_level, migration 34).
   insert into public.profiles (id, first_name, last_name, phone, email, birth_date, gender, level, referral_code)
     values (
       new.id,
@@ -35,7 +36,7 @@ begin
       new.email,
       nullif(meta->>'birth_date', ''),
       nullif(meta->>'gender', ''),
-      3.0, -- niveau de départ non négociable (on IGNORE meta->>'level')
+      least(7.0, greatest(1.0, coalesce((meta->>'level')::numeric, 3.0))), -- choix du joueur, borné [1,7]
       upper(substr(replace(new.id::text, '-', ''), 1, 12)) -- même code que l'app (referralCodeForUser)
     )
     on conflict (id) do nothing;
