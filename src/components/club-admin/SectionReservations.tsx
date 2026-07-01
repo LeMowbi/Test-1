@@ -7,7 +7,7 @@ import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } 
 import { LegendDot } from '@/components/club-admin/LegendDot';
 import { QuickBlock } from '@/components/club-admin/QuickBlock';
 import { type Club } from '@/data/clubs';
-import { competitionBlockedCourts, hasFullDayCompetition } from '@/lib/availability';
+import { competitionBlockedCourts, courtsFor, hasFullDayCompetition, openSlotsFor } from '@/lib/availability';
 import { dateKeyLabel, nextDays, weekKeyOf, weekLabel } from '@/lib/days';
 import { fcfa } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
@@ -125,8 +125,10 @@ export function SectionReservations({
 
   // Planning par TERRAIN pour un jour donné (maquette Espace Club · planning).
   const week = nextDays(7);
-  const openSlots = state.clubSlots[club.id] ?? [];
-  const courts = state.clubCourts[club.id] ?? [];
+  // Repli sur les créneaux/terrains par défaut tant que le gérant n'a rien personnalisé —
+  // sinon le planning et les mini-stats resteraient vides à l'ouverture de l'Espace Club.
+  const openSlots = openSlotsFor(club, state.clubSlots);
+  const courts = courtsFor(club, state.clubCourts);
   const planTimes = [...openSlots].sort();
   const planDay = week.find((d) => d.key === planDayKey) ?? week[0];
   // « Jour bloqué entièrement » : seulement un tournoi PUBLIÉ sans terrains/créneaux précis.

@@ -13,7 +13,7 @@ import { freeCourts, type AvailCtx } from '@/lib/availability';
 import { slotTimestamp, type DayOption } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
 import { priceForSlot } from '@/lib/pricing';
-import { useApp } from '@/store/AppContext';
+import { MAX_UPCOMING, useApp } from '@/store/AppContext';
 import { colors, radius, shadows, spacing } from '@/theme';
 
 // Réservation rapide « en place » : une fiche qui monte du bas, sans changer de page.
@@ -71,7 +71,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
       ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false })),
       ...extraNames.map((n, i) => ({ id: `x-${Date.now()}-${i}`, name: n, confirmed: false })),
     ];
-    const ok = await addReservation({
+    const res = await addReservation({
       clubId: club.id,
       clubName: club.name,
       court,
@@ -84,8 +84,11 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
       invited,
     });
     setSubmitting(false);
-    if (ok) {
+    if (res.ok) {
       setDone(true);
+    } else if (res.reason === 'limit') {
+      // Même barrière anti-blocage que la fiche club (règle centralisée dans addReservation).
+      toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d'abord 😊`, { icon: 'alert-circle' });
     } else {
       // Terrain pris entre-temps (autre joueur / conflit serveur) : on repropose un autre
       // terrain libre et on prévient.

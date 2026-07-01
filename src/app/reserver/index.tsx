@@ -29,7 +29,12 @@ export default function ReserverScreen() {
   const { refreshControl } = usePullToRefresh();
 
   const days = useMemo(() => nextDays(7), []);
-  const visibleClubs = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs, state.clubInfo]);
+  const visibleClubs = useMemo(
+    () => activeClubs(state.customClubs, state.clubInfo),
+    // state.clubStatus : dépendance indirecte (activeClubs lit clubStatusMap) — cf. clubs/index.tsx.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.customClubs, state.clubInfo, state.clubStatus],
+  );
   // Grille = union des créneaux RÉELLEMENT ouverts par les clubs visibles (peut dépasser SAMPLE_SLOTS).
   const grid = useMemo(() => slotGrid({ clubs: visibleClubs, clubSlots: state.clubSlots }), [visibleClubs, state.clubSlots]);
   // Le soir, quand TOUS les créneaux réellement proposés du jour sont passés, on ouvre sur Demain.

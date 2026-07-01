@@ -33,6 +33,7 @@ export default function CompetitionDetail() {
   const [confirmCancel, setConfirmCancel] = useState(false); // annulation d'un tournoi sans inscrit
   const [toast, setToast] = useState<string | null>(null);
   const [openPlayer, setOpenPlayer] = useState<PlayerLike | null>(null);
+  const [registering, setRegistering] = useState(false); // évite double-clic + toast menteur si échec serveur
 
   if (!comp) {
     return (
@@ -545,9 +546,12 @@ export default function CompetitionDetail() {
                 label="Se désinscrire"
                 icon="close"
                 variant="danger"
-                onPress={() => {
-                  unregisterCompetition(comp.id);
-                  setToast('Désinscription effectuée');
+                onPress={async () => {
+                  if (registering) return;
+                  setRegistering(true);
+                  const ok = await unregisterCompetition(comp.id);
+                  setRegistering(false);
+                  setToast(ok ? 'Désinscription effectuée' : 'Action impossible — réessaie.');
                   setTimeout(() => setToast(null), 2200);
                 }}
                 full
@@ -607,13 +611,15 @@ export default function CompetitionDetail() {
             <Button
               label="S'inscrire en équipe"
               icon="add"
-              onPress={() => {
-                if (!canRegister) return;
-                registerCompetition(comp.id, partner);
-                setToast('Inscription enregistrée ✓');
+              onPress={async () => {
+                if (!canRegister || registering) return;
+                setRegistering(true);
+                const ok = await registerCompetition(comp.id, partner);
+                setRegistering(false);
+                setToast(ok ? 'Inscription enregistrée ✓' : 'Inscription impossible — réessaie.');
                 setTimeout(() => setToast(null), 2200);
               }}
-              disabled={!canRegister}
+              disabled={!canRegister || registering}
               full
             />
           </View>

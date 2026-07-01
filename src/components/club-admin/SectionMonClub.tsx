@@ -7,6 +7,7 @@ import { useToast } from '@/components/Toast';
 import { Button, Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { ClubInfoCard } from '@/components/club-admin/ClubInfoCard';
 import { type Club } from '@/data/clubs';
+import { courtsFor, openSlotsFor } from '@/lib/availability';
 import { MAX_CLUB_PHOTOS, useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
@@ -39,8 +40,10 @@ export function SectionMonClub({ club }: { club: Club }) {
   const [coachPhone, setCoachPhone] = useState('');
   const [courtName, setCourtName] = useState('');
 
-  const openSlots = state.clubSlots[club.id] ?? [];
-  const courts = state.clubCourts[club.id] ?? [];
+  // Mêmes valeurs par défaut que côté joueur (créneaux standards, « Terrain 1…N ») tant que le
+  // gérant n'a rien personnalisé → cohérence avec le planning et ce que les joueurs voient.
+  const openSlots = openSlotsFor(club, state.clubSlots);
+  const courts = courtsFor(club, state.clubCourts);
   const photos = state.clubPhotos[club.id] ?? [];
   const offers = state.clubOffers[club.id] ?? [];
   const coaches = state.clubCoaches[club.id] ?? [];

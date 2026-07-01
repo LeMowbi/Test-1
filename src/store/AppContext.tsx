@@ -236,6 +236,12 @@ const STORAGE_KEY = 'padelco_state_v4'; // v4 : modèle sans matchs ni victoires
 // confirmer). On l'envoie au stockage dès la 1ʳᵉ session, puis on efface cette clé.
 const PENDING_AVATAR_KEY = 'padelco_pending_avatar_uri';
 export const MAX_CLUB_PHOTOS = 6; // plafond de photos par club (quota de stockage local)
+export const MAX_UPCOMING = 6; // réservations À VENIR max par joueur (anti-blocage des terrains)
+
+// Résultat d'addReservation : soit un succès, soit un échec avec sa raison (traduite en toast
+// par l'appelant). La règle vit ici → elle s'applique à TOUS les points d'entrée (fiche club
+// ET fiche rapide), impossible à contourner.
+export type AddReservationResult = { ok: true } | { ok: false; reason: 'past' | 'conflict' | 'limit' };
 
 type AppContextType = {
   state: AppState;
@@ -289,11 +295,11 @@ type AppContextType = {
   approveCompetition: (id: string) => Promise<void>; // le club hôte valide un tournoi créé par un joueur
   rejectCompetition: (id: string) => Promise<void>; // le club hôte refuse un tournoi créé par un joueur
   deleteCompetition: (id: string) => Promise<void>; // annulation / suppression (créateur ou club hôte)
-  registerCompetition: (id: string, partner: string) => Promise<void>;
-  unregisterCompetition: (id: string) => Promise<void>;
+  registerCompetition: (id: string, partner: string) => Promise<boolean>; // false = échec serveur
+  unregisterCompetition: (id: string) => Promise<boolean>; // false = échec serveur
   setTournamentFee: (amount: number) => Promise<{ ok: boolean }>; // opérateur : frais fixe tournois joueurs
   // Réservations : SERVEUR = source de vérité quand connecté (sinon miroir local, démo).
-  addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy' | 'userId'>) => Promise<boolean>;
+  addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy' | 'userId'>) => Promise<AddReservationResult>;
   cancelReservation: (id: string) => Promise<boolean>;
   // Réservation partagée : l'invité accepte (accept=true) ou refuse son invitation.
   respondInvitation: (reservationId: string, accept: boolean) => Promise<boolean>;
@@ -1069,7 +1075,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
         if (serverComp) {
           const ok = await registerCompetitionRpc(id, partner);
-          if (!ok) return; // tournoi complet / non publié / échec
+          if (!ok) return false; // tournoi complet / non publié / échec → on ne confirme pas
         }
         setState((s) =>
           s.compRegistrations[id]
@@ -1077,12 +1083,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : { ...s, compRegistrations: { ...s.compRegistrations, [id]: { partner: partner.trim() || 'Partenaire', at: Date.now() } } },
         );
         if (serverComp && state.serverUserId) void refreshCompetitions(state.serverUserId); // maj du compteur d'inscrits
+        return true;
       },
       unregisterCompetition: async (id) => {
         const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
         if (serverComp) {
           const ok = await unregisterCompetitionRpc(id);
-          if (!ok) return;
+          if (!ok) return false;
         }
         setState((s) => {
           const next = { ...s.compRegistrations };
@@ -1090,6 +1097,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return { ...s, compRegistrations: next };
         });
         if (serverComp && state.serverUserId) void refreshCompetitions(state.serverUserId);
+        return true;
       },
       // Opérateur : règle le frais fixe appliqué aux futurs tournois joueurs.
       setTournamentFee: async (amount) => {
@@ -1100,13 +1108,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       addReservation: async (r) => {
         // Garde-fou : on ne réserve jamais un créneau dont l'heure de début est passée.
-        if (r.startsAt <= Date.now()) return false;
+        if (r.startsAt <= Date.now()) return { ok: false, reason: 'past' };
+        // Limite anti-blocage : un joueur ne peut pas accaparer trop de créneaux à venir. La règle
+        // vit ICI (et non dans un seul écran) → elle s'applique à la fiche club ET à la fiche rapide.
+        const myUpcoming = state.reservations.filter(
+          (x) => (!x.userId || x.userId === state.serverUserId) && x.startsAt > Date.now(),
+        ).length;
+        if (myUpcoming >= MAX_UPCOMING) return { ok: false, reason: 'limit' };
         // Anti double-réservation locale (réponse immédiate). La barrière FORTE reste la
         // contrainte unique serveur : si un autre joueur a pris le terrain entre-temps,
-        // l'insert échoue (conflict) et on renvoie false.
+        // l'insert échoue (conflict) et on renvoie une erreur.
         const sameSlot = (x: { clubId: string; dateKey: string; time: string; court: string }) =>
           x.clubId === r.clubId && x.dateKey === r.dateKey && x.time === r.time && x.court === r.court;
-        if (state.reservations.some(sameSlot) || state.occupancy.some(sameSlot)) return false;
+        if (state.reservations.some(sameSlot) || state.occupancy.some(sameSlot)) return { ok: false, reason: 'conflict' };
         const bookedBy = state.account
           ? { name: `${state.account.firstName} ${state.account.lastName}`.trim(), phone: state.account.phone }
           : undefined;
@@ -1121,7 +1135,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               const fresh = await fetchOccupancy();
               if (fresh) setState((s) => ({ ...s, occupancy: fresh }));
             }
-            return false;
+            return { ok: false, reason: 'conflict' };
           }
           const created = res.reservation;
           setState((s) => ({
@@ -1137,7 +1151,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (invitedPhones.length > 0) void linkParticipants(created.id, invitedPhones);
           if (state.remindersOn) void scheduleMatchReminder(created); // rappel local ~2 h avant
           track('reservation_created', { clubId: created.clubId, players: created.players });
-          return true;
+          return { ok: true };
         }
 
         // Mode LOCAL (démo, hors session) : comportement d'origine.
@@ -1147,7 +1161,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return { ...s, reservations: [{ ...r, bookedBy, id: localId, createdAt: Date.now() }, ...s.reservations] };
         });
         if (state.remindersOn) void scheduleMatchReminder({ ...r, id: localId });
-        return true;
+        return { ok: true };
       },
       cancelReservation: async (id) => {
         const res = state.reservations.find((r) => r.id === id);

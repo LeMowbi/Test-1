@@ -60,7 +60,12 @@ export default function NouvelleCompetition() {
   const asClub = params.as === 'club' && (state.role === 'club' || state.role === 'operator');
   const club = asClub ? findClub(params.clubId, state.customClubs, state.clubInfo) : undefined;
   // Tournoi créé par un JOUEUR : il choisit le club hôte, qui devra valider.
-  const hosts = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs, state.clubInfo]);
+  const hosts = useMemo(
+    () => activeClubs(state.customClubs, state.clubInfo),
+    // state.clubStatus : dépendance indirecte (activeClubs lit clubStatusMap) — cf. clubs/index.tsx.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.customClubs, state.clubInfo, state.clubStatus],
+  );
 
   // Tournois : planification jusqu'à ~6 semaines à l'avance (un tournoi s'organise bien plus
   // tôt qu'une simple réservation, limitée à la semaine).

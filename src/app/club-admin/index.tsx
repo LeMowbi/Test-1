@@ -13,7 +13,7 @@ import { SectionReservations } from '@/components/club-admin/SectionReservations
 import { SectionTournois } from '@/components/club-admin/SectionTournois';
 import { clubsByName, findClub, manageableClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
-import { hasFullDayCompetition } from '@/lib/availability';
+import { courtsFor, hasFullDayCompetition } from '@/lib/availability';
 import { slotTimestamp } from '@/lib/days';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useApp } from '@/store/AppContext';
@@ -68,7 +68,9 @@ export default function ClubAdmin() {
   const now = Date.now();
   const clubRes = state.reservations.filter((r) => r.clubId === club.id);
   const clubBlocked = state.blockedSlots.filter((b) => b.clubId === club.id);
-  const courts = state.clubCourts[club.id] ?? [];
+  // Repli sur les terrains par défaut : la fiche détail d'un créneau doit lister les terrains
+  // même si le gérant n'a pas encore personnalisé sa configuration.
+  const courts = courtsFor(club, state.clubCourts);
   const cellRes = selectedCell
     ? clubRes
         .filter((r) => r.dateKey === selectedCell.dateKey && r.time === selectedCell.time)

@@ -23,7 +23,15 @@ export default function ClubsScreen() {
   const [filter, setFilter] = useState('Tous');
   const [query, setQuery] = useState('');
 
-  const all = useMemo(() => activeClubs(state.customClubs, state.clubInfo), [state.customClubs, state.clubInfo]);
+  // state.clubStatus est une dépendance RÉELLE (bien qu'indirecte) : activeClubs lit le registre
+  // module clubStatusMap, synchronisé depuis state.clubStatus. Sans cette dépendance, un changement
+  // de statut opérateur (club masqué / « Bientôt ») ne rafraîchit pas la liste. Le linter ne voit
+  // pas la dépendance indirecte → on la conserve volontairement.
+  const all = useMemo(
+    () => activeClubs(state.customClubs, state.clubInfo),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [state.customClubs, state.clubInfo, state.clubStatus],
+  );
   const list = useMemo(() => {
     let base = all;
     const q = norm(query.trim());

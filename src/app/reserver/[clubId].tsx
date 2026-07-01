@@ -20,10 +20,8 @@ import { courtsFor, freeCourts, hasFullDayCompetition, openSlotsFor, type AvailC
 import { nextDays, slotTimestamp, type DayOption } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
 import { minPrice, priceForSlot, priceTiersFor } from '@/lib/pricing';
-import { useApp } from '@/store/AppContext';
+import { MAX_UPCOMING, useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
-
-const MAX_UPCOMING = 6; // réservations À VENIR max par joueur (anti-blocage des terrains)
 
 export default function ReserverScreen() {
   const params = useLocalSearchParams<{ clubId: string; dateKey?: string; time?: string }>();
@@ -112,19 +110,12 @@ export default function ReserverScreen() {
       setSlot(null);
       return;
     }
-    // Limite anti-blocage : un joueur ne peut pas accaparer trop de créneaux à venir (les
-    // clubs n'aiment pas les terrains réservés « au cas où » puis libérés à la dernière minute).
-    const myUpcoming = state.reservations.filter((r) => (!r.userId || r.userId === state.serverUserId) && r.startsAt > Date.now()).length;
-    if (myUpcoming >= MAX_UPCOMING) {
-      toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d'abord 😊`, { icon: 'alert-circle' });
-      return;
-    }
     setSubmitting(true);
     const invited = [
       ...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => ({ id: f.id, name: f.name, confirmed: false })),
       ...extraNames.map((n, i) => ({ id: `x-${Date.now()}-${i}`, name: n, confirmed: false })),
     ];
-    const ok = await addReservation({
+    const res = await addReservation({
       clubId: club.id,
       clubName: club.name,
       court: effectiveCourt,
@@ -137,12 +128,16 @@ export default function ReserverScreen() {
       invited,
     });
     setSubmitting(false);
-    if (ok) {
+    if (res.ok) {
       hapticSuccess();
       setDone(true);
+    } else if (res.reason === 'limit') {
+      // Limite anti-blocage (appliquée dans addReservation) : trop de créneaux à venir.
+      hapticWarning();
+      toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d'abord 😊`, { icon: 'alert-circle' });
     } else {
-      // Terrain pris entre-temps (autre joueur / conflit serveur) : on prévient et on
-      // réinitialise la pré-sélection pour en choisir un autre.
+      // Terrain pris entre-temps (autre joueur / conflit serveur) ou créneau passé : on prévient
+      // et on réinitialise la pré-sélection pour en choisir un autre.
       hapticWarning();
       setCourt(null);
       toast.show('Ce terrain vient d’être pris — choisis-en un autre', { icon: 'alert-circle' });
