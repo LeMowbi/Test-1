@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { Animated, View, type ViewStyle } from 'react-native';
-import { colors, radius } from '@/theme';
+import { colors, radius, shadows, spacing } from '@/theme';
 
 // Placeholder de chargement « shimmer » (fondu doux qui pulse). Remplace un vide pendant qu'une
 // donnée arrive du serveur → ressenti plus rapide et plus soigné. Purement visuel.
@@ -38,6 +38,17 @@ export function SkeletonLines({ lines = 3, gap = 8 }: { lines?: number; gap?: nu
       {Array.from({ length: lines }).map((_, i) => (
         <Skeleton key={i} width={i === lines - 1 ? '60%' : '100%'} />
       ))}
+    </View>
+  );
+}
+
+// Squelette au format d'une Card (bandeau + lignes) → mêmes proportions que le contenu réel
+// (club, réservation), pour un chargement perçu comme plus fluide (moins de « saut » de layout).
+export function SkeletonCard({ banner = true }: { banner?: boolean }) {
+  return (
+    <View style={{ backgroundColor: colors.surface, borderRadius: radius.lg, padding: spacing.lg, gap: spacing.md, ...shadows.e1 }}>
+      {banner ? <Skeleton width="100%" height={96} radius={radius.md} /> : null}
+      <SkeletonLines lines={2} />
     </View>
   );
 }

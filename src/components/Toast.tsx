@@ -19,6 +19,9 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
   const [icon, setIcon] = useState<IconName>('checkmark-circle');
   const opacity = useRef(new Animated.Value(0)).current;
+  // Glissement vertical (8→0 à l'entrée, 0→6 à la sortie) en parallèle du fondu : même langage
+  // que Reveal (fondu + translateY), pour un toast qui « monte » doucement au lieu d'apparaître sec.
+  const slide = useRef(new Animated.Value(8)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();
 
@@ -27,21 +30,31 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
       setMessage(msg);
       setIcon(opts?.icon ?? 'checkmark-circle');
       if (timer.current) clearTimeout(timer.current);
-      Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }).start();
+      slide.setValue(8);
+      Animated.parallel([
+        Animated.timing(opacity, { toValue: 1, duration: 180, useNativeDriver: true }),
+        Animated.timing(slide, { toValue: 0, duration: 180, useNativeDriver: true }),
+      ]).start();
       timer.current = setTimeout(() => {
-        Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }).start(({ finished }) => {
+        Animated.parallel([
+          Animated.timing(opacity, { toValue: 0, duration: 220, useNativeDriver: true }),
+          Animated.timing(slide, { toValue: 6, duration: 220, useNativeDriver: true }),
+        ]).start(({ finished }) => {
           if (finished) setMessage(null);
         });
       }, 2400);
     },
-    [opacity],
+    [opacity, slide],
   );
 
   return (
     <ToastContext.Provider value={{ show }}>
       {children}
       {message !== null ? (
-        <Animated.View pointerEvents="none" style={[styles.wrap, { opacity, bottom: insets.bottom + spacing.xl }]}>
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.wrap, { opacity, bottom: insets.bottom + spacing.xl, transform: [{ translateY: slide }] }]}
+        >
           <View style={styles.toast}>
             <Ionicons name={icon} size={18} color={colors.white} />
             <Txt color={colors.white} style={{ flex: 1 }}>

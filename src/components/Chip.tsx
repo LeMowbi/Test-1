@@ -1,9 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import { Pressable, StyleSheet } from 'react-native';
+import { useRef } from 'react';
+import { Animated, Pressable, StyleSheet } from 'react-native';
 import { Txt, type IconName } from './ui';
+import { hapticLight } from '@/lib/haptics';
 import { colors, radius, spacing } from '@/theme';
 
 // Puce de sélection réutilisable (filtres, dates, créneaux, niveaux…).
+// Micro-interaction commune à ~tous les écrans : ressort d'appui (scale) + tap haptique léger
+// à la sélection — cohérent avec le cœur favori de ClubCard, sans toucher chaque écran.
 export function Chip({
   label,
   active,
@@ -19,20 +23,32 @@ export function Chip({
   icon?: IconName;
   disabled?: boolean;
 }) {
+  const scale = useRef(new Animated.Value(1)).current;
+  const springTo = (to: number, bounciness: number) =>
+    Animated.spring(scale, { toValue: to, useNativeDriver: true, speed: 40, bounciness }).start();
+  const handlePress = () => {
+    if (disabled || !onPress) return;
+    hapticLight(); // tap léger : une sélection (date, créneau, filtre…) est un choix engageant
+    onPress();
+  };
   return (
-    <Pressable
-      onPress={disabled ? undefined : onPress}
-      disabled={disabled}
-      accessibilityRole="button"
-      accessibilityState={{ selected: !!active, disabled: !!disabled }}
-      accessibilityLabel={label}
-      style={[styles.base, size === 'lg' && styles.lg, active && styles.active, disabled && styles.disabled]}
-    >
-      {icon ? <Ionicons name={icon} size={13} color={active ? colors.onSignature : colors.textMuted} /> : null}
-      <Txt variant="small" color={active ? colors.onSignature : colors.text} style={{ fontWeight: '600' }}>
-        {label}
-      </Txt>
-    </Pressable>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        onPress={disabled ? undefined : handlePress}
+        onPressIn={disabled ? undefined : () => springTo(0.94, 0)}
+        onPressOut={disabled ? undefined : () => springTo(1, 6)}
+        disabled={disabled}
+        accessibilityRole="button"
+        accessibilityState={{ selected: !!active, disabled: !!disabled }}
+        accessibilityLabel={label}
+        style={[styles.base, size === 'lg' && styles.lg, active && styles.active, disabled && styles.disabled]}
+      >
+        {icon ? <Ionicons name={icon} size={13} color={active ? colors.onSignature : colors.textMuted} /> : null}
+        <Txt variant="small" color={active ? colors.onSignature : colors.text} style={{ fontWeight: '600' }}>
+          {label}
+        </Txt>
+      </Pressable>
+    </Animated.View>
   );
 }
 

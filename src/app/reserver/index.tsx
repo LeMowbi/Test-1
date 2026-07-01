@@ -12,6 +12,7 @@ import { activeClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { clubsFreeAt, freeCourts, openSlotsFor, slotGrid, type AvailCtx } from '@/lib/availability';
 import { nextDays, slotTimestamp, type DayOption } from '@/lib/days';
+import { hapticLight } from '@/lib/haptics';
 import { fcfa, perPlayer } from '@/lib/format';
 import { minPrice, priceForSlot } from '@/lib/pricing';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -46,8 +47,13 @@ export default function ReserverScreen() {
   const setView = setReserverView;
   const [sheet, setSheet] = useState<{ club: Club; time: string } | null>(null);
   const pickDay = (d: DayOption) => {
+    hapticLight(); // tap léger à chaque étape du tunnel (jour → créneau → terrain)
     setDay(d);
     setSlot(null);
+  };
+  const pickSlot = (time: string) => {
+    hapticLight();
+    setSlot(time);
   };
 
   const ctx: AvailCtx = {
@@ -159,7 +165,7 @@ export default function ReserverScreen() {
                     <Pressable
                       key={row.time}
                       disabled={none}
-                      onPress={() => setSlot(row.time)}
+                      onPress={() => pickSlot(row.time)}
                       style={[styles.slotTile, sel ? styles.slotTileSel : none ? styles.slotTileOff : styles.slotTileFree]}
                       accessibilityRole="button"
                       accessibilityState={{ selected: sel, disabled: none }}

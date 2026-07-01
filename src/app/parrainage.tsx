@@ -3,6 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useState } from 'react';
 import { Pressable, Share, StyleSheet, View } from 'react-native';
+import { PopIn } from '@/components/PopIn';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
@@ -105,7 +106,10 @@ export default function ParrainageScreen() {
         )}
 
         <View style={styles.stats}>
-          <StatTile value={count == null ? '—' : `${count}`} label="Amis rejoints" color={colors.signature} bg={colors.signatureSoft} />
+          {/* Petit « pop » ressort quand le nombre de filleuls arrive du serveur (moment chiffré). */}
+          <PopIn key={count == null ? 'loading' : count} style={{ flex: 1 }}>
+            <StatTile value={count == null ? '—' : `${count}`} label="Amis rejoints" color={colors.signature} bg={colors.signatureSoft} />
+          </PopIn>
           <StatTile value="Illimité" label="Invitations à envoyer" color={colors.amberDark} bg={colors.amberSoft} />
         </View>
 

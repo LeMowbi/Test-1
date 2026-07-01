@@ -11,6 +11,7 @@ import { competitionBlockedCourts, courtsFor, hasFullDayCompetition, openSlotsFo
 import { dateKeyLabel, nextDays, weekKeyOf, weekLabel } from '@/lib/days';
 import { fcfa } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
+import { hapticLight } from '@/lib/haptics';
 import { fetchCancelledReservations, fetchNoShowReservations, fetchReliability, type Reliability } from '@/lib/reservations';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
 import { colors, radius, shadows, spacing } from '@/theme';
@@ -267,10 +268,11 @@ export function SectionReservations({
                     return (
                       <Pressable
                         key={t}
-                        onPress={() =>
-                          onSelectCell({ dateKey: planDay.key, time: t, label: `${planDay.label} · ${t}`, value: planDay.value })
-                        }
-                        style={[styles.gridCellBox, cellStyle]}
+                        onPress={() => {
+                          hapticLight(); // repère tactile sur une grille dense (terrains × créneaux)
+                          onSelectCell({ dateKey: planDay.key, time: t, label: `${planDay.label} · ${t}`, value: planDay.value });
+                        }}
+                        style={({ pressed }) => [styles.gridCellBox, cellStyle, pressed && { opacity: 0.7, transform: [{ scale: 0.94 }] }]}
                       >
                         {st === 'reserved' ? <Ionicons name="checkmark" size={12} color={colors.onSignature} /> : null}
                         {st === 'blocked' ? <Ionicons name="lock-closed" size={11} color={colors.textFaint} /> : null}

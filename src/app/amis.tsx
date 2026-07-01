@@ -8,6 +8,7 @@ import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { findPlayerByPhone } from '@/lib/friends';
+import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { openWhatsApp } from '@/lib/contact';
 import { contactsSupported, pickContact } from '@/lib/contactsPicker';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -62,14 +63,17 @@ export default function AmisScreen() {
     setSending(false);
     const name = res.friend?.name ?? found.name;
     if (res.status === 'sent') {
+      hapticSuccess();
       toast.show(`Demande envoyée à ${name} — il doit l'accepter ✓`);
     } else if (res.status === 'accepted') {
+      hapticSuccess();
       toast.show(`${name} est maintenant ton ami 🎾`);
     } else if (res.status === 'already_friends') {
       toast.show(`Tu es déjà ami avec ${name}.`);
     } else if (res.status === 'pending') {
       toast.show('Demande déjà envoyée — en attente de sa réponse.');
     } else {
+      hapticWarning();
       toast.show('Envoi impossible — réessaie dans un instant', { icon: 'alert-circle' });
       return;
     }
@@ -85,10 +89,16 @@ export default function AmisScreen() {
     const ok = await respondFriendRequest(requestId, accept);
     setBusyReq(null);
     if (!ok) {
+      hapticWarning();
       toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
       return;
     }
-    if (accept) setCelebrate(true); // 🎉 nouveau lien d'amitié
+    if (accept) {
+      hapticSuccess();
+      setCelebrate(true); // 🎉 nouveau lien d'amitié
+    } else {
+      hapticWarning();
+    }
     toast.show(accept ? `${name} et toi êtes maintenant amis 🎾` : 'Demande refusée.');
   };
 
@@ -163,6 +173,7 @@ export default function AmisScreen() {
               icon="people-outline"
               title="Aucun ami pour l'instant"
               text="Ajoute tes partenaires ci-dessous : tu pourras les inviter en réservant."
+              tone="signature"
             />
             <View style={{ alignItems: 'center', marginTop: spacing.md }}>
               <Button label="Inviter des amis" icon="gift-outline" variant="secondary" onPress={() => router.push('/parrainage')} pill />
@@ -204,6 +215,7 @@ export default function AmisScreen() {
                       label="Oui, retirer"
                       variant="danger"
                       onPress={() => {
+                        hapticWarning();
                         removeFriend(f.id);
                         setRemoveId(null);
                       }}

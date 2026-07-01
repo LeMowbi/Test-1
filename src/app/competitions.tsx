@@ -2,6 +2,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { View } from 'react-native';
 import { CompetitionCard } from '@/components/CompetitionCard';
+import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, EmptyState, SectionHeader } from '@/components/ui';
@@ -42,9 +43,13 @@ export default function CompetitionsScreen() {
       <SegmentedControl options={TABS} value={tab} onChange={setTab} />
 
       {upcoming.length === 0 ? (
-        <EmptyState icon="trophy-outline" title="Aucun tournoi à venir" text="Lance ton propre tournoi ou défi entre amis." />
+        <EmptyState icon="trophy-outline" title="Aucun tournoi à venir" text="Lance ton propre tournoi ou défi entre amis." tone="purple" />
       ) : (
-        upcoming.map((c) => <CompetitionCard key={c.id} comp={c} />)
+        upcoming.map((c, i) => (
+          <Reveal key={c.id} delay={Math.min(i, 6) * 50}>
+            <CompetitionCard comp={c} />
+          </Reveal>
+        ))
       )}
 
       {past.length > 0 ? (

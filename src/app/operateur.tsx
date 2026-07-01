@@ -5,6 +5,7 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
 import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
+import { SkeletonLines } from '@/components/Skeleton';
 import { CommissionRates } from '@/components/operator/CommissionRates';
 import { ManagerAccess } from '@/components/operator/ManagerAccess';
 import { TournamentFee } from '@/components/operator/TournamentFee';
@@ -14,6 +15,7 @@ import { opStyles } from '@/components/operator/styles';
 import { activeClubs, clubs as baseClubs, findClub, manageableClubs } from '@/data/clubs';
 import { isTournamentPublic } from '@/data/competitions';
 import { canAccessOperator } from '@/lib/access';
+import { hapticSuccess } from '@/lib/haptics';
 import { COMMISSION_RATE, isPlayed, useApp, type ServerClubRequest, type ServerSupportMessage } from '@/store/AppContext';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { addWeeks, dateKeyLabel, weekKeyOf, weekLabel } from '@/lib/days';
@@ -496,7 +498,10 @@ export default function Operateur() {
                       size="sm"
                       label="Marquer payé"
                       icon="checkmark-circle"
-                      onPress={() => setPaymentStatus(r.clubId, week, 'paid')}
+                      onPress={() => {
+                        hapticSuccess(); // accusé discret d'une tâche financière hebdomadaire
+                        setPaymentStatus(r.clubId, week, 'paid');
+                      }}
                     />
                   )}
                 </View>
@@ -544,7 +549,7 @@ export default function Operateur() {
         </View>
         {loadingReq ? (
           <Card>
-            <Txt variant="muted">Chargement des demandes…</Txt>
+            <SkeletonLines lines={3} />
           </Card>
         ) : reqError ? (
           <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>

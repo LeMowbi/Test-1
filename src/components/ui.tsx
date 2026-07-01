@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import React from 'react';
-import { Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, Text, View, type StyleProp, type TextStyle, type ViewStyle } from 'react-native';
 import { colors, font, radius, shadows, spacing } from '@/theme';
 
 export type IconName = keyof typeof Ionicons.glyphMap;
@@ -300,22 +300,34 @@ export function IconCircle({
   );
 }
 
+// Ton de l'illustration d'état vide : neutre par défaut, ou coloré pour inviter à l'action
+// (vert « social » pour les amis, violet « tournois »…) — cohérent avec les rôles de couleur du kit.
+const emptyTones: Record<'neutral' | 'signature' | 'amber' | 'purple', { fg: string; bg: string }> = {
+  neutral: { fg: colors.textMuted, bg: colors.surfaceAlt },
+  signature: { fg: colors.signature, bg: colors.signatureSoft },
+  amber: { fg: colors.amberDark, bg: colors.amberSoft },
+  purple: { fg: colors.purple, bg: colors.purpleSoft },
+};
+
 export function EmptyState({
   icon,
   title,
   text,
   actionLabel,
   onAction,
+  tone = 'neutral',
 }: {
   icon: IconName;
   title: string;
   text?: string;
   actionLabel?: string;
   onAction?: () => void;
+  tone?: 'neutral' | 'signature' | 'amber' | 'purple';
 }) {
+  const t = emptyTones[tone];
   return (
     <View style={empty.box}>
-      <IconCircle icon={icon} color={colors.textMuted} bg={colors.surfaceAlt} size={56} />
+      <IconCircle icon={icon} color={t.fg} bg={t.bg} size={56} />
       <Txt variant="h3" style={{ marginTop: spacing.md, textAlign: 'center' }}>
         {title}
       </Txt>
@@ -333,6 +345,19 @@ export function EmptyState({
   );
 }
 
+// Chiffre qui « compte » de 0 à sa valeur à l'apparition (tableau de bord vivant). N'anime que
+// les valeurs NUMÉRIQUES ; les chaînes (montants formatés, « Illimité »…) s'affichent telles quelles.
+function CountUp({ value, style }: { value: number; style: StyleProp<TextStyle> }) {
+  const anim = React.useRef(new Animated.Value(0)).current;
+  const [display, setDisplay] = React.useState(0);
+  React.useEffect(() => {
+    const id = anim.addListener(({ value: v }) => setDisplay(v));
+    Animated.timing(anim, { toValue: value, duration: 550, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    return () => anim.removeListener(id);
+  }, [value, anim]);
+  return <Text style={style}>{Math.round(display)}</Text>;
+}
+
 // Tuile statistique : grand chiffre (Bricolage 800) + libellé discret.
 export function StatTile({
   value,
@@ -347,7 +372,11 @@ export function StatTile({
 }) {
   return (
     <View style={[stat.box, { backgroundColor: bg }]}>
-      <Text style={[stat.value, { color }]}>{value}</Text>
+      {typeof value === 'number' ? (
+        <CountUp value={value} style={[stat.value, { color }]} />
+      ) : (
+        <Text style={[stat.value, { color }]}>{value}</Text>
+      )}
       <Txt variant="small" color={colors.textMuted} style={{ textAlign: 'center' }}>
         {label}
       </Txt>

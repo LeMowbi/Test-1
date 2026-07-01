@@ -7,12 +7,14 @@ import { Avatar } from '@/components/Avatar';
 import { ClubCard } from '@/components/ClubCard';
 import { CompetitionCard } from '@/components/CompetitionCard';
 import { Logo } from '@/components/Logo';
+import { PopIn } from '@/components/PopIn';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Card, SectionHeader, Txt } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { isTournamentPublic, seedCompetitions } from '@/data/competitions';
 import { DAY_MS, dateKeyLabel, dayKey } from '@/lib/days';
+import { hapticLight } from '@/lib/haptics';
 import { initials, perPlayer } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -50,7 +52,12 @@ export default function HomeScreen() {
   const router = useRouter();
   const { state, dismissNews, stats, myReservations } = useApp();
   const { refreshControl } = usePullToRefresh();
-  const go = (route: string) => router.push(route as never);
+  // Tap léger sur chaque navigation depuis l'accueil (CTA héro, 4 accès rapides, cartes) —
+  // cohérent avec le vocabulaire haptique du reste de l'app.
+  const go = (route: string) => {
+    hapticLight();
+    router.push(route as never);
+  };
 
   // Héro vivant : un reflet qui balaie la carte verte + le point « live » qui pulse.
   const sheen = useRef(new Animated.Value(0)).current;
@@ -277,12 +284,15 @@ export default function HomeScreen() {
             <Txt variant="display" color={colors.white} style={{ fontSize: 26, marginTop: spacing.sm, maxWidth: 240 }}>
               Réserve ton prochain match
             </Txt>
-            <View style={styles.heroCta}>
-              <Txt variant="body" color={colors.signature} style={{ fontWeight: '700' }}>
-                Trouver un créneau
-              </Txt>
-              <Ionicons name="arrow-forward" size={16} color={colors.signature} />
-            </View>
+            {/* Le CTA « atterrit » juste après l'apparition du hero (seul élément sans mouvement propre). */}
+            <PopIn delay={300}>
+              <View style={styles.heroCta}>
+                <Txt variant="body" color={colors.signature} style={{ fontWeight: '700' }}>
+                  Trouver un créneau
+                </Txt>
+                <Ionicons name="arrow-forward" size={16} color={colors.signature} />
+              </View>
+            </PopIn>
           </LinearGradient>
         </Pressable>
 
@@ -591,26 +601,31 @@ export default function HomeScreen() {
         ) : null}
 
         {/* Clubs près de vous (C-S4 : carrousel en lecture seule, lien « Tout voir » discret en SectionHeader) */}
-        <View style={styles.section}>
-          <SectionHeader title="Clubs près de toi" actionLabel="Explorer" onAction={() => go('/clubs')} />
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}
-          >
-            {nearbyClubs.map((c) => (
-              <ClubCard key={c.id} club={c} compact />
-            ))}
-          </ScrollView>
-        </View>
+        {/* Entrée légèrement décalée (cascade) pour guider l'œil du hero vers le contenu. */}
+        <Reveal delay={80}>
+          <View style={styles.section}>
+            <SectionHeader title="Clubs près de toi" actionLabel="Explorer" onAction={() => go('/clubs')} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}
+            >
+              {nearbyClubs.map((c) => (
+                <ClubCard key={c.id} club={c} compact />
+              ))}
+            </ScrollView>
+          </View>
+        </Reveal>
 
         {/* Tournois */}
-        <View style={styles.section}>
-          <SectionHeader title="Tournois à venir" actionLabel="Tout voir" onAction={() => go('/competitions')} />
-          {competitions.map((c) => (
-            <CompetitionCard key={c.id} comp={c} />
-          ))}
-        </View>
+        <Reveal delay={140}>
+          <View style={styles.section}>
+            <SectionHeader title="Tournois à venir" actionLabel="Tout voir" onAction={() => go('/competitions')} />
+            {competitions.map((c) => (
+              <CompetitionCard key={c.id} comp={c} />
+            ))}
+          </View>
+        </Reveal>
       </Reveal>
     </Screen>
   );

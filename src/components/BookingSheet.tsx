@@ -5,8 +5,10 @@ import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, TextInput
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { BookingConfirmation } from './BookingConfirmation';
 import { Chip } from './Chip';
+import { Reveal } from './Reveal';
 import { useToast } from './Toast';
 import { Button, Txt } from './ui';
+import { hapticWarning } from '@/lib/haptics';
 import { activeClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { freeCourts, type AvailCtx } from '@/lib/availability';
@@ -88,10 +90,12 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
       setDone(true);
     } else if (res.reason === 'limit') {
       // Même barrière anti-blocage que la fiche club (règle centralisée dans addReservation).
+      hapticWarning();
       toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d'abord 😊`, { icon: 'alert-circle' });
     } else {
       // Terrain pris entre-temps (autre joueur / conflit serveur) : on repropose un autre
-      // terrain libre et on prévient.
+      // terrain libre et on prévient (retour tactile comme sur la fiche club).
+      hapticWarning();
       const alt = free.find((c) => c !== court) ?? null;
       setCourt(alt);
       toast.show(alt ? 'Ce terrain vient d’être pris — réessaie' : 'Plus aucun terrain libre à cet horaire', {
@@ -126,7 +130,8 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
           <View style={styles.handle} />
 
           {
-            <>
+            // Contenu en fondu doux (même langage que Reveal ailleurs) après le slide-up natif.
+            <Reveal>
               <View style={styles.head}>
                 <View style={{ flex: 1 }}>
                   <Txt variant="h2" style={{ fontSize: 20 }} numberOfLines={1}>
@@ -223,7 +228,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                   </View>
                 </>
               )}
-            </>
+            </Reveal>
           }
         </View>
       </KeyboardAvoidingView>

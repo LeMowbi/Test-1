@@ -6,6 +6,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDim
 import { ClubPhoto } from '@/components/ClubPhoto';
 import { ContactButtons } from '@/components/ContactButtons';
 import { RatingStars } from '@/components/RatingStars';
+import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, Divider, EmptyState, IconCircle, Tag, Txt } from '@/components/ui';
@@ -310,24 +311,27 @@ export default function ClubDetail() {
             value={activeTier.label}
             onChange={(label) => setTierTab(tierGroups.findIndex((g) => g.label === label))}
           />
-          <Card>
-            {activeTier.items.map((t, i) => (
-              <View key={`${t.start}-${t.end}`}>
-                {i > 0 ? <Divider /> : null}
-                <View style={styles.tierRow}>
-                  <View style={styles.tierLeft}>
-                    <Ionicons name="time-outline" size={16} color={colors.textMuted} />
-                    <Txt variant="body">
-                      {t.start} – {t.end}
+          {/* key = onglet actif → re-montage → fondu doux à chaque changement d'onglet tarifaire. */}
+          <Reveal key={activeTier.label}>
+            <Card>
+              {activeTier.items.map((t, i) => (
+                <View key={`${t.start}-${t.end}`}>
+                  {i > 0 ? <Divider /> : null}
+                  <View style={styles.tierRow}>
+                    <View style={styles.tierLeft}>
+                      <Ionicons name="time-outline" size={16} color={colors.textMuted} />
+                      <Txt variant="body">
+                        {t.start} – {t.end}
+                      </Txt>
+                    </View>
+                    <Txt variant="body" style={{ fontWeight: '700' }}>
+                      {fcfa(t.price)}
                     </Txt>
                   </View>
-                  <Txt variant="body" style={{ fontWeight: '700' }}>
-                    {fcfa(t.price)}
-                  </Txt>
                 </View>
-              </View>
-            ))}
-          </Card>
+              ))}
+            </Card>
+          </Reveal>
         </>
       ) : (
         <Card>

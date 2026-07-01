@@ -11,6 +11,7 @@ import { findClub } from '@/data/clubs';
 import { compDateLabel, formatFee, hasEntryFee, seedCompetitions, teamCount, teamsToShow } from '@/data/competitions';
 import { openWhatsApp } from '@/lib/contact';
 import { dayKey } from '@/lib/days';
+import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { shareCompetition } from '@/lib/share';
 import { useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
@@ -551,6 +552,8 @@ export default function CompetitionDetail() {
                   setRegistering(true);
                   const ok = await unregisterCompetition(comp.id);
                   setRegistering(false);
+                  if (ok) hapticSuccess();
+                  else hapticWarning();
                   setToast(ok ? 'Désinscription effectuée' : 'Action impossible — réessaie.');
                   setTimeout(() => setToast(null), 2200);
                 }}
@@ -616,6 +619,8 @@ export default function CompetitionDetail() {
                 setRegistering(true);
                 const ok = await registerCompetition(comp.id, partner);
                 setRegistering(false);
+                if (ok) hapticSuccess();
+                else hapticWarning();
                 setToast(ok ? 'Inscription enregistrée ✓' : 'Inscription impossible — réessaie.');
                 setTimeout(() => setToast(null), 2200);
               }}
