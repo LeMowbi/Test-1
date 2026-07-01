@@ -93,6 +93,7 @@ export default function Onboarding() {
       gender: gender!,
       level: lvl,
       referralCode: referralCode.trim() || undefined,
+      photoUri, // envoyée au stockage à la 1ʳᵉ session (mise de côté d'ici là)
     });
     setBusy(false);
     if (res.needsConfirm)

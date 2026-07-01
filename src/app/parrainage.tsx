@@ -9,6 +9,7 @@ import { useToast } from '@/components/Toast';
 import { Button, Card, IconCircle, StatTile, Txt } from '@/components/ui';
 import { openWhatsApp } from '@/lib/contact';
 import { fetchReferralCount, referralCodeForUser } from '@/lib/referrals';
+import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
@@ -25,6 +26,16 @@ export default function ParrainageScreen() {
   const toast = useToast();
   const myCode = state.serverUserId ? referralCodeForUser(state.serverUserId) : null;
   const [count, setCount] = useState<number | null>(null);
+
+  // Recharge le compteur de filleuls (au montage ET au pull-to-refresh — sinon il restait figé
+  // à la valeur du premier affichage, contrairement aux autres écrans).
+  const reloadCount = async () => {
+    const uid = state.serverUserId;
+    if (!uid) return;
+    const n = await fetchReferralCount(uid);
+    setCount(n);
+  };
+  const { refreshControl } = usePullToRefresh(reloadCount);
 
   useEffect(() => {
     let alive = true;
@@ -53,7 +64,7 @@ export default function ParrainageScreen() {
   };
 
   return (
-    <Screen back title="Parrainage" subtitle="Invite tes amis à jouer">
+    <Screen back title="Parrainage" subtitle="Invite tes amis à jouer" refreshControl={refreshControl}>
       <Reveal>
         <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.hero}>
           <View style={styles.heroIcon}>

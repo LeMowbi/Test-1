@@ -17,8 +17,11 @@ create policy "avatars_insert_own" on storage.objects
   for insert to authenticated
   with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
 
--- Mise à jour / écrasement de SA propre photo (upsert).
+-- Mise à jour / écrasement de SA propre photo (upsert). Le WITH CHECK est INDISPENSABLE : sans
+-- lui, un UPDATE pourrait déplacer un objet vers le dossier d'un autre utilisateur (la ligne
+-- résultante n'est pas validée). On exige donc que l'ancienne ET la nouvelle ligne soient à moi.
 drop policy if exists "avatars_update_own" on storage.objects;
 create policy "avatars_update_own" on storage.objects
   for update to authenticated
-  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);
+  using (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text)
+  with check (bucket_id = 'avatars' and (storage.foldername(name))[1] = auth.uid()::text);

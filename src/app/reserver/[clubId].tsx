@@ -104,7 +104,13 @@ export default function ReserverScreen() {
   const confirm = async () => {
     if (!day || !slot || !effectiveCourt || submitting) return;
     const startsAt = slotTimestamp(day.key, slot);
-    if (startsAt <= Date.now()) return;
+    // Le créneau choisi est devenu passé pendant que l'écran restait ouvert : on prévient au lieu
+    // d'un bouton silencieusement inopérant, et on désélectionne pour forcer un nouveau choix.
+    if (startsAt <= Date.now()) {
+      toast.show('Ce créneau vient de passer — choisis-en un autre.', { icon: 'alert-circle' });
+      setSlot(null);
+      return;
+    }
     // Limite anti-blocage : un joueur ne peut pas accaparer trop de créneaux à venir (les
     // clubs n'aiment pas les terrains réservés « au cas où » puis libérés à la dernière minute).
     const myUpcoming = state.reservations.filter((r) => (!r.userId || r.userId === state.serverUserId) && r.startsAt > Date.now()).length;

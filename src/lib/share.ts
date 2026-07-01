@@ -1,5 +1,5 @@
 import { Platform, Share } from 'react-native';
-import { formatFee, type Competition } from '@/data/competitions';
+import { compDateLabel, formatFee, type Competition } from '@/data/competitions';
 
 const APP_URL = 'https://lemowbi.github.io/PadelConnect/';
 
@@ -33,8 +33,10 @@ export function shareClub(club: { name: string; area: string }): Promise<ShareRe
 // Partage un tournoi pour recruter des équipes.
 export function shareCompetition(comp: Competition): Promise<ShareResult> {
   const where = comp.clubName ? ` à ${comp.clubName}` : '';
+  // Plage COMPLÈTE (début → fin) et non le seul jour de début : un tournoi sur plusieurs jours
+  // était partagé comme s'il durait un jour.
   const message =
-    `Tournoi de padel${where} : « ${comp.title} » le ${comp.date} 🏆\n` +
+    `Tournoi de padel${where} : « ${comp.title} » le ${compDateLabel(comp)} 🏆\n` +
     (comp.reward.trim() ? `Récompense : ${formatFee(comp.reward)}. ` : '') +
     `Inscris ton équipe sur PadelConnect 👉 ${APP_URL}`;
   return shareMessage(message);

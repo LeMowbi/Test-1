@@ -84,10 +84,20 @@ create policy "club_photos_write" on storage.objects
     )
   );
 
+-- WITH CHECK obligatoire (comme l'INSERT) : sans lui, un UPDATE pourrait déplacer une photo vers
+-- le dossier d'un club qu'on ne gère pas. On valide donc aussi la ligne RÉSULTANTE.
 drop policy if exists "club_photos_update" on storage.objects;
 create policy "club_photos_update" on storage.objects
   for update to authenticated
   using (
+    bucket_id = 'club-photos'
+    and exists (
+      select 1 from public.profiles p
+      where p.id = auth.uid()
+        and (p.managed_club_id = (storage.foldername(name))[1] or p.role = 'operator')
+    )
+  )
+  with check (
     bucket_id = 'club-photos'
     and exists (
       select 1 from public.profiles p

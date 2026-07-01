@@ -57,6 +57,7 @@ export const colors = {
   onSignature: '#FFFFFF',
   onPhoto: 'rgba(255,255,255,0.85)',
   onPhotoSoft: 'rgba(255,255,255,0.16)',
+  sheen: 'rgba(255,255,255,0.12)', // reflet animé qui balaie la bannière d'accueil
   limeGlow: 'rgba(198,242,74,0.35)',
   overlay: 'rgba(12,26,22,0.5)', // backdrop des sheets (refonte)
   viewerBg: '#000000',

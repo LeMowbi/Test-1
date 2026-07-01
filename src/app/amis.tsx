@@ -171,7 +171,13 @@ export default function AmisScreen() {
               <View key={f.id}>
                 {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
                 <View style={styles.row}>
-                  <Pressable onPress={() => openFriend(f)} style={styles.rowTap}>
+                  <Pressable
+                    onPress={() => openFriend(f)}
+                    style={styles.rowTap}
+                    hitSlop={6}
+                    accessibilityRole="button"
+                    accessibilityLabel={`Voir le profil de ${f.name}`}
+                  >
                     <Avatar name={f.name} size={44} />
                     <View style={styles.rowInfo}>
                       <Txt variant="body" style={styles.rowName}>

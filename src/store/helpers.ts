@@ -68,12 +68,10 @@ export const initialState: AppState = {
   clubSlots: {},
   clubCourts: {},
   blockedSlots: [],
-  // Actu d'accueil de démo (modifiable dans l'Espace opérateur).
-  operatorNews: {
-    id: 'news-bienvenue',
-    title: 'Bienvenue sur PadelConnect 🎾',
-    subtitle: "Réserve ton terrain en 2 minutes — tous les clubs d'Abidjan.",
-  },
+  // Aucune actu d'accueil par défaut : le bandeau n'apparaît QUE si l'opérateur en publie une
+  // (synchronisée serveur, visible par tous). Évite un bandeau de démo qui s'affiche puis
+  // disparaît au chargement quand aucune actu n'est réellement publiée.
+  operatorNews: null,
   dismissedNewsId: null,
 };
 

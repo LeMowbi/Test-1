@@ -630,7 +630,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
   },
   // Bande de lumière translucide qui balaie la carte (animée en translateX).
-  heroSheen: { position: 'absolute', top: -60, bottom: -60, left: 0, width: 70, backgroundColor: 'rgba(255,255,255,0.12)' },
+  heroSheen: { position: 'absolute', top: -60, bottom: -60, left: 0, width: 70, backgroundColor: colors.sheen },
   brandRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   livePill: { flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: spacing.md },
   liveDot: { width: 8, height: 8, borderRadius: radius.pill, backgroundColor: colors.lime, borderWidth: 4, borderColor: colors.limeGlow },

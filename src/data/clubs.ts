@@ -26,6 +26,9 @@ export type Club = {
   // attendant qu'il finalise son inscription). Visible dans la liste, badge « Bientôt »,
   // bouton Réserver désactivé. Les clubs de base ne le sont jamais.
   comingSoon?: boolean;
+  // Club FONDATEUR de PadelConnect (partenaire officiel) → badge « Partenaire ». Réservé aux
+  // 9 clubs de lancement ; les clubs inscrits ensuite ne le portent pas.
+  partner?: boolean;
 };
 
 // Tarif d'une plage horaire défini librement par le gérant : [start, end[ → prix FCFA.
@@ -41,7 +44,9 @@ export function mapsUrl(club: Club): string {
 
 // Liste volontairement triée par ORDRE ALPHABÉTIQUE — aucun classement, aucun
 // « meilleur club » : tous les terrains sont présentés à parts égales.
-export const clubs: Club[] = [
+// Les 9 clubs de lancement sont les PARTENAIRES fondateurs (badge « Partenaire »), appliqué en
+// bloc plus bas — inutile de le répéter sur chaque entrée.
+const FOUNDER_CLUBS: Club[] = [
   {
     id: 'abidjan-padel',
     name: 'Abidjan Padel',
@@ -186,6 +191,9 @@ export const clubs: Club[] = [
     accent: ACCENTS[0],
   },
 ];
+
+// Les 9 fondateurs portent le badge « Partenaire » (partner: true), appliqué en une fois.
+export const clubs: Club[] = FOUNDER_CLUBS.map((c) => ({ ...c, partner: true }));
 
 // Clubs triés par nom — réutilisé tel quel (ordre alphabétique, aucun classement).
 export const clubsByName = [...clubs].sort((a, b) => a.name.localeCompare(b.name));

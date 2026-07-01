@@ -232,6 +232,7 @@ export default function ClubDetail() {
       ) : null}
 
       <View style={styles.tags}>
+        {club.partner && !club.comingSoon ? <Tag label="Club partenaire" tone="green" icon="shield-checkmark" /> : null}
         {boosted ? <Tag label="Sponsorisé" tone="amber" icon="megaphone" /> : null}
         <Tag label={club.type} tone="neutral" />
         <Tag label={`${courtCount} terrain${courtCount > 1 ? 's' : ''}`} tone="neutral" />
@@ -663,7 +664,9 @@ export default function ClubDetail() {
               horizontal
               pagingEnabled
               showsHorizontalScrollIndicator={false}
-              ref={(r) => r?.scrollTo({ x: viewer * winW, animated: false })}
+              // Position initiale sur la photo ouverte via contentOffset (une seule fois) : un ref
+              // callback inline re-scrollait à chaque rendu et empêchait de faire défiler.
+              contentOffset={{ x: viewer * winW, y: 0 }}
             >
               {gallery.map((uri, i) => (
                 <View key={`${uri}-${i}`} style={{ width: winW, justifyContent: 'center' }}>

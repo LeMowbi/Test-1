@@ -70,6 +70,7 @@ import {
 import { cancelMatchReminder, scheduleMatchReminder, syncMatchReminders } from '@/lib/notifications';
 import { registerPushToken } from '@/lib/push';
 import { uploadAvatar } from '@/lib/avatar';
+import { clearOperatorNewsServer, fetchOperatorNews, setOperatorNewsServer } from '@/lib/operatorNews';
 import { phoneToAuthEmail, supabase } from '@/lib/supabase';
 import {
   clampLevel,
@@ -230,6 +231,9 @@ export type Stats = { played: number; tournamentsPlayed: number; tournamentsWon:
 
 export const COMMISSION_RATE = 0.1; // commission opérateur (10 %)
 const STORAGE_KEY = 'padelco_state_v4'; // v4 : modèle sans matchs ni victoires/défaites
+// Photo choisie à l'inscription : mise de côté ici car il n'y a pas encore de session (e-mail à
+// confirmer). On l'envoie au stockage dès la 1ʳᵉ session, puis on efface cette clé.
+const PENDING_AVATAR_KEY = 'padelco_pending_avatar_uri';
 export const MAX_CLUB_PHOTOS = 6; // plafond de photos par club (quota de stockage local)
 
 type AppContextType = {
@@ -246,7 +250,15 @@ type AppContextType = {
     email: string,
     password: string,
     phone: string,
-    profile: { firstName: string; lastName: string; birthDate?: string; gender?: Account['gender']; level?: number; referralCode?: string },
+    profile: {
+      firstName: string;
+      lastName: string;
+      birthDate?: string;
+      gender?: Account['gender'];
+      level?: number;
+      referralCode?: string;
+      photoUri?: string;
+    },
   ) => Promise<{ ok: boolean; needsConfirm?: boolean; error?: string }>;
   signInWithEmail: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
   // Recharge la session (profil + données) — appelé après la confirmation d'e-mail (deep link).
@@ -497,6 +509,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // la valeur serveur → aucun push tant qu'un tournoi ne l'a pas réellement modifié).
         levelSyncRef.current = hydratedLevel;
         levelHydratedUserRef.current = userId;
+        // Photo choisie à l'inscription (mise de côté avant confirmation e-mail) : si le serveur
+        // n'a pas encore d'avatar, on l'envoie maintenant que la session existe, puis on efface.
+        if (!prof.photo_uri) {
+          void AsyncStorage.getItem(PENDING_AVATAR_KEY).then((pending) => {
+            if (!pending || !stillCurrent()) return;
+            void uploadAvatar(userId, pending).then((url) => {
+              void AsyncStorage.removeItem(PENDING_AVATAR_KEY);
+              if (!url || !stillCurrent()) return;
+              setState((s) => ({ ...s, account: s.account ? { ...s.account, photoUri: url } : s.account }));
+              void supabase.from('profiles').update({ photo_uri: url }).eq('id', userId);
+            });
+          });
+        } else {
+          void AsyncStorage.removeItem(PENDING_AVATAR_KEY); // avatar serveur déjà présent → on nettoie
+        }
       }
       // Réservations : le serveur est la source de vérité → on remplace le miroir local
       // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
@@ -518,6 +545,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         tournamentFee,
         blocked,
         opPayments,
+        news,
       ] = await Promise.all([
         fetchReservations(),
         fetchOccupancy(),
@@ -535,6 +563,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchTournamentFee(),
         fetchBlockedSlots(),
         fetchOperatorPayments(),
+        fetchOperatorNews(),
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       const { active: activeParts, pending: pendingParts } = splitParticipations(parts);
@@ -570,6 +599,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         blockedSlots: blocked ?? s.blockedSlots,
         // Règlements opérateur (persistants). Vide pour les non-opérateurs (RLS).
         operatorPayments: opPayments ?? s.operatorPayments,
+        // Actu d'accueil publiée par l'opérateur (visible par TOUS). undefined = échec réseau →
+        // on garde l'existant ; null = aucune actu publiée → bandeau retiré.
+        operatorNews: news === undefined ? s.operatorNews : news,
       }));
       // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses).
       if (reservationsRes.ok) {
@@ -639,6 +671,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       void fetchFriends().then((friends) => friends && ok() && setState((s) => ({ ...s, friends })));
       // Nouvelles demandes d'ami reçues (retour au premier plan) → badge/section à jour.
       void fetchFriendRequests().then((reqs) => reqs && ok() && setState((s) => ({ ...s, friendRequests: reqs })));
+      // Actu d'accueil de l'opérateur : publiée/retirée sur un autre appareil → bandeau à jour.
+      void fetchOperatorNews().then((n) => n !== undefined && ok() && setState((s) => ({ ...s, operatorNews: n })));
       // Créneaux fermés par un club (sur un autre appareil) → dispo à jour partout.
       void fetchBlockedSlots().then((blocked) => blocked && ok() && setState((s) => ({ ...s, blockedSlots: blocked })));
       // Règlements opérateur (persistants) — vide pour les non-opérateurs (RLS).
@@ -819,6 +853,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (data.user && data.user.identities?.length === 0) {
           return { ok: false, error: 'Cet e-mail a déjà un compte. Connecte-toi plutôt.' };
         }
+        // Photo choisie à l'inscription : on la met de côté (pas encore de session pour l'envoyer
+        // au stockage). loadSession l'enverra à la 1ʳᵉ ouverture de session, puis effacera la clé.
+        const pendingPhoto = profile.photoUri;
+        if (pendingPhoto && !/^https?:\/\//.test(pendingPhoto)) {
+          await AsyncStorage.setItem(PENDING_AVATAR_KEY, pendingPhoto);
+        }
         // Confirmation requise → pas encore de session : on invite à valider l'e-mail.
         if (!data.session) return { ok: true, needsConfirm: true };
         // Confirmation désactivée (selon config) → session immédiate : on charge tout.
@@ -904,6 +944,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // joueurs inscrits est attribué UNE SEULE FOIS côté serveur (close_competition, tournois
       // officiels) → jamais recalculé côté client (pas de double attribution à la réinstallation).
       closeCompetition: async (comp, winnerName, winnerIsMe, loserName, loserIsMe, podium) => {
+        const epoch = sessionEpochRef.current; // pour ignorer une réponse tardive après déconnexion
         const serverComp = state.myCompetitions.find((c) => c.id === comp.id && c.server);
         if (serverComp) {
           const ok = await closeCompetitionRpc(comp.id, {
@@ -915,14 +956,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (!ok) return; // le serveur a refusé (droits)
           if (state.serverUserId) {
             // Rejoue clôture + palmarès depuis le serveur, puis relit MON niveau (mis à jour côté
-            // serveur si j'ai gagné/perdu) pour l'afficher immédiatement.
-            await refreshCompetitions(state.serverUserId);
-            void supabase
-              .from('profiles')
-              .select('level')
-              .eq('id', state.serverUserId)
-              .maybeSingle()
-              .then(({ data }) => data && setState((s) => ({ ...s, level: clampLevel(Number(data.level ?? s.level)) })));
+            // serveur si j'ai gagné/perdu) pour l'afficher immédiatement. On ATTEND la lecture (au
+            // lieu d'un .then() détaché) et on arme levelSyncRef sur la valeur serveur : ainsi
+            // l'effet de synchro ne re-pousse pas ce niveau (déjà à jour côté serveur).
+            const uid = state.serverUserId;
+            await refreshCompetitions(uid);
+            const { data } = await supabase.from('profiles').select('level').eq('id', uid).maybeSingle();
+            if (data && sessionEpochRef.current === epoch) {
+              const lvl = clampLevel(Number(data.level ?? state.level));
+              levelSyncRef.current = lvl;
+              setState((s) => ({ ...s, level: lvl }));
+            }
           }
           return;
         }
@@ -1587,9 +1631,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (link && !/^https?:\/\/.+\..+/i.test(link)) link = undefined;
           const prev = s.operatorNews;
           const unchanged = !!prev && prev.title === title && prev.subtitle === subtitle && prev.link === link;
-          return { ...s, operatorNews: { id: unchanged ? prev.id : uid(), title, subtitle, link } };
+          const next = { id: unchanged ? prev.id : uid(), title, subtitle, link };
+          // Publication SERVEUR : sans ça l'actu ne serait vue que sur le téléphone de l'opérateur.
+          if (s.serverUserId) void setOperatorNewsServer(next);
+          return { ...s, operatorNews: next };
         }),
-      removeOperatorNews: () => setState((s) => ({ ...s, operatorNews: null })),
+      removeOperatorNews: () =>
+        setState((s) => {
+          if (s.serverUserId) void clearOperatorNewsServer();
+          return { ...s, operatorNews: null };
+        }),
       dismissNews: (id) => setState((s) => ({ ...s, dismissedNewsId: id })),
       resetAll: () => {
         // Réinitialisation TOTALE : on coupe la session serveur, on efface les rappels et

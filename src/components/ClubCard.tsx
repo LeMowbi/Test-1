@@ -5,6 +5,7 @@ import { ClubPhoto } from './ClubPhoto';
 import { Card, Tag, Txt } from './ui';
 import { clubGallery, defaultCourts, type Club } from '@/data/clubs';
 import { useApp } from '@/store/AppContext';
+import { hapticLight } from '@/lib/haptics';
 import { fcfa, initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
 
@@ -18,10 +19,18 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   // Les avis sont VÉRIFIÉS et serveur (affichés sur la fiche club). Tant qu'un club n'en a pas,
   // la carte affiche « Nouveau » — jamais de note fabriquée (cohérent avec la fiche).
   const comingSoon = !!club.comingSoon; // club pré-chargé, pas encore réservable
+  const partner = !!club.partner && !comingSoon; // club fondateur (partenaire officiel)
   const go = () => router.push(`/club/${club.id}`);
 
   const heart = (
-    <Pressable onPress={() => toggleFavorite(club.id)} hitSlop={8} style={styles.heart}>
+    <Pressable
+      onPress={() => {
+        hapticLight(); // petit retour tactile satisfaisant au (dé)favori
+        toggleFavorite(club.id);
+      }}
+      hitSlop={8}
+      style={styles.heart}
+    >
       <Ionicons name={fav ? 'heart' : 'heart-outline'} size={18} color={fav ? colors.danger : colors.white} />
     </Pressable>
   );
@@ -49,6 +58,10 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
             <View style={styles.boostBadge}>
               <Tag label="Sponsorisé" tone="amber" icon="megaphone" />
             </View>
+          ) : partner ? (
+            <View style={styles.boostBadge}>
+              <Tag label="Partenaire" tone="green" icon="shield-checkmark" />
+            </View>
           ) : null}
         </View>
         <View style={styles.compactFooter}>
@@ -75,6 +88,11 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
       <View>
         <ClubPhoto uri={photo} accent={club.accent} initials={initials(club.name)} height={140} />
         {heart}
+        {partner ? (
+          <View style={styles.boostBadge}>
+            <Tag label="Partenaire" tone="green" icon="shield-checkmark" />
+          </View>
+        ) : null}
       </View>
       <View style={{ padding: spacing.sm, paddingTop: spacing.md }}>
         <View style={styles.titleRow}>
