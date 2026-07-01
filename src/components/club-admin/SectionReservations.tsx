@@ -9,6 +9,7 @@ import { QuickBlock } from '@/components/club-admin/QuickBlock';
 import { type Club } from '@/data/clubs';
 import { competitionBlockedCourts, hasFullDayCompetition } from '@/lib/availability';
 import { dateKeyLabel, nextDays, weekKeyOf, weekLabel } from '@/lib/days';
+import { fcfa } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
 import { fetchCancelledReservations, fetchNoShowReservations, fetchReliability, type Reliability } from '@/lib/reservations';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
@@ -149,6 +150,14 @@ export function SectionReservations({
   const byHour = new Map<string, number>();
   for (const r of weekRes) byHour.set(r.time, (byHour.get(r.time) ?? 0) + 1);
   const topHour = [...byHour.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
+  // Créneaux les plus CREUX (parmi les heures d'ouverture, celles jamais réservées cette semaine)
+  // → le gérant sait où pousser une offre pour remplir.
+  const quietHours = planTimes.filter((t) => !byHour.has(t)).slice(0, 3);
+
+  // Revenu = somme des prix RÉELS des réservations (figés à la réservation). On additionne les
+  // parties JOUÉES (revenu encaissé) — même base que la commission.
+  const revenueOf = (items: Reservation[]) => items.reduce((sum, r) => sum + (r.price ?? 0), 0);
+  const weekRevenue = revenueOf(weekRes.filter((r) => isPlayed(r, now)));
 
   return (
     <>
@@ -297,6 +306,29 @@ export function SectionReservations({
             <BarChart data={planTimes.map((t) => ({ label: t, value: weekRes.filter((r) => r.time === t).length }))} />
           </Card>
         ) : null}
+
+        {/* Revenu de la semaine (parties jouées) + créneaux à remplir — insight actionnable. */}
+        <Card style={{ marginTop: spacing.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <IconCircle icon="cash-outline" color={colors.green} bg={colors.greenSoft} />
+            <View style={{ flex: 1 }}>
+              <Txt variant="label" color={colors.textFaint}>
+                REVENU DES PARTIES JOUÉES (7 J)
+              </Txt>
+              <Txt variant="h2" color={colors.green}>
+                {fcfa(weekRevenue)}
+              </Txt>
+            </View>
+          </View>
+          {quietHours.length > 0 ? (
+            <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginTop: spacing.md }}>
+              <Ionicons name="bulb-outline" size={16} color={colors.amber} />
+              <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                Créneaux encore vides cette semaine : {quietHours.join(' · ')}. Une petite offre pourrait les remplir.
+              </Txt>
+            </View>
+          ) : null}
+        </Card>
       </View>
 
       {/* À venir — à confirmer */}
@@ -450,7 +482,10 @@ export function SectionReservations({
                 <Txt variant="label" color={colors.textFaint}>
                   Semaine {weekLabel(g.week)}
                 </Txt>
-                <Tag label={`${g.items.length} jouée${g.items.length > 1 ? 's' : ''}`} tone="green" />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.xs }}>
+                  <Tag label={fcfa(revenueOf(g.items))} tone="green" icon="cash-outline" />
+                  <Tag label={`${g.items.length} jouée${g.items.length > 1 ? 's' : ''}`} tone="neutral" />
+                </View>
               </View>
               {g.items.map((r, i) => (
                 <View key={r.id}>

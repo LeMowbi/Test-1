@@ -9,6 +9,7 @@ import { RatingStars } from '@/components/RatingStars';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, Divider, EmptyState, IconCircle, Tag, Txt } from '@/components/ui';
+import { SkeletonLines } from '@/components/Skeleton';
 import { StickyBar } from '@/components/StickyBar';
 import { clubGallery, defaultCourts, findClub, offersForClub } from '@/data/clubs';
 import { coaches } from '@/data/coaches';
@@ -45,6 +46,7 @@ export default function ClubDetail() {
   const [tierTab, setTierTab] = useState(0); // onglet de tarifs actif (plages nommées)
   const [showAllReviews, setShowAllReviews] = useState(false); // liste d'avis repliée par défaut
   const [serverReviews, setServerReviews] = useState<ServerReview[]>([]);
+  const [reviewsLoading, setReviewsLoading] = useState(true); // 1er chargement → squelette (≠ « 0 avis »)
   const [replyTarget, setReplyTarget] = useState<string | null>(null); // avis auquel le gérant répond
   const [replyDraft, setReplyDraft] = useState('');
   const { width: winW } = useWindowDimensions();
@@ -58,7 +60,12 @@ export default function ClubDetail() {
   const { refreshControl } = usePullToRefresh(loadReviews);
   useEffect(() => {
     let alive = true;
-    if (clubId) void fetchClubReviews(clubId).then((r) => alive && setServerReviews(r));
+    if (clubId)
+      void fetchClubReviews(clubId).then((r) => {
+        if (!alive) return;
+        setServerReviews(r);
+        setReviewsLoading(false);
+      });
     return () => {
       alive = false;
     };
@@ -542,7 +549,13 @@ export default function ClubDetail() {
           )}
         </Card>
 
-        {reviews.length === 0 ? (
+        {reviewsLoading && reviews.length === 0 ? (
+          // 1er chargement : squelettes plutôt qu'un vide (on ne sait pas encore s'il y a des avis).
+          <Card style={{ marginTop: spacing.md, gap: spacing.md }}>
+            <SkeletonLines lines={2} />
+            <SkeletonLines lines={2} />
+          </Card>
+        ) : reviews.length === 0 ? (
           <Txt variant="muted" style={{ marginTop: spacing.md }}>
             Aucun avis pour l’instant — sois le premier à en laisser un après avoir joué ici !
           </Txt>
