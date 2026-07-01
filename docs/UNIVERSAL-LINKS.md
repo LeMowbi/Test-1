@@ -3,8 +3,8 @@
 Objectif : quand quelqu'un tape ton lien de parrainage (ou un lien de club), l'**app s'ouvre
 directement** si elle est installée, au lieu de passer par le navigateur / l'App Store.
 
-Cela nécessite un **domaine que tu contrôles** en HTTPS (ex. `padelconnect.ci` ou
-`app.padelconnect.ci`). Dis-moi le domaine choisi → je finalise la config de l'app et on rebuild.
+Cela nécessite un **domaine que tu contrôles** en HTTPS (ex. `padelconnect.com` ou
+`app.padelconnect.com`). Dis-moi le domaine choisi → je finalise la config de l'app et on rebuild.
 
 ## Ce qui est déjà prêt
 - Ton identifiant d'app : **`R77YWZ9487.ci.padelco.app`** (Team ID + bundle).
@@ -15,7 +15,7 @@ Cela nécessite un **domaine que tu contrôles** en HTTPS (ex. `padelconnect.ci`
 ### 1. Héberger le fichier Apple (toi / ton hébergeur)
 Déposer le fichier `apple-app-site-association` (SANS extension) à l'adresse EXACTE :
 ```
-https://TON-DOMAINE/.well-known/apple-app-site-association
+https://padelconnect.com/.well-known/apple-app-site-association
 ```
 Contraintes Apple (importantes) :
 - Servi en **HTTPS** valide, **sans redirection**.
@@ -25,9 +25,9 @@ Contraintes Apple (importantes) :
 ### 2. Déclarer le domaine dans l'app (moi)
 J'ajoute dans `app.json` (iOS) :
 ```json
-"associatedDomains": ["applinks:TON-DOMAINE"]
+"associatedDomains": ["applinks:padelconnect.com"]
 ```
-et je fais pointer le lien de parrainage vers `https://TON-DOMAINE/invite/CODE` (au lieu du lien
+et je fais pointer le lien de parrainage vers `https://padelconnect.com/invite/CODE` (au lieu du lien
 App Store actuel), tout en gardant l'App Store en repli si l'app n'est pas installée.
 
 ### 3. Rebuild + test (moi + toi)

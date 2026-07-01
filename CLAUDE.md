@@ -139,9 +139,10 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 - ✅ **Suivi bugs + usage** (idée 3) — fait, **self-hosted** (choix du porteur) : `33_diagnostics.sql`
   (app_errors + app_events), `src/lib/diagnostics.ts` (logError/track), ErrorBoundary racine +
   handler global. Anonyme, lecture opérateur uniquement. Le porteur doit lancer `33_diagnostics.sql`.
-- ⏳ **Universal Links** (idée 6) — porteur a choisi **domaine propre** ; AASA + guide prêts
-  (`docs/apple-app-site-association`, `docs/UNIVERSAL-LINKS.md`). **En attente du nom de domaine**
-  pour finaliser (associatedDomains + lien parrainage + rebuild).
+- ⏳ **Universal Links** (idée 6) — domaine choisi : **padelconnect.com** (à acheter par le porteur,
+  ex. Cloudflare/Namecheap + hébergement de l'AASA et d'une page `/invite`). AASA + guide prêts
+  (`docs/apple-app-site-association`, `docs/UNIVERSAL-LINKS.md`). **En attente que le domaine soit
+  actif + hébergé** pour finaliser côté app (associatedDomains + lien parrainage + rebuild).
 - 🔒 **Programme de fidélité** (idée 5) — **gardé pour plus tard** (X parties jouées = récompense).
 - ❌ **Paiement en ligne** (idée 7) — pas pour l'instant.
 - Autres post-lancement : vrai SMTP de confirmation, perf, éventuel kit `PlanningGrid`.
