@@ -28,6 +28,9 @@ export function useEmailConfirmLink(onResult: (r: Result) => void) {
     let active = true;
 
     const handle = async (url: string | null) => {
+      // Le lien de RÉINITIALISATION du mot de passe rouvre l'app sur « reset-password » : c'est
+      // l'écran dédié qui échange le code et fait saisir un nouveau mot de passe — pas ici.
+      if (url && /(^|[/:])reset-password(\?|$)/.test(url)) return;
       // Lien expiré / déjà utilisé : on prévient l'utilisateur au lieu d'ignorer en silence.
       if (hasAuthError(url)) {
         if (active) onResult('error');

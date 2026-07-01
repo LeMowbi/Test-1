@@ -64,6 +64,8 @@ import {
   competitionSlices,
   frAuthError,
   initialState,
+  LEVEL_PENALTY,
+  LEVEL_STEP,
   loggedOutState,
   mergeServerClubs,
   splitParticipations,
@@ -213,8 +215,6 @@ export type AppState = {
 export type Stats = { played: number; tournamentsPlayed: number; tournamentsWon: number };
 
 export const COMMISSION_RATE = 0.1; // commission opérateur (10 %)
-const LEVEL_STEP = 0.5; // bonus de niveau pour l'équipe vainqueure d'un tournoi officiel
-const LEVEL_PENALTY = 0.25; // malus de niveau pour l'équipe classée dernière (facultatif)
 const STORAGE_KEY = 'padelco_state_v4'; // v4 : modèle sans matchs ni victoires/défaites
 export const MAX_CLUB_PHOTOS = 6; // plafond de photos par club (quota de stockage local)
 
@@ -392,16 +392,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     remindersOnRef.current = state.remindersOn;
   }, [state.remindersOn]);
 
-  // Persistance SERVEUR du niveau : il évolue avec les tournois officiels (clôture) — sans
-  // ça, il était écrasé par l'ancienne valeur serveur au prochain chargement (ou sur un autre
-  // appareil). On pousse à chaque changement réel (ref anti-écriture redondante).
+  // Persistance SERVEUR du niveau : il évolue avec les tournois officiels (clôture / gain
+  // détecté au rafraîchissement). On ne pousse QUE quand le profil du compte courant a été
+  // hydraté (levelHydratedUserRef == uid) — sinon un démarrage / changement de compte poussait
+  // 3.0 AVANT de connaître le vrai niveau serveur, l'écrasant définitivement en cas d'échec réseau.
   const levelSyncRef = useRef<number | null>(null);
+  const levelHydratedUserRef = useRef<string | null>(null);
   useEffect(() => {
     const uid = state.serverUserId;
     if (!uid) {
       levelSyncRef.current = null; // déconnexion → on réarme pour le prochain compte
+      levelHydratedUserRef.current = null;
       return;
     }
+    if (levelHydratedUserRef.current !== uid) return; // profil pas encore chargé → on ne pousse rien
     if (levelSyncRef.current === state.level) return;
     levelSyncRef.current = state.level;
     void supabase.from('profiles').update({ level: state.level }).eq('id', uid);
@@ -454,6 +458,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Hors-ligne / erreur réseau : on GARDE le profil et le rôle persistés localement
       // (pas de rétrogradation silencieuse d'un gérant/opérateur qui ouvre l'app sans réseau).
       if (!error && prof) {
+        const hydratedLevel = clampLevel(Number(prof.level ?? initialState.level));
         setState((s) => ({
           ...s,
           account: {
@@ -469,8 +474,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           },
           role: (prof.role as AppState['role']) ?? 'player',
           serverManagedClubId: prof.managed_club_id ?? null,
-          level: clampLevel(Number(prof.level ?? s.level)),
+          level: hydratedLevel,
         }));
+        // Le niveau du compte courant est désormais connu : on arme la synchro (le ref reflète
+        // la valeur serveur → aucun push tant qu'un tournoi ne l'a pas réellement modifié).
+        levelSyncRef.current = hydratedLevel;
+        levelHydratedUserRef.current = userId;
       }
       // Réservations : le serveur est la source de vérité → on remplace le miroir local
       // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
@@ -823,11 +832,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         void syncMatchReminders([], false); // on efface les rappels locaux du compte sortant
         setState(loggedOutState);
       },
-      // Réinitialisation du mot de passe : envoie un lien par e-mail (deep link → écran de
-      // changement). Pas d'erreur révélée si l'e-mail n'existe pas (anti-énumération).
+      // Réinitialisation du mot de passe : envoie un lien par e-mail qui rouvre l'app sur l'écran
+      // DÉDIÉ « reset-password » (≠ auth-callback de la confirmation d'inscription) où l'utilisateur
+      // saisit un NOUVEAU mot de passe. Pas d'erreur révélée si l'e-mail n'existe pas (anti-énumération).
       resetPassword: async (email) => {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-          redirectTo: Linking.createURL('auth-callback'),
+          redirectTo: Linking.createURL('reset-password'),
         });
         if (error) return { ok: false, error: frAuthError(error.message) };
         return { ok: true };

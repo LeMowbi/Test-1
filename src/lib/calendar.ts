@@ -36,8 +36,12 @@ export async function addReservationToCalendar(input: {
       title: `Padel · ${input.clubName}`,
       startDate: new Date(input.startsAt),
       endDate: new Date(input.startsAt + SESSION_MS),
+      // Les créneaux sont exprimés à l'heure d'Abidjan (Côte d'Ivoire = UTC+0). On ancre
+      // l'événement sur ce fuseau pour qu'il s'affiche à la bonne heure même sur un appareil
+      // réglé sur un autre fuseau (voyage / testeur hors Abidjan).
+      timeZone: 'Africa/Abidjan',
       location: input.area ? `${input.clubName} — ${input.area}` : input.clubName,
-      notes: `Terrain : ${input.court}. Réservé via PadelConnect.`,
+      notes: `Terrain : ${input.court}. Réservé via PadelConnect (heure d'Abidjan).`,
       alarms: [{ relativeOffset: -120 }], // rappel 2h avant
     });
     return 'added';

@@ -5,10 +5,13 @@ import type { CustomClub } from '@/data/clubs';
 import type { ClubConfig } from '@/lib/clubsServer';
 import type { ServerCompetitions } from '@/lib/competitionsServer';
 import type { MyParticipation } from '@/lib/reservations';
-import type { AppState, CompResult } from './AppContext';
+import type { AppState, CompResult, OfficialResult } from './AppContext';
 
 export const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
 export const clampLevel = (n: number) => Math.min(7, Math.max(1, Math.round(n * 100) / 100));
+
+export const LEVEL_STEP = 0.5; // bonus de niveau pour l'équipe vainqueure d'un tournoi officiel
+export const LEVEL_PENALTY = 0.25; // malus de niveau pour l'équipe classée dernière (facultatif)
 
 // Traduit les messages d'erreur Supabase en français clair pour l'utilisateur.
 export function frAuthError(msg: string): string {
@@ -129,7 +132,7 @@ export function competitionSlices(
   s: AppState,
   sc: ServerCompetitions | null,
   regs: Record<string, string> | null,
-): Pick<AppState, 'myCompetitions' | 'compResults' | 'compRegistrations'> {
+): Pick<AppState, 'myCompetitions' | 'compResults' | 'compRegistrations' | 'level' | 'officialResults'> {
   const comps = sc ? sc.comps : s.myCompetitions;
   const serverIds = new Set(comps.filter((c) => c.server).map((c) => c.id));
 
@@ -158,7 +161,36 @@ export function competitionSlices(
     compRegistrations = { ...seedRegs, ...serverRegs };
   }
 
-  return { myCompetitions: comps, compResults, compRegistrations };
+  const base = { myCompetitions: comps, compResults, compRegistrations, level: s.level, officialResults: s.officialResults };
+
+  // Attribution du NIVEAU + PALMARÈS pour MES tournois serveur clôturés — de façon IDEMPOTENTE.
+  // Indispensable : un tournoi officiel est clôturé par le CLUB (non inscrit) → le vrai vainqueur
+  // ne déclenche jamais closeCompetition ; c'est ici, à son prochain rafraîchissement, qu'on met à
+  // jour son niveau (+0.50 gagnant / −0.25 dernier, tournois officiels) et son palmarès.
+  if (!sc || !s.account) return base;
+  let level = s.level;
+  const officialResults = [...s.officialResults];
+  let awarded = false;
+  for (const c of comps) {
+    if (!c.server) continue;
+    const close = sc.closes[c.id];
+    if (!close) continue; // pas encore clôturé
+    const reg = compRegistrations[c.id];
+    if (!reg) continue; // je n'étais pas inscrit
+    if (officialResults.some((o) => o.compId === c.id)) continue; // déjà attribué (idempotence)
+    const myTeam = `${s.account.firstName ?? 'Toi'} & ${reg.partner}`;
+    let result: OfficialResult['result'] = 'played';
+    if (c.official && close.winner && myTeam === close.winner) {
+      level = clampLevel(level + LEVEL_STEP);
+      result = 'win';
+    } else if (c.official && close.loser && myTeam === close.loser) {
+      level = clampLevel(level - LEVEL_PENALTY);
+      result = 'last';
+    }
+    officialResults.unshift({ id: uid(), compId: c.id, title: c.title, result, at: Date.now(), levelAfter: level });
+    awarded = true;
+  }
+  return awarded ? { ...base, level, officialResults } : base;
 }
 
 // Invitations → deux listes : celles à inclure dans « mes réservations » (tout sauf refusées)
