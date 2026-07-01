@@ -48,9 +48,15 @@ Dashboard Supabase → **Database → Webhooks** → *Create a new hook* :
     aussi **UPDATE** (sinon la notif de confirmation au joueur ne partira pas).
 - **Invitation acceptée → auteur** (notif sociale) : table `reservation_participants`,
   événement **UPDATE** → même fonction `notify-club`.
+- **Tournois** : table `competitions`, événements **INSERT _et_ UPDATE** (coche les deux) →
+  même fonction `notify-club`.
+  - INSERT d'un tournoi **joueur** (en attente) → notifie le **gérant** du club hôte (« à
+    valider ») **et l'opérateur** (« frais à encaisser », montant Wave).
+  - UPDATE `pending → published` (le club valide) → notifie l'**organisateur** (« Tournoi
+    validé ✅ »).
 
 La fonction lit la table + le type d'événement et envoie au bon destinataire (gérant du club,
-joueur, ou auteur de la réservation).
+joueur, auteur de la réservation, opérateur ou organisateur du tournoi).
 
 ## 5. Tester
 

@@ -193,6 +193,17 @@ export default function CompetitionDetail() {
         </View>
       ) : null}
 
+      {/* Frais PadelConnect (Wave) — visible par l'ORGANISATEUR d'un tournoi joueur, pour qu'il
+          sache qu'un montant est dû. PadelConnect le recontacte depuis l'Espace opérateur. */}
+      {comp.createdByMe && comp.organizerType === 'joueur' && (comp.commission ?? 0) > 0 && comp.status !== 'rejected' ? (
+        <View style={[styles.pendingBanner, { backgroundColor: colors.amberSoft }]}>
+          <Ionicons name="cash-outline" size={16} color={colors.amber} />
+          <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+            Frais d'organisation PadelConnect : {formatFee(`${comp.commission} FCFA`)}, à régler par Wave. PadelConnect te contactera.
+          </Txt>
+        </View>
+      ) : null}
+
       <Card style={{ marginTop: spacing.md }}>
         <Info icon="calendar-outline" label="Date" value={compDateLabel(comp)} />
         <Info icon="git-network-outline" label="Format" value={comp.format} />

@@ -8,9 +8,11 @@ import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } 
 import { CommissionRates } from '@/components/operator/CommissionRates';
 import { ManagerAccess } from '@/components/operator/ManagerAccess';
 import { TournamentFee } from '@/components/operator/TournamentFee';
+import { TournamentFees } from '@/components/operator/TournamentFees';
 import { NewsEditor } from '@/components/operator/NewsEditor';
 import { opStyles } from '@/components/operator/styles';
 import { activeClubs, clubs as baseClubs, findClub, manageableClubs } from '@/data/clubs';
+import { isTournamentPublic } from '@/data/competitions';
 import { canAccessOperator } from '@/lib/access';
 import { COMMISSION_RATE, isPlayed, useApp, type ServerClubRequest, type ServerSupportMessage } from '@/store/AppContext';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
@@ -228,6 +230,16 @@ export default function Operateur() {
   const allTimePlayedRes = state.reservations.filter((r) => isPlayed(r));
   const allTimePlayed = allTimePlayedRes.length;
   const allTimeCommission = Math.round(allTimePlayedRes.reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0));
+
+  // Tournois JOUEURS publiés avec un frais fixe → à encaisser (Wave). Non réglés d'abord,
+  // puis par date décroissante. On garde les réglés visibles (historique récent).
+  const playerTournamentsToBill = state.myCompetitions
+    .filter((c) => c.organizerType === 'joueur' && (c.commission ?? 0) > 0 && isTournamentPublic(c))
+    .sort((a, b) => {
+      const paidA = state.operatorPayments[`tourn:${a.id}`] === 'paid' ? 1 : 0;
+      const paidB = state.operatorPayments[`tourn:${b.id}`] === 'paid' ? 1 : 0;
+      return paidA - paidB || b.dateKey.localeCompare(a.dateKey);
+    });
 
   const totalCount = rows.reduce((s, r) => s + r.count, 0);
   const totalRevenue = rows.reduce((s, r) => s + r.revenue, 0);
@@ -482,6 +494,16 @@ export default function Operateur() {
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Frais des tournois joueurs" />
         <TournamentFee fee={state.tournamentFee} onSet={setTournamentFee} toast={toast} />
+      </View>
+
+      {/* Frais à encaisser (Wave) sur les tournois publiés par des joueurs. */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Tournois joueurs — à encaisser" />
+        <TournamentFees
+          comps={playerTournamentsToBill}
+          payments={state.operatorPayments}
+          onSetPaid={(id, paid) => setPaymentStatus('tourn', id, paid ? 'paid' : 'tofacture')}
+        />
       </View>
 
       {/* Demandes reçues sur le SERVEUR — un gérant a utilisé « Inscrire mon club ». */}
