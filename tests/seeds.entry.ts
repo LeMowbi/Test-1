@@ -51,21 +51,19 @@ check(
   'Autres clubs seeds : tarif unique (aucune plage)',
 );
 
-// 4. Tournois : inscrits ≤ places ; équipes de démo UNIQUES même tournoi plein (24).
-check(
-  seedCompetitions.every((c) => c.registered <= c.slots),
-  'Tournois seeds : registered ≤ slots',
-);
-const big = seedCompetitions.find((c) => c.slots === 24)!;
-const fullComp = { ...big, registered: 24 };
+// 4. Aucun tournoi de démo exposé (données réelles uniquement).
+check(seedCompetitions.length === 0, 'Aucun tournoi de démonstration embarqué (données réelles serveur)');
+
+// 5. Fonction pure demoTeams : équipes UNIQUES même sur un tournoi plein (24 > pool de 12).
+const fullComp = { id: 'synthetic-24', slots: 24, registered: 24 } as unknown as Parameters<typeof demoTeams>[0];
 const teams = demoTeams(fullComp);
 check(teams.length === teamCount(fullComp, false), `demoTeams : ${teams.length} équipes générées (tournoi plein)`);
 check(new Set(teams).size === teams.length, 'demoTeams : noms d’équipes TOUS uniques (pool 12 < 24 équipes)');
 
-// 5. Formats FCFA des seeds stables sous formatFee (déjà espacés → inchangés).
+// 6. formatFee : vide → « Gratuit », espace les milliers, et est idempotent (fonction pure).
 check(
-  seedCompetitions.every((c) => formatFee(c.fee) === c.fee && (!c.reward.trim() || formatFee(c.reward) === c.reward)),
-  'Frais/récompenses seeds déjà au format final (formatFee idempotent)',
+  formatFee('') === 'Gratuit' && /^5\s000$/u.test(formatFee('5000')) && formatFee(formatFee('5000')) === formatFee('5000'),
+  'formatFee : Gratuit + espacement des milliers + idempotent',
 );
 
 console.log(failed === 0 ? '\nTOUTES LES DONNÉES SEEDS SONT COHÉRENTES.' : `\n${failed} incohérence(s) seeds.`);

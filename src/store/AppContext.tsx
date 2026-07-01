@@ -272,7 +272,7 @@ type AppContextType = {
   // Réservation partagée : l'invité accepte (accept=true) ou refuse son invitation.
   respondInvitation: (reservationId: string, accept: boolean) => Promise<boolean>;
   confirmReservationByClub: (id: string) => Promise<boolean>;
-  addFriend: (name: string, phone: string, level?: number) => Promise<void>;
+  addFriend: (name: string, phone: string, level?: number) => Promise<{ ok: boolean }>;
   removeFriend: (id: string) => void;
   toggleFavorite: (clubId: string) => void;
   addClubPhoto: (clubId: string, uri: string) => Promise<void>;
@@ -282,7 +282,6 @@ type AppContextType = {
   addClubCoach: (clubId: string, name: string, specialty: string, phone: string) => void;
   removeClubCoach: (clubId: string, id: string) => void;
   setClubInfo: (clubId: string, patch: ClubInfo) => void;
-  toggleHideCoach: (coachId: string) => void;
   toggleBoostClub: (clubId: string) => void;
   setBoost: (clubId: string, days: number) => Promise<{ ok: boolean }>; // days > 0 active (expiration), 0 désactive — serveur
   setPaymentStatus: (clubId: string, weekKey: string, status: 'tofacture' | 'sent' | 'paid') => void;
@@ -461,7 +460,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             firstName: prof.first_name ?? s.account?.firstName ?? '',
             lastName: prof.last_name ?? s.account?.lastName ?? '',
             phone: prof.phone ?? s.account?.phone ?? '',
-            email: prof.email ?? s.account?.email,
+            // L'e-mail d'AUTHENTIFICATION fait foi (il change après « changer d'e-mail », pas
+            // profiles.email qui n'est renseigné qu'à la création) → on lit session.user.email.
+            email: session?.user?.email ?? prof.email ?? s.account?.email,
             photoUri: prof.photo_uri ?? s.account?.photoUri,
             birthDate: prof.birth_date ?? s.account?.birthDate,
             gender: prof.gender ?? s.account?.gender,
@@ -516,7 +517,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         pendingInvitationIds: pendingParts,
         // Amis synchronisés (le serveur fait foi). null = échec réseau → on garde le miroir.
         friends: friends ?? s.friends,
-        customClubs: mergeServerClubs(s.customClubs, serverClubs),
+        // null = échec réseau → on garde les clubs serveur déjà chargés (sinon ils disparaîtraient).
+        customClubs: serverClubs ? mergeServerClubs(s.customClubs, serverClubs) : s.customClubs,
         clubStatus: clubStatus ?? s.clubStatus,
         clubCommission: commissions ?? s.clubCommission, // vide pour les non-opérateurs (RLS)
         // Boosts serveur (visibles par tous) : actifs = ceux dont l'expiration est future.
@@ -598,7 +600,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Amis ajoutés/retirés sur un autre appareil : on relit pour garder la liste à jour.
       void fetchFriends().then((friends) => friends && ok() && setState((s) => ({ ...s, friends })));
       void fetchServerClubs().then(
-        (serverClubs) => ok() && setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) })),
+        (serverClubs) => serverClubs && ok() && setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) })),
       );
       // Statut piloté par l'opérateur (badges « Bientôt »/masquage de tout club) : on relit
       // pour refléter une bascule décidée sur un autre appareil sans réinstaller.
@@ -807,6 +809,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       signOut: () => {
+        // On efface d'ABORD le jeton push du profil sortant (session/RLS encore valides), sinon
+        // l'ancien compte continuerait de recevoir sur ce téléphone les notifs d'un autre compte.
+        const outgoing = state.serverUserId;
+        if (outgoing)
+          void supabase
+            .from('profiles')
+            .update({ expo_push_token: null })
+            .eq('id', outgoing)
+            .then(() => {});
         sessionEpochRef.current += 1; // invalide toute requête en vol du compte sortant
         supabase.auth.signOut().catch(() => {});
         void syncMatchReminders([], false); // on efface les rappels locaux du compte sortant
@@ -1119,19 +1130,21 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
         return true;
       },
-      addFriend: async (name, phone, level) => {
-        const n = name.trim();
-        if (n.length < 2) return;
-        // Persistance serveur : lien RÉEL (résolu par numéro), id stable d'un appareil à l'autre.
-        // On reprend le vrai nom/niveau renvoyés ; hors-ligne, on retombe sur un ajout local.
-        const synced = state.serverUserId ? await addFriendByPhone(phone) : null;
+      addFriend: async (name, phone) => {
+        // On n'ajoute QUE de vrais amis persistés côté serveur (id stable, partagé entre
+        // appareils). Hors session ou si le lien serveur échoue, on n'ajoute aucun ami fantôme
+        // local (qui serait silencieusement perdu à la 1ʳᵉ synchro) → l'appelant l'affiche.
+        if (name.trim().length < 2 || !state.serverUserId) return { ok: false };
+        const synced = await addFriendByPhone(phone);
+        if (!synced) return { ok: false };
         setState((s) => {
-          // Anti-doublon : même numéro (10 derniers chiffres) → on ne ré-ajoute pas.
+          // Anti-doublon : par id serveur stable, ou par numéro (10 derniers chiffres).
           const digits = phone.replace(/\D/g, '').slice(-10);
+          if (s.friends.some((f) => f.id === synced.id)) return s;
           if (digits.length >= 8 && s.friends.some((f) => (f.phone ?? '').replace(/\D/g, '').slice(-10) === digits)) return s;
-          const friend: Friend = synced ?? { id: uid(), name: n, phone: phone.trim() || undefined, level };
-          return { ...s, friends: [friend, ...s.friends] };
+          return { ...s, friends: [synced, ...s.friends] };
         });
+        return { ok: true };
       },
       removeFriend: (id) => {
         if (state.serverUserId) void removeFriendOnServer(id); // retrait serveur (idempotent)
@@ -1216,13 +1229,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (s.serverUserId) void upsertClubOverride(clubId, merged);
           return { ...s, clubInfo: { ...s.clubInfo, [clubId]: merged } };
         }),
-      toggleHideCoach: (coachId) =>
-        setState((s) => ({
-          ...s,
-          hiddenCoachIds: s.hiddenCoachIds.includes(coachId)
-            ? s.hiddenCoachIds.filter((x) => x !== coachId)
-            : [...s.hiddenCoachIds, coachId],
-        })),
       toggleBoostClub: (clubId) =>
         setState((s) => ({
           ...s,
@@ -1341,7 +1347,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const res = await approveClubRequestRpc(requestId);
         if (res.ok) {
           const serverClubs = await fetchServerClubs();
-          setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
+          if (serverClubs) setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
         }
         return res;
       },
@@ -1351,7 +1357,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const ok = await setClubStatusRpc(clubId, status);
         if (ok) {
           const serverClubs = await fetchServerClubs();
-          setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
+          if (serverClubs) setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
         }
         return { ok };
       },
@@ -1388,10 +1394,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           const serverClubs = await fetchServerClubs();
           setState((s) => ({
             ...s,
-            customClubs: mergeServerClubs(
-              s.customClubs.filter((c) => c.id !== clubId),
-              serverClubs,
-            ),
+            // Retrait local immédiat ; on refusionne la liste serveur seulement si elle a bien chargé.
+            customClubs: serverClubs
+              ? mergeServerClubs(
+                  s.customClubs.filter((c) => c.id !== clubId),
+                  serverClubs,
+                )
+              : s.customClubs.filter((c) => c.id !== clubId),
           }));
         }
         return { ok };
@@ -1401,7 +1410,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const res = await createClubRpc(input);
         if (res.ok) {
           const serverClubs = await fetchServerClubs();
-          setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
+          if (serverClubs) setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) }));
         }
         return res;
       },

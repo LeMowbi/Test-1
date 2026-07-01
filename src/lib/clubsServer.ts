@@ -130,9 +130,11 @@ type ClubRow = {
 
 // Clubs serveur visibles (actifs + « Bientôt ») → modèle local, fusionnés avec les clubs
 // de base. Les 'coming_soon' arrivent avec leur badge ; les 'hidden' restent exclus.
-export async function fetchServerClubs(): Promise<CustomClub[]> {
+// null = échec réseau (≠ [] = « aucun club serveur ») → l'appelant garde l'existant, sinon
+// une micro-coupure au premier plan ferait DISPARAÎTRE tous les clubs serveur de l'affichage.
+export async function fetchServerClubs(): Promise<CustomClub[] | null> {
   const { data, error } = await supabase.from('clubs').select('*').in('status', ['active', 'coming_soon']);
-  if (error) return [];
+  if (error) return null;
   return (data ?? []).map((row) => serverRowToClub(row as ClubRow));
 }
 

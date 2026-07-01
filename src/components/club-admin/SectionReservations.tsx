@@ -7,7 +7,7 @@ import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } 
 import { LegendDot } from '@/components/club-admin/LegendDot';
 import { QuickBlock } from '@/components/club-admin/QuickBlock';
 import { type Club } from '@/data/clubs';
-import { hasCompetition } from '@/lib/availability';
+import { competitionBlockedCourts, hasFullDayCompetition } from '@/lib/availability';
 import { dateKeyLabel, nextDays, weekKeyOf, weekLabel } from '@/lib/days';
 import { openWhatsApp } from '@/lib/contact';
 import { fetchCancelledReservations, fetchNoShowReservations, fetchReliability, type Reliability } from '@/lib/reservations';
@@ -112,11 +112,14 @@ export function SectionReservations({
   const courts = state.clubCourts[club.id] ?? [];
   const planTimes = [...openSlots].sort();
   const planDay = week.find((d) => d.key === planDayKey) ?? week[0];
-  const dayTournament = hasCompetition(club.id, planDay.key, comps);
-  // Statut d'UN terrain à un créneau — calculé depuis les données existantes (réservations
-  // app + blocages hors app), aucune logique de disponibilité nouvelle.
+  // « Jour bloqué entièrement » : seulement un tournoi PUBLIÉ sans terrains/créneaux précis.
+  // Un tournoi en attente/refusé, ou qui ne réserve que quelques terrains, ne ferme pas la grille.
+  const dayTournament = hasFullDayCompetition(club.id, planDay.key, comps);
+  // Statut d'UN terrain à un créneau — réservations app + blocages hors app + créneaux/terrains
+  // réellement réservés par un tournoi publié (pas toute la journée par défaut).
   const courtStatusAt = (court: string, time: string): 'reserved' | 'blocked' | 'tournoi' | 'free' => {
-    if (dayTournament) return 'tournoi';
+    const compBlocked = competitionBlockedCourts(club.id, planDay.key, time, comps);
+    if (compBlocked === 'all' || compBlocked.includes(court)) return 'tournoi';
     if (clubRes.some((r) => r.dateKey === planDay.key && r.time === time && r.court === court)) return 'reserved';
     if (clubBlocked.some((b) => b.dateKey === planDay.key && b.time === time && b.court === court)) return 'blocked';
     return 'free';
@@ -156,7 +159,7 @@ export function SectionReservations({
           days={week}
           times={openSlots}
           courts={courts}
-          dayHasTournament={(dKey) => hasCompetition(club.id, dKey, comps)}
+          dayHasTournament={(dKey) => hasFullDayCompetition(club.id, dKey, comps)}
           courtStatus={(dKey, time, court) => {
             const resa = clubRes.find((r) => r.dateKey === dKey && r.time === time && r.court === court);
             if (resa) return { state: 'reserved', label: resa.bookedBy?.name ?? 'Joueur' };

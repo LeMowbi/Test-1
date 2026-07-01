@@ -7,7 +7,6 @@ import { useToast } from '@/components/Toast';
 import { Button, Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { ClubInfoCard } from '@/components/club-admin/ClubInfoCard';
 import { type Club } from '@/data/clubs';
-import { coaches as allCoaches } from '@/data/coaches';
 import { MAX_CLUB_PHOTOS, useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
@@ -28,7 +27,6 @@ export function SectionMonClub({ club }: { club: Club }) {
     addClubCoach,
     removeClubCoach,
     setClubInfo,
-    toggleHideCoach,
   } = useApp();
   const toast = useToast();
 
@@ -46,7 +44,6 @@ export function SectionMonClub({ club }: { club: Club }) {
   const photos = state.clubPhotos[club.id] ?? [];
   const offers = state.clubOffers[club.id] ?? [];
   const coaches = state.clubCoaches[club.id] ?? [];
-  const seedClubCoaches = allCoaches.filter((c) => c.clubId === club.id);
   const boosted = state.boostedClubIds.includes(club.id);
 
   const toggleSlot = (t: string) => {
@@ -293,35 +290,6 @@ export function SectionMonClub({ club }: { club: Club }) {
                 </Pressable>
               </View>
             ))}
-            {/* Coachs déjà listés pour ce club (profils de démo) : retirables / réaffichables. */}
-            {seedClubCoaches.map((c) => {
-              const hidden = state.hiddenCoachIds.includes(c.id);
-              return (
-                <View key={c.id} style={styles.listRow}>
-                  <IconCircle
-                    icon="person"
-                    color={hidden ? colors.textFaint : colors.signature}
-                    bg={hidden ? colors.surfaceAlt : colors.greenSoft}
-                    size={36}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <Txt variant="body" style={{ fontWeight: '600', ...(hidden ? { color: colors.textFaint } : null) }}>
-                      {c.name}
-                    </Txt>
-                    <Txt variant="muted">
-                      {c.level}
-                      {hidden ? ' · retiré de ta page' : ''}
-                    </Txt>
-                  </View>
-                  <Button
-                    size="sm"
-                    label={hidden ? 'Réafficher' : 'Retirer'}
-                    variant={hidden ? 'secondary' : 'ghost'}
-                    onPress={() => toggleHideCoach(c.id)}
-                  />
-                </View>
-              );
-            })}
           </View>
         </Card>
       </View>

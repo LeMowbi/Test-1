@@ -2,10 +2,8 @@ import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { ClubPhoto } from './ClubPhoto';
-import { RatingStars } from './RatingStars';
 import { Card, Tag, Txt } from './ui';
 import { clubGallery, defaultCourts, type Club } from '@/data/clubs';
-import { ratingFor } from '@/data/reviews';
 import { useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
 import { colors, radius, spacing } from '@/theme';
@@ -17,7 +15,8 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const boosted = state.boostedClubIds.includes(club.id);
   const photo = clubGallery(club, state.clubPhotos[club.id] ?? [])[0];
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
-  const { rating, count } = ratingFor(club, state.userReviews);
+  // Les avis sont VÉRIFIÉS et serveur (affichés sur la fiche club). Tant qu'un club n'en a pas,
+  // la carte affiche « Nouveau » — jamais de note fabriquée (cohérent avec la fiche).
   const comingSoon = !!club.comingSoon; // club pré-chargé, pas encore réservable
   const go = () => router.push(`/club/${club.id}`);
 
@@ -53,18 +52,7 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           ) : null}
         </View>
         <View style={styles.compactFooter}>
-          {comingSoon ? (
-            <Tag label="Pas encore réservable" tone="neutral" />
-          ) : count === 0 ? (
-            <Tag label="Nouveau" tone="coral" icon="sparkles" />
-          ) : (
-            <View style={styles.ratingRow}>
-              <RatingStars value={rating} size={13} />
-              <Txt variant="small" color={colors.textMuted}>
-                {rating.toFixed(1)}
-              </Txt>
-            </View>
-          )}
+          {comingSoon ? <Tag label="Pas encore réservable" tone="neutral" /> : <Tag label="Nouveau" tone="coral" icon="sparkles" />}
           {/* Prix tronqué + flexShrink : sur une carte étroite (250px), il ne se colle plus à
               la note et ne déborde plus (« …· session » coupé). */}
           {comingSoon ? null : (
@@ -108,16 +96,7 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           </Txt>
         </View>
         <View style={styles.footer}>
-          {count === 0 ? (
-            <Tag label="Nouveau" tone="coral" icon="sparkles" />
-          ) : (
-            <View style={styles.ratingRow}>
-              <RatingStars value={rating} size={14} />
-              <Txt variant="small" color={colors.textMuted}>
-                {rating.toFixed(1)} ({count})
-              </Txt>
-            </View>
-          )}
+          <Tag label="Nouveau" tone="coral" icon="sparkles" />
           {comingSoon ? (
             <Txt variant="small" color={colors.purple} style={{ fontWeight: '700' }}>
               Pas encore réservable
@@ -156,6 +135,5 @@ const styles = StyleSheet.create({
   boostBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   areaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
-  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md },
 });

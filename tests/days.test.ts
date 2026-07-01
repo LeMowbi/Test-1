@@ -60,10 +60,11 @@ check(
   "30 juin → « Aujourd'hui 30 » · « Demain 1 » (bascule de mois)",
 );
 
-// 5) dateKey en heure LOCALE : une résa à 23h ne glisse JAMAIS au lendemain
-//    (piège UTC classique — getFullYear/getMonth/getDate sont locaux).
-check(dayKey(new Date(2026, 5, 12, 23, 0)) === '2026-06-12', 'dayKey(12 juin 23h locale) = 2026-06-12 (pas de glissement UTC)');
-check(dayKey(new Date(2026, 5, 12, 0, 0)) === '2026-06-12', 'dayKey(12 juin 00h locale) = 2026-06-12');
+// 5) dateKey en UTC FIXE (getUTC*) : le jour ne dépend PAS du fuseau de l'appareil — une résa
+//    conserve le même dateKey partout. Les tests tournent sous TZ=UTC (cf. script test:logic),
+//    donc le constructeur Date local ci-dessous coïncide avec l'heure UTC attendue.
+check(dayKey(new Date(2026, 5, 12, 23, 0)) === '2026-06-12', 'dayKey(12 juin 23h UTC) = 2026-06-12 (jour stable, indépendant du fuseau)');
+check(dayKey(new Date(2026, 5, 12, 0, 0)) === '2026-06-12', 'dayKey(12 juin 00h UTC) = 2026-06-12');
 
 // 6) Semaine calendaire lundi → dimanche : bornes exactes (base de la facturation).
 check(weekKeyOf(new Date(2026, 5, 14, 23, 59).getTime()) === '2026-06-08', 'Dimanche 14 juin 23:59 → semaine du lundi 8 juin');

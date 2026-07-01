@@ -231,6 +231,14 @@ export default function Operateur() {
   const allTimePlayed = allTimePlayedRes.length;
   const allTimeCommission = Math.round(allTimePlayedRes.reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0));
 
+  // Commission de la semaine EN COURS (indépendante du sélecteur ‹ › de la « Santé plateforme »,
+  // qui est un aperçu stable) — sinon naviguer vers une semaine passée changerait ce chiffre.
+  const thisWeekCommission = Math.round(
+    state.reservations
+      .filter((r) => weekKeyOf(r.startsAt) === thisWeek && isPlayed(r))
+      .reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0),
+  );
+
   // Tournois JOUEURS publiés avec un frais fixe → à encaisser (Wave). Non réglés d'abord,
   // puis par date décroissante. On garde les réglés visibles (historique récent).
   const playerTournamentsToBill = state.myCompetitions
@@ -358,7 +366,7 @@ export default function Operateur() {
           color={colors.green}
           bg={colors.greenSoft}
         />
-        <StatTile value={fcfa(totalCommission)} label="Commission semaine" color={colors.amber} bg={colors.amberSoft} />
+        <StatTile value={fcfa(thisWeekCommission)} label="Commission / 7 j" color={colors.amber} bg={colors.amberSoft} />
       </View>
 
       {/* Sélecteur de semaine ‹ › */}

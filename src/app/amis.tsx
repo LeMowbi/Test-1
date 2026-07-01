@@ -45,10 +45,15 @@ export default function AmisScreen() {
     }
   };
 
-  // Ajoute le joueur RÉEL trouvé (son vrai nom + niveau viennent du serveur).
-  const addFound = () => {
+  // Ajoute le joueur RÉEL trouvé (son vrai nom + niveau viennent du serveur). L'ajout n'est
+  // confirmé que si le lien a bien été enregistré côté serveur (sinon pas de faux succès).
+  const addFound = async () => {
     if (!found) return;
-    addFriend(found.name, phone, found.level);
+    const res = await addFriend(found.name, phone, found.level);
+    if (!res.ok) {
+      toast.show('Ajout impossible — réessaie dans un instant', { icon: 'alert-circle' });
+      return;
+    }
     toast.show(`${found.name} ajouté à tes amis ✓`);
     setPhone('');
     setFound(null);

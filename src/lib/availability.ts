@@ -3,7 +3,7 @@
 // et indexé sur la KEY stable du jour (AAAA-MM-JJ), jamais sur le libellé d'affichage.
 
 import { SAMPLE_SLOTS, defaultCourts, type Club } from '@/data/clubs';
-import type { Competition } from '@/data/competitions';
+import { isTournamentPublic, type Competition } from '@/data/competitions';
 import type { BlockedSlot, Reservation } from '@/store/AppContext';
 
 // Occupation cross-joueur : créneaux pris par TOUS (vue serveur, sans identité). Sert à
@@ -42,6 +42,7 @@ export function hasCompetition(clubId: string, dateKey: string, comps: Competiti
 export function hasFullDayCompetition(clubId: string, dateKey: string, comps: Competition[]): boolean {
   return comps.some(
     (c) =>
+      isTournamentPublic(c) && // un tournoi en attente / refusé ne bloque RIEN avant approbation
       c.clubId === clubId &&
       dateKey >= c.dateKey &&
       dateKey <= (c.endDateKey ?? c.dateKey) &&
@@ -52,9 +53,10 @@ export function hasFullDayCompetition(clubId: string, dateKey: string, comps: Co
 
 // Terrains bloqués par un tournoi à (club, jour, heure). 'all' = tout le club (tournoi sans
 // précision) ; sinon la liste des terrains réservés au tournoi à ce créneau précis.
-function competitionBlockedCourts(clubId: string, dateKey: string, time: string, comps: Competition[]): 'all' | string[] {
+export function competitionBlockedCourts(clubId: string, dateKey: string, time: string, comps: Competition[]): 'all' | string[] {
   const blocked = new Set<string>();
   for (const c of comps) {
+    if (!isTournamentPublic(c)) continue; // en attente / refusé → ne bloque aucun terrain
     if (c.clubId !== clubId) continue;
     if (!(dateKey >= c.dateKey && dateKey <= (c.endDateKey ?? c.dateKey))) continue;
     const courts = c.courtNames ?? [];

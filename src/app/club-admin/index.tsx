@@ -13,7 +13,7 @@ import { SectionReservations } from '@/components/club-admin/SectionReservations
 import { SectionTournois } from '@/components/club-admin/SectionTournois';
 import { clubsByName, findClub, manageableClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
-import { hasCompetition } from '@/lib/availability';
+import { hasFullDayCompetition } from '@/lib/availability';
 import { slotTimestamp } from '@/lib/days';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useApp } from '@/store/AppContext';
@@ -267,7 +267,7 @@ export default function ClubAdmin() {
         }}
       >
         {selectedCell ? (
-          hasCompetition(club.id, selectedCell.dateKey, comps) ? (
+          hasFullDayCompetition(club.id, selectedCell.dateKey, comps) ? (
             <View style={styles.banner}>
               <Ionicons name="trophy" size={16} color={colors.purple} />
               <Txt variant="small" color={colors.text} style={{ flex: 1 }}>

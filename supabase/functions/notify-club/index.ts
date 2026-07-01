@@ -70,8 +70,14 @@ Deno.serve(async (req) => {
         title: 'Réservation confirmée ✅',
         body: `${record.club_name ?? 'Le club'} a confirmé ton créneau du ${record.date_label ?? ''} à ${record.time ?? ''}.`,
       });
-    } else if (table === 'reservation_participants' && record.status === 'accepted') {
-      // Un invité a accepté → prévenir l'AUTEUR de la réservation (notif sociale).
+    } else if (
+      table === 'reservation_participants' &&
+      type === 'UPDATE' &&
+      record.status === 'accepted' &&
+      oldRecord.status !== 'accepted'
+    ) {
+      // Un invité vient d'ACCEPTER (transition → accepted) → prévenir l'AUTEUR (notif sociale).
+      // Garde de transition : sans elle, chaque UPDATE d'une ligne déjà 'accepted' renotifierait.
       const { data: resa } = await supabase.from('reservations').select('user_id').eq('id', record.reservation_id).maybeSingle();
       notifs.push({
         targets: await userToken(resa?.user_id ?? ''),
