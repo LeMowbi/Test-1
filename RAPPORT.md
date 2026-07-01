@@ -317,7 +317,8 @@ visible) — l'id est le résultat le plus récent (`closedAt` max) parmi tes in
 ### 3. Bandeau actu éditorialisable (opérateur)
 Bloc « Actualité de l'accueil » dans l'Espace opérateur (titre obligatoire, sous-titre,
 lien) → bandeau fermable en haut de l'accueil joueur ; fermeture mémorisée **par contenu**
-(nouvelle actu = nouvel id → réapparaît). Seed : « 🎾 FIP Gold Abidjan … » + padelfip.com.
+(nouvelle actu = nouvel id → réapparaît). **Aucune actu de démo par défaut** (`operatorNews: null`) :
+le contenu vient uniquement du serveur, écrit par l'opérateur.
 
 ### 4. ⚠ Nouvelle règle de niveau + Classement
 - Vainqueur officiel : **+0.50** (borné 7.0) ; textes mis à jour partout (grep ci-dessous).

@@ -79,7 +79,8 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
   l'écrire dans le dépôt).
 - Lancer : `EXPO_TOKEN=… npx eas-cli@latest build --platform ios --profile production
   --auto-submit --non-interactive --no-wait`.
-- **Dernier build : #28** (contient amis-demande, contacts, badge Partenaire, actu serveur, etc.).
+- **Dernier build : #33** (amis-demande, contacts, badge Partenaire, actu serveur, diagnostics,
+  Universal Links actifs, etc.).
 - Un module natif nouveau (ex. `expo-contacts`) ⇒ **nouveau build requis** + config plugin dans
   `app.json` avec la chaîne de permission.
 
@@ -124,13 +125,23 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
   club ; frais opérateur encaissés **après validation** du club (paiement Wave, notifié).
 - **Clubs fondateurs** : les **9 clubs seed** portent `partner: true` → badge **« Partenaire »**
   (carte + fiche). Les clubs inscrits ensuite ne l'ont pas.
+- **Coachs** : annuaire de coachs partenaires (`src/data/coaches.ts` : type `Coach`, `getCoach`,
+  `coachClubName`). Écrans `src/app/coachs/index.tsx` (liste, tri par `levelValue`) et
+  `src/app/coachs/[id].tsx` (fiche + contact WhatsApp/appel direct). Accès depuis la fiche club et
+  l'accueil. **Aucun profil fictif** : `coaches: Coach[] = []` au lancement (comme les tournois),
+  les vrais coachs sont ajoutés par les gérants (`clubCoaches`) ou en dur ici quand ils existent.
 
 ## 10. État actuel / à faire
 
-- **Build #28** livré (auto-submit TestFlight) : amis-demande, contacts, badge Partenaire, actu
-  serveur, uploads réparés, sécurité stockage, animations.
+- **Build #33** livré (auto-submit TestFlight) : amis-demande, contacts, badge Partenaire, actu
+  serveur, uploads réparés, sécurité stockage, animations, diagnostics, **Universal Links actifs**
+  (profil de provisioning régénéré avec « Associated Domains »).
 - Serveur appliqué le 2026-07-01 : SQL `30`/`31`/`32`, webhook `friend_requests`, redéploiement
   notify-club.
+- **⏳ Migrations serveur à confirmer côté porteur** (à coller dans SQL Editor → Run si pas déjà
+  fait) : `33_diagnostics.sql`, `34_level_integrity.sql`, `35_hardening3.sql`. `34` garantit
+  l'intégrité du niveau (anti-triche tournois) — **critique** : si non appliqué, l'invariant
+  serveur n'est pas en place.
 
 ### Feuille de route (décidée avec le porteur le 2026-07-01)
 
@@ -156,4 +167,5 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 - `docs/SERVEUR-*.md` — notes serveur (clubs, amis/boosts/fiabilité…).
 - `src/store/AppContext.tsx` — cœur de l'état + tous les appels serveur.
 - `src/data/clubs.ts` — les 9 clubs fondateurs + modèle Club.
+- `src/data/coaches.ts` — annuaire des coachs (modèle `Coach`, vide au lancement) + écrans `src/app/coachs/`.
 - `supabase/` — toutes les migrations (numérotées) et l'Edge Function.
