@@ -1,0 +1,3 @@
+# Utilisateur SANS l'app : un lien /invite/CODE ouvert dans le navigateur → page de téléchargement
+# App Store. (Avec l'app installée, iOS ouvre directement l'app AVANT d'atteindre cette redirection.)
+/invite/*  https://apps.apple.com/app/id6785261310  302

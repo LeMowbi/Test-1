@@ -8,14 +8,14 @@ import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
 import { Button, Card, IconCircle, StatTile, Txt } from '@/components/ui';
 import { openWhatsApp } from '@/lib/contact';
-import { fetchReferralCount, referralCodeForUser } from '@/lib/referrals';
+import { fetchReferralCount, inviteUrl, referralCodeForUser } from '@/lib/referrals';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
-// Lien d'invitation : la fiche App Store de PadelConnect (id App Store Connect 6785261310).
-// L'ami tape dessus → page de téléchargement de l'app (au lieu de l'ancienne page GitHub).
-const APP_URL = 'https://apps.apple.com/app/id6785261310';
+// Lien d'invitation : Universal Link padelconnectci.com/invite/CODE — ouvre DIRECTEMENT l'app si
+// installée (code pré-rempli), sinon la page redirige vers l'App Store. Repli sans code : App Store.
+const APP_STORE_URL = 'https://apps.apple.com/app/id6785261310';
 
 // Parrainage : chaque joueur connecté a un CODE unique. Son filleul le saisit à
 // l'inscription → le lien parrain→filleul est créé côté serveur, et le compteur ci-dessous
@@ -49,10 +49,12 @@ export default function ParrainageScreen() {
     };
   }, [state.serverUserId]);
 
+  // Avec un code : lien direct qui ouvre l'app (code auto-rempli). Sans code : simple App Store.
+  const link = myCode ? inviteUrl(myCode) : APP_STORE_URL;
   const message =
     `Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes.` +
-    (myCode ? `\nÀ l'inscription, mets mon code de parrainage : ${myCode}` : '') +
-    `\n${APP_URL}`;
+    (myCode ? `\nMon code de parrainage : ${myCode}` : '') +
+    `\n${link}`;
 
   const invite = () => openWhatsApp('', message);
   const shareMore = () => Share.share({ message }).catch(() => {});

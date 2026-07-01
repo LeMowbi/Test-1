@@ -1,39 +1,42 @@
-# Universal Links — ouvrir l'app depuis un lien web (iOS)
+# Universal Links & site padelconnectci.com
 
-Objectif : quand quelqu'un tape ton lien de parrainage (ou un lien de club), l'**app s'ouvre
-directement** si elle est installée, au lieu de passer par le navigateur / l'App Store.
+Objectif : un lien `https://padelconnectci.com/invite/CODE` **ouvre directement l'app** si elle est
+installée (le code de parrainage se pré-remplit tout seul), sinon la page renvoie vers l'App Store.
 
-Cela nécessite un **domaine que tu contrôles** en HTTPS (ex. `padelconnect.com` ou
-`app.padelconnect.com`). Dis-moi le domaine choisi → je finalise la config de l'app et on rebuild.
+Domaine : **padelconnectci.com** (acheté sur Cloudflare). Identifiant d'app :
+**`R77YWZ9487.ci.padelco.app`**.
 
-## Ce qui est déjà prêt
-- Ton identifiant d'app : **`R77YWZ9487.ci.padelco.app`** (Team ID + bundle).
-- Le fichier Apple **`docs/apple-app-site-association`** (déclare que ce domaine ouvre ton app).
+## Côté app — DÉJÀ FAIT ✅
+- `app.json` → `associatedDomains: ["applinks:padelconnectci.com"]`.
+- Route entrante `/invite/[code]` → met le code de côté et pré-remplit l'inscription.
+- Lien de parrainage = `padelconnectci.com/invite/CODE` (repli App Store si pas d'app).
 
-## Étapes (une fois le domaine choisi)
+## Côté hébergement — À FAIRE (toi, sur Cloudflare Pages)
 
-### 1. Héberger le fichier Apple (toi / ton hébergeur)
-Déposer le fichier `apple-app-site-association` (SANS extension) à l'adresse EXACTE :
+Le dossier **`site/`** du dépôt contient tout, prêt à déployer :
 ```
-https://padelconnect.com/.well-known/apple-app-site-association
+site/
+  .well-known/apple-app-site-association   ← fichier Apple (déclare que le domaine ouvre l'app)
+  _headers                                 ← force le bon type MIME du fichier Apple
+  _redirects                               ← /invite/* → App Store (visiteurs sans l'app)
+  index.html                               ← page d'accueil du site
+  privacy.html                             ← politique de confidentialité (pour l'App Store)
 ```
-Contraintes Apple (importantes) :
-- Servi en **HTTPS** valide, **sans redirection**.
-- **Content-Type: `application/json`**.
-- Pas d'extension de fichier `.json`.
 
-### 2. Déclarer le domaine dans l'app (moi)
-J'ajoute dans `app.json` (iOS) :
-```json
-"associatedDomains": ["applinks:padelconnect.com"]
-```
-et je fais pointer le lien de parrainage vers `https://padelconnect.com/invite/CODE` (au lieu du lien
-App Store actuel), tout en gardant l'App Store en repli si l'app n'est pas installée.
+### Déployer (2 façons)
+- **A — Glisser-déposer (le plus simple)** : Cloudflare → **Workers & Pages** → *Create* → *Pages* →
+  *Upload assets* → glisse le **contenu du dossier `site/`** → *Deploy*. Puis **Custom domains** →
+  ajoute `padelconnectci.com`.
+- **B — Connecter le dépôt GitHub** : Cloudflare Pages → *Connect to Git* → dépôt `PadelConnect` →
+  *Build output directory* = `site` → Deploy. (Se met à jour tout seul à chaque push.)
 
-### 3. Rebuild + test (moi + toi)
-- Nouveau build EAS (les Universal Links exigent l'entitlement → build requis).
-- Test sur un iPhone : ouvrir le lien depuis Notes/WhatsApp → l'app s'ouvre sur le bon écran.
+### Vérifier
+- `https://padelconnectci.com/.well-known/apple-app-site-association` s'ouvre et renvoie du JSON.
+- `https://padelconnectci.com/invite/TEST` (dans un navigateur, sans l'app) redirige vers l'App Store.
 
-## Repli tant qu'il n'y a pas de domaine
-Le parrainage continue de marcher avec le lien **App Store** actuel (l'ami installe puis saisit le
-code). Les Universal Links ne font qu'améliorer ce parcours.
+## Dernière étape — un nouveau build
+Les Universal Links exigent l'entitlement `associatedDomains` → il faut un **nouveau build EAS**
+(#29) APRÈS que le fichier Apple est en ligne. Test final sur iPhone : ouvrir un lien
+`padelconnectci.com/invite/CODE` depuis Notes/WhatsApp → l'app s'ouvre, code pré-rempli.
+
+> Ordre conseillé : (1) déployer `site/` sur Cloudflare Pages + domaine → (2) je lance le build #29.

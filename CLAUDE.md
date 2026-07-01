@@ -134,15 +134,16 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 
 - ✅ **Stats club** (revenu + créneaux creux) — fait.
 - ✅ **Skeletons** de chargement — fait (`src/components/Skeleton.tsx`).
-- ✅ **Conformité App Store** (confidentialité) — `docs/privacy.html` +
-  `docs/APP-STORE-CONFORMITE.md` (le porteur doit héberger l'URL + remplir App Privacy).
+- ✅ **Conformité App Store** (confidentialité) — `site/privacy.html` +
+  `docs/APP-STORE-CONFORMITE.md` (le porteur héberge le site + remplit App Privacy).
 - ✅ **Suivi bugs + usage** (idée 3) — fait, **self-hosted** (choix du porteur) : `33_diagnostics.sql`
   (app_errors + app_events), `src/lib/diagnostics.ts` (logError/track), ErrorBoundary racine +
   handler global. Anonyme, lecture opérateur uniquement. Le porteur doit lancer `33_diagnostics.sql`.
-- ⏳ **Universal Links** (idée 6) — domaine choisi : **padelconnect.com** (à acheter par le porteur,
-  ex. Cloudflare/Namecheap + hébergement de l'AASA et d'une page `/invite`). AASA + guide prêts
-  (`docs/apple-app-site-association`, `docs/UNIVERSAL-LINKS.md`). **En attente que le domaine soit
-  actif + hébergé** pour finaliser côté app (associatedDomains + lien parrainage + rebuild).
+- ⏳ **Universal Links** (idée 6) — domaine **padelconnectci.com** (acheté, Cloudflare). Côté APP
+  fait : `associatedDomains` (app.json), route `/invite/[code]` + pré-remplissage du code
+  (`pendingReferral`), lien de parrainage → `padelconnectci.com/invite/CODE` (repli App Store).
+  Reste : le porteur déploie le dossier **`site/`** sur Cloudflare Pages (AASA + `_headers` +
+  `_redirects` + privacy.html), PUIS build #29. Guide : `docs/UNIVERSAL-LINKS.md`.
 - 🔒 **Programme de fidélité** (idée 5) — **gardé pour plus tard** (X parties jouées = récompense).
 - ❌ **Paiement en ligne** (idée 7) — pas pour l'instant.
 - Autres post-lancement : vrai SMTP de confirmation, perf, éventuel kit `PlanningGrid`.

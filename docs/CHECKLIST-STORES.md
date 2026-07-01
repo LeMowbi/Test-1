@@ -15,10 +15,10 @@
 - [ ] (Plus tard, version connectée) **Supabase** + fournisseur **SMS** — voir GUIDE-LANCEMENT.md (chantier §B serveur).
 
 ## 2. Éléments légaux (obligatoires)
-- [x] **Politique de confidentialité** rédigée : `docs/privacy.html` (page autonome, reflète le
+- [x] **Politique de confidentialité** rédigée : `site/privacy.html` (page autonome, reflète le
       fonctionnement réel — compte, photos, contacts, notifications). ✅
-- [ ] **L'héberger à une URL publique** et la coller dans App Store Connect + Play Console
-      → étapes détaillées dans **`docs/APP-STORE-CONFORMITE.md`**.
+- [ ] **L'héberger** (dossier `site/` sur Cloudflare Pages → `https://padelconnectci.com/privacy.html`)
+      et la coller dans App Store Connect + Play Console → détails dans **`docs/APP-STORE-CONFORMITE.md`**.
 - [x] **CGU / Mentions légales** : dans l'app (écran « Mentions légales & CGU »), à jour. ✅
 - [ ] Étiquettes **App Privacy** (déclaration des données) : réponses exactes prêtes dans
       **`docs/APP-STORE-CONFORMITE.md`** §2.

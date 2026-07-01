@@ -5,8 +5,7 @@
         "appIDs": ["R77YWZ9487.ci.padelco.app"],
         "components": [
           { "/": "/invite/*", "comment": "Liens de parrainage" },
-          { "/": "/club/*", "comment": "Fiche club partagée" },
-          { "/": "/*", "comment": "Repli : tout autre lien ouvre l'app" }
+          { "/": "/club/*", "comment": "Fiche club partagée" }
         ]
       }
     ]

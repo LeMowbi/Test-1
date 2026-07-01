@@ -4,6 +4,11 @@
 
 import { supabase } from './supabase';
 
+// Domaine de l'app (Universal Links) : un lien /invite/CODE ouvre DIRECTEMENT l'app si elle est
+// installée (le code se pré-remplit à l'inscription), sinon la page redirige vers l'App Store.
+export const APP_DOMAIN = 'https://padelconnectci.com';
+export const inviteUrl = (code: string) => `${APP_DOMAIN}/invite/${code}`;
+
 // Code lisible dérivé du userId Supabase (12 hex en MAJUSCULES → 48 bits, collision
 // négligeable). Déterministe → régénérable sans stockage côté app ; stocké côté serveur
 // pour la résolution du code à l'inscription.

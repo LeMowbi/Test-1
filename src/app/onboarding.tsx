@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useRouter } from 'expo-router';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Chip } from '@/components/Chip';
@@ -10,6 +10,7 @@ import { LevelStepper } from '@/components/LevelStepper';
 import { Logo } from '@/components/Logo';
 import { Button, Txt } from '@/components/ui';
 import { levelLabel } from '@/lib/format';
+import { clearPendingReferral, getPendingReferral } from '@/lib/pendingReferral';
 import { pickImage } from '@/lib/pickImage';
 import { GENDERS, ageFrom, maskBirthDate, parseBirthDate, zodiacFor, type Gender } from '@/lib/zodiac';
 import { useApp } from '@/store/AppContext';
@@ -34,6 +35,20 @@ export default function Onboarding() {
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [lvl, setLvl] = useState(3.0);
   const [referralCode, setReferralCode] = useState(''); // parrainage (facultatif)
+  // Code capté via un lien d'invitation (padelconnectci.com/invite/CODE) → pré-remplissage.
+  // setState APRÈS await (pas dans le corps de l'effet) pour respecter le React Compiler.
+  useEffect(() => {
+    let alive = true;
+    void getPendingReferral().then((code) => {
+      if (alive && code) {
+        setReferralCode(code);
+        clearPendingReferral();
+      }
+    });
+    return () => {
+      alive = false;
+    };
+  }, []);
   // Erreurs par champ — affichées au tap sur « Créer mon profil » (aucun tap silencieux).
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [busy, setBusy] = useState(false);

@@ -5,17 +5,14 @@ technique : ce sont des cases à cocher et une URL à coller.
 
 ## 1. La politique de confidentialité (URL publique — obligatoire)
 
-Apple exige une **URL publique** qui ouvre la politique de confidentialité. Elle est prête :
-`docs/privacy.html` (page autonome, lisible telle quelle).
+Apple exige une **URL publique** qui ouvre la politique de confidentialité. Elle est prête dans
+`site/privacy.html` et se déploie avec le site (voir `docs/UNIVERSAL-LINKS.md`).
 
-**L'héberger (2 options simples) :**
-- **Option A — GitHub Pages (gratuit, recommandé).** Dans le dépôt `LeMowbi/PadelConnect` →
-  Settings → Pages → Source. Si Pages sert le dossier `/docs` de la branche `main`, l'URL sera :
-  `https://lemowbi.github.io/PadelConnect/privacy.html`.
-- **Option B — n'importe quel hébergeur** (Netlify, Vercel, ton site) : mets-y le fichier
-  `privacy.html` et récupère son URL.
-
-> Dis-moi ta config GitHub Pages et je te confirme l'URL exacte à utiliser.
+Une fois le dossier `site/` déployé sur **Cloudflare Pages** avec le domaine **padelconnectci.com**,
+l'URL à utiliser sera :
+```
+https://padelconnectci.com/privacy.html
+```
 
 **Où la coller :** App Store Connect → ton app → **App Privacy** → *Privacy Policy URL* ; et aussi
 dans la fiche de l'app (App Information → Privacy Policy URL). Même URL côté Google Play plus tard.
