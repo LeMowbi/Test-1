@@ -4,6 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { PopIn } from '@/components/PopIn';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { StickyBar } from '@/components/StickyBar';
@@ -153,9 +154,11 @@ export default function ReserverScreen() {
       <Screen back title="Réservation">
         {/* En-tête de succès — dégradé signature pour un retour premium et clair. */}
         <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.successHero}>
-          <View style={styles.successBadge}>
-            <Ionicons name="checkmark" size={36} color={colors.onSignature} />
-          </View>
+          <PopIn>
+            <View style={styles.successBadge}>
+              <Ionicons name="checkmark" size={36} color={colors.onSignature} />
+            </View>
+          </PopIn>
           <Txt variant="h2" color={colors.onSignature} style={{ marginTop: spacing.md }}>
             Terrain réservé !
           </Txt>

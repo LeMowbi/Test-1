@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { PopIn } from '@/components/PopIn';
 import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
 import { Button, Card, IconCircle, Txt } from '@/components/ui';
@@ -58,7 +59,9 @@ export default function InscrireClub() {
     return (
       <Screen back title="Inscrire mon club">
         <Card style={{ marginTop: spacing.md, alignItems: 'center', paddingVertical: spacing.xl, gap: spacing.sm }}>
-          <IconCircle icon="checkmark-circle" color={colors.green} bg={colors.greenSoft} size={56} />
+          <PopIn>
+            <IconCircle icon="checkmark-circle" color={colors.green} bg={colors.greenSoft} size={56} />
+          </PopIn>
           <Txt variant="h2" style={{ textAlign: 'center' }}>
             Demande reçue !
           </Txt>

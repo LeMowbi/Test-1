@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useRouter } from 'expo-router';
-import { Pressable, StyleSheet, View } from 'react-native';
+import { useRef } from 'react';
+import { Animated, Pressable, StyleSheet, View } from 'react-native';
 import { ClubPhoto } from './ClubPhoto';
 import { Card, Tag, Txt } from './ui';
 import { clubGallery, defaultCourts, type Club } from '@/data/clubs';
@@ -22,16 +23,22 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const partner = !!club.partner && !comingSoon; // club fondateur (partenaire officiel)
   const go = () => router.push(`/club/${club.id}`);
 
+  // Petit « pop » élastique du cœur au (dé)favori — micro-interaction satisfaisante.
+  const heartScale = useRef(new Animated.Value(1)).current;
+  const onHeart = () => {
+    hapticLight();
+    Animated.sequence([
+      Animated.spring(heartScale, { toValue: 1.35, useNativeDriver: true, speed: 50, bounciness: 14 }),
+      Animated.spring(heartScale, { toValue: 1, useNativeDriver: true, speed: 40, bounciness: 10 }),
+    ]).start();
+    toggleFavorite(club.id);
+  };
+
   const heart = (
-    <Pressable
-      onPress={() => {
-        hapticLight(); // petit retour tactile satisfaisant au (dé)favori
-        toggleFavorite(club.id);
-      }}
-      hitSlop={8}
-      style={styles.heart}
-    >
-      <Ionicons name={fav ? 'heart' : 'heart-outline'} size={18} color={fav ? colors.danger : colors.white} />
+    <Pressable onPress={onHeart} hitSlop={8} style={styles.heart}>
+      <Animated.View style={{ transform: [{ scale: heartScale }] }}>
+        <Ionicons name={fav ? 'heart' : 'heart-outline'} size={18} color={fav ? colors.danger : colors.white} />
+      </Animated.View>
     </Pressable>
   );
 
