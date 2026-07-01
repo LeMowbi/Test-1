@@ -9,28 +9,22 @@ Apple à la main — Expo route vers Apple (APNs) et Google (FCM).
 
 Exécuter **`supabase/16_push_token.sql`** (ajoute la colonne `expo_push_token`).
 
-## 2. Identifiants push (une seule fois)
+## 2. Identifiants push (RIEN à faire — automatique)
 
-Dans un terminal, à la racine du projet :
+**Aucune manipulation, aucun terminal.** La clé APNs (iOS) est **créée et gérée automatiquement
+par EAS au moment du build** (l'assistant lance les builds). Les builds #27+ l'ont déjà en place.
+(Android/FCM : à configurer plus tard, le jour d'une sortie Play Store.)
 
-```bash
-# Génère/charge la clé APNs (iOS) et la clé FCM (Android) côté Expo
-eas credentials
-```
+## 3. Déployer la fonction d'envoi (SANS terminal — Dashboard)
 
-Choisis la plateforme iOS → « Push Notifications » → laisse EAS créer/gérer la clé APNs.
-(Pour Android plus tard : configure FCM de la même manière.)
+La fonction est dans `supabase/functions/notify-club/`. On la déploie depuis le **Dashboard**,
+pas en ligne de commande :
 
-> Avec EAS, les credentials push sont gérés automatiquement au build — en général il n'y a
-> rien d'autre à faire que de builder l'app une fois ces clés en place.
-
-## 3. Déployer la fonction d'envoi
-
-La fonction est dans `supabase/functions/notify-club/`. Déploie-la :
-
-```bash
-supabase functions deploy notify-club
-```
+1. Dashboard Supabase → **Edge Functions** → clique **notify-club**.
+2. Bouton **Edit** (éditeur de code).
+3. **Tout sélectionner / supprimer**, puis **coller** le contenu à jour de
+   `supabase/functions/notify-club/index.ts` (l'assistant peut te le fournir prêt à coller).
+4. **Deploy**.
 
 (Les variables `SUPABASE_URL` et `SUPABASE_SERVICE_ROLE_KEY` sont injectées automatiquement
 par Supabase dans la fonction — rien à configurer.)
