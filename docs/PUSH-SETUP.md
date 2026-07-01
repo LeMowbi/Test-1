@@ -63,6 +63,18 @@ Dashboard Supabase → **Database → Webhooks** → *Create a new hook* :
 La fonction lit la table + le type d'événement et envoie au bon destinataire (gérant du club,
 joueur, auteur de la réservation, opérateur, organisateur du tournoi, ou ami invité).
 
+## 4 bis. (Recommandé) Sécuriser le webhook
+
+La fonction `notify-club` peut désormais exiger un secret pour refuser les appels non légitimes
+(quelqu'un pourrait sinon déclencher des push en appelant l'URL) :
+1. Dashboard → **Edge Functions → notify-club → Settings → Secrets/Env** : ajoute
+   `WEBHOOK_SECRET` = une longue valeur aléatoire.
+2. Pour CHAQUE Database Webhook qui appelle `notify-club` : ajoute un **HTTP header**
+   `x-webhook-secret` avec la MÊME valeur.
+
+Tant que `WEBHOOK_SECRET` n'est pas défini, la fonction marche comme avant (compat). Une fois
+défini, tout appel sans le bon en-tête reçoit **401**.
+
 ## 5. Tester
 
 1. Installe un **build EAS** sur un vrai téléphone (les push ne marchent pas dans le

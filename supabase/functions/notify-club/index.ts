@@ -23,6 +23,14 @@ type Notif = { targets: string[]; title: string; body: string };
 
 Deno.serve(async (req) => {
   try {
+    // Authenticité du webhook : si WEBHOOK_SECRET est configuré (variable d'env de la fonction),
+    // on exige l'en-tête `x-webhook-secret` correspondant → refuse les appels arbitraires qui
+    // pourraient déclencher des push. Tant que le secret n'est pas posé, comportement inchangé.
+    const expectedSecret = Deno.env.get('WEBHOOK_SECRET');
+    if (expectedSecret && req.headers.get('x-webhook-secret') !== expectedSecret) {
+      return new Response('unauthorized', { status: 401 });
+    }
+
     const payload = await req.json();
     // Webhook Supabase : { type, table, record, old_record }
     const record = payload.record ?? {};
@@ -137,11 +145,29 @@ Deno.serve(async (req) => {
     const messages = notifs.flatMap((n) => n.targets.map((to) => ({ to, title: n.title, body: n.body, sound: 'default' })));
     if (messages.length === 0) return new Response('no targets', { status: 200 });
 
-    await fetch(EXPO_PUSH, {
+    const pushRes = await fetch(EXPO_PUSH, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Accept: 'application/json' },
       body: JSON.stringify(messages),
     });
+
+    // On LIT la réponse d'Expo : les jetons d'appareils désinstallés (DeviceNotRegistered) sont
+    // purgés en base → on n'accumule pas de jetons morts et on cesse d'envoyer dans le vide.
+    try {
+      const json = await pushRes.json();
+      const tickets = Array.isArray(json?.data) ? json.data : [];
+      const dead: string[] = [];
+      tickets.forEach((t: { status?: string; details?: { error?: string } }, i: number) => {
+        if (t?.status === 'error' && t?.details?.error === 'DeviceNotRegistered' && messages[i]?.to) {
+          dead.push(messages[i].to);
+        }
+      });
+      if (dead.length > 0) {
+        await supabase.from('profiles').update({ expo_push_token: null }).in('expo_push_token', dead);
+      }
+    } catch {
+      // réponse illisible : on ignore (best-effort, ne bloque pas la fonction).
+    }
 
     return new Response('ok', { status: 200 });
   } catch (e) {

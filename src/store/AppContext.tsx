@@ -275,7 +275,6 @@ type AppContextType = {
   // Suppression définitive du compte (exigence App Store / Google Play).
   deleteAccount: () => Promise<{ ok: boolean; error?: string }>;
   signOut: () => void;
-  setLevel: (n: number) => void;
   closeCompetition: (
     comp: { id: string; title: string; official?: boolean },
     winnerName: string,
@@ -422,24 +421,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     remindersOnRef.current = state.remindersOn;
   }, [state.remindersOn]);
 
-  // Persistance SERVEUR du niveau : il évolue avec les tournois officiels (clôture / gain
-  // détecté au rafraîchissement). On ne pousse QUE quand le profil du compte courant a été
-  // hydraté (levelHydratedUserRef == uid) — sinon un démarrage / changement de compte poussait
-  // 3.0 AVANT de connaître le vrai niveau serveur, l'écrasant définitivement en cas d'échec réseau.
-  const levelSyncRef = useRef<number | null>(null);
-  const levelHydratedUserRef = useRef<string | null>(null);
-  useEffect(() => {
-    const uid = state.serverUserId;
-    if (!uid) {
-      levelSyncRef.current = null; // déconnexion → on réarme pour le prochain compte
-      levelHydratedUserRef.current = null;
-      return;
-    }
-    if (levelHydratedUserRef.current !== uid) return; // profil pas encore chargé → on ne pousse rien
-    if (levelSyncRef.current === state.level) return;
-    levelSyncRef.current = state.level;
-    void supabase.from('profiles').update({ level: state.level }).eq('id', uid);
-  }, [state.level, state.serverUserId]);
+  // NOTE : le NIVEAU n'est JAMAIS écrit par le client. Il est attribué uniquement côté serveur
+  // dans close_competition (tournois officiels) et protégé en base par le trigger protect_level
+  // (34_level_integrity.sql) — anti-triche. Le client se contente de LIRE `level` (loadSession,
+  // reread après clôture) et de l'afficher.
 
   // « Époque » de session : incrémentée à chaque déconnexion / réinitialisation. Toute
   // requête en vol (loadSession, rafraîchissement au premier plan) capture l'époque au
@@ -506,10 +491,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           serverManagedClubId: prof.managed_club_id ?? null,
           level: hydratedLevel,
         }));
-        // Le niveau du compte courant est désormais connu : on arme la synchro (le ref reflète
-        // la valeur serveur → aucun push tant qu'un tournoi ne l'a pas réellement modifié).
-        levelSyncRef.current = hydratedLevel;
-        levelHydratedUserRef.current = userId;
         // Photo choisie à l'inscription (mise de côté avant confirmation e-mail) : si le serveur
         // n'a pas encore d'avatar, on l'envoie maintenant que la session existe, puis on efface.
         if (!prof.photo_uri) {
@@ -941,7 +922,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState(loggedOutState);
         return { ok: true };
       },
-      setLevel: (n) => setState((s) => ({ ...s, level: clampLevel(n) })),
       // Clôture par l'ORGANISATEUR (ou le club hôte) : fige le vainqueur + podium. Le NIVEAU des
       // joueurs inscrits est attribué UNE SEULE FOIS côté serveur (close_competition, tournois
       // officiels) → jamais recalculé côté client (pas de double attribution à la réinstallation).
@@ -957,17 +937,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           });
           if (!ok) return; // le serveur a refusé (droits)
           if (state.serverUserId) {
-            // Rejoue clôture + palmarès depuis le serveur, puis relit MON niveau (mis à jour côté
-            // serveur si j'ai gagné/perdu) pour l'afficher immédiatement. On ATTEND la lecture (au
-            // lieu d'un .then() détaché) et on arme levelSyncRef sur la valeur serveur : ainsi
-            // l'effet de synchro ne re-pousse pas ce niveau (déjà à jour côté serveur).
+            // Rejoue clôture + palmarès depuis le serveur, puis relit MON niveau (attribué côté
+            // serveur si j'ai gagné/perdu) pour l'afficher immédiatement. Lecture ATTENDUE (pas un
+            // .then() détaché) et gardée par l'époque de session (pas d'écriture tardive).
             const uid = state.serverUserId;
             await refreshCompetitions(uid);
             const { data } = await supabase.from('profiles').select('level').eq('id', uid).maybeSingle();
             if (data && sessionEpochRef.current === epoch) {
-              const lvl = clampLevel(Number(data.level ?? state.level));
-              levelSyncRef.current = lvl;
-              setState((s) => ({ ...s, level: lvl }));
+              setState((s) => ({ ...s, level: clampLevel(Number(data.level ?? state.level)) }));
             }
           }
           return;
