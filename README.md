@@ -1,80 +1,99 @@
 # PadelConnect 🎾 — l'app du padel à Abidjan
 
-Application mobile (iOS + Android, et web) pour **réserver un terrain de padel à Abidjan, trouver
-un partenaire / adversaire / coéquipier, trouver un coach, organiser des compétitions** et suivre
-ses résultats. Conçue avec un design sobre « luxe + sport ».
+Application mobile (iOS, Expo/React Native) pour **réserver un terrain de padel à Abidjan,
+s'inscrire à des tournois, jouer entre amis et trouver un coach**. Design « luxe sportif »
+(vert signature, crème, or). Espace dédié pour les **gérants de clubs** et console pour
+**l'opérateur** de la plateforme.
 
-> **Statut : application connectée (bêta TestFlight)** — serveur central **Supabase** en place :
-> comptes (téléphone + mot de passe, **sans SMS**), réservations partagées entre appareils,
-> parrainage, et sécurité par rôle (joueur / club / opérateur) via Row Level Security. L'app sert à
-> **réserver**, **sans paiement en ligne** (le tarif se règle au club). Migrations SQL dans
-> `supabase/` (ordre : `schema` → `02_roles` → `03_reservations` → `04_referrals`). Pour la
-> stratégie et la mise en ligne, voir **[STRATEGIE.md](./STRATEGIE.md)** et
-> **[GUIDE-LANCEMENT.md](./GUIDE-LANCEMENT.md)**.
+> **Statut : production (TestFlight, build #34+)** — backend **Supabase** : comptes par e-mail
+> (confirmation par lien, mot de passe oublié in-app), réservations cross-device, tournois réels
+> validés par les clubs, avis vérifiés, demandes d'ami avec notifications push, parrainage avec
+> **Universal Links** (padelconnectci.com). **Sans paiement en ligne** : le tarif se règle au club.
+> Sécurité par rôle (joueur / club / opérateur) via Row Level Security ; migrations SQL numérotées
+> `02` → `37` dans `supabase/` (à appliquer dans l'ordre — voir CLAUDE.md).
 
-## Fonctionnalités (toutes présentes ✅)
+## Fonctionnalités
 
-- **Création de compte** : prénom, nom, numéro de téléphone (+225), photo optionnelle.
-- **Réservation par créneau** : parcours **jour → créneau horaire → club disponible → terrain**,
-  calculée **terrain par terrain** (pas de double-réservation). **Sans paiement en ligne** : le tarif
-  (indicatif) se règle directement au club.
-- **Tous les clubs réels** d'Abidjan, présentés **à égalité, sans classement « meilleur club »**.
-- **Photos réelles** des terrains (libres de droits, avec repli automatique) + **Google Maps**.
-- **Favoris** : enregistre tes clubs préférés.
-- **Trouver un match** : partenaire / adversaire / coéquipier, **visibilité Public ou Amis**, **invitation par lien**.
-- **Niveau de jeu (1–7)** + filtre « à mon niveau ».
-- **Coachs** : classés par niveau, avec **numéro à appeler et club** (pas de réservation dans l'app).
-- **Compétitions avec récompenses**, **inscription par équipe** et **places limitées**, créées **par
-  les clubs OU par les joueurs**.
-- **Notation & avis** des terrains (sans réordonner la liste des clubs).
-- **Victoires / défaites validées par partie jouée** (après une réservation) + historique & série.
-- **Espace Club** : les terrains gèrent leurs **photos, créneaux, réservations et compétitions**.
-- **Découvrir le padel** : définition + règles essentielles.
+**Joueur**
+- **Réservation** de sessions 1h30 : par créneau (jour → heure → club → terrain) ou depuis la
+  fiche d'un club, avec anti double-réservation côté serveur, limite anti-accaparement
+  (6 résas à venir), annulation jusqu'à 5 h avant, rappels locaux et ajout au calendrier.
+- **Réservations partagées** : invite jusqu'à 3 amis — ils voient la résa chez eux et
+  acceptent/refusent.
+- **Tournois** réels créés par les clubs ou les joueurs (validés par le club hôte) ; le vainqueur
+  d'un tournoi officiel gagne **+0.50 de niveau** (attribué côté serveur, anti-triche).
+- **Amis** par demande (accepter/refuser), recherche par numéro, sélecteur de contacts.
+- **Avis vérifiés** : seuls ceux qui ont vraiment joué au club (réservataire ou invité) notent.
+- **Parrainage** : lien `padelconnectci.com/invite/CODE` qui ouvre l'app, code pré-rempli.
+- **Profil** : niveau (1–7, choisi à l'inscription puis fait vivre par les tournois), trophées
+  évolutifs (Bronze → Platine), palmarès.
+- **Coachs** partenaires (contact direct), règles du padel (Découvrir), favoris, notifications push.
 
-## Lancer le prototype
+**Gérant de club (Espace Club)**
+- Planning terrains × créneaux, confirmation des réservations, blocage des créneaux pris hors
+  app, marquage des absences (no-show), fiabilité des joueurs.
+- Fiche du club éditable : infos, tarifs (plages horaires nommées), photos réelles, offres/actus,
+  coachs ; stats (revenu, taux d'occupation, créneaux creux) ; validation des tournois joueurs.
+
+**Opérateur**
+- Décomptes de commission hebdomadaires par club (envoi WhatsApp, marquer payé), demandes
+  d'inscription de nouveaux clubs, statuts (actif / bientôt / masqué), boosts sponsorisés,
+  signalements des joueurs, actu de l'accueil, frais des tournois joueurs, diagnostics anonymes.
+
+## Lancer en développement
 
 ```bash
 npm install
-npx expo start        # puis 'w' pour le web, ou QR code avec l'app Expo Go (iOS/Android)
+npx expo start        # QR code avec Expo Go, ou 'w' pour un aperçu web
 ```
 
-> Astuce : `npx expo start --web` ouvre directement la version navigateur.
+Vérifications (obligatoires avant tout commit — voir CLAUDE.md §6) :
+
+```bash
+npx tsc --noEmit && npm run lint && TZ=UTC npm run test:logic
+```
 
 ## Structure
 
 ```
 src/
-  app/                 # écrans (expo-router)
-    (tabs)/            # Accueil, Réserver, Jouer, Compétitions, Profil
-    clubs/             # annuaire des clubs (carte, photos, favoris)
-    club/[id].tsx      # fiche club (photos, Maps, avis, coachs, réserver)
-    reserver/[clubId]  # réservation (jour → créneau → terrain)
-    match/nouveau      # créer un match (réserve un terrain + ouvre des places)
-    coachs/            # liste + fiche coach (contact : numéro + club)
-    competition/       # détail (inscription par équipe) + création (joueur ou club)
-    decouvrir.tsx      # règles du padel
-    club-admin/        # Espace Club (gérants : terrains, créneaux, offres, coachs…)
-  components/          # UI réutilisable (Card, Button, ClubCard, RatingStars…)
-  data/                # clubs (réels), coachs, matchs, compétitions, avis, règles
-  store/               # état global + sauvegarde locale (AsyncStorage)
-  theme/               # couleurs, typographie, espacements
+  app/                     # écrans (expo-router) — pas de tabbar : l'Accueil est le hub
+    index.tsx              # Accueil (héro, accès rapides, prochain match, clubs, tournois)
+    onboarding.tsx         # inscription e-mail + connexion (+ reset-password.tsx)
+    reserver/              # index = par heure/par club · [clubId] = tunnel guidé
+    clubs/ + club/[id]     # annuaire (recherche, filtres) + fiche club (avis, tarifs, galerie)
+    competitions.tsx       # liste des tournois · competition/[id] + nouvelle
+    reservations.tsx       # Mes réservations (annuler, partager, calendrier) + mes tournois
+    amis.tsx               # demandes d'ami, recherche par numéro, contacts
+    parrainage.tsx         # code + lien d'invitation · invite/[code] = route entrante
+    coachs/                # liste + fiche coach (appel/WhatsApp)
+    profil.tsx             # compte, niveau, trophées, palmarès, espaces pro
+    club-admin/            # Espace Club (gérants)
+    operateur.tsx          # console opérateur (rôle serveur requis)
+    support.tsx, legal.tsx, pourquoi.tsx, decouvrir.tsx, inscrire-club.tsx
+  components/              # kit UI (ui.tsx, Chip, Toast, Skeleton, Reveal, PopIn, Stepper…)
+  data/                    # clubs réels (9 fondateurs), coachs (vide au lancement), tournois
+  lib/                     # serveur (Supabase), disponibilité, prix, haptiques, partage…
+  store/                   # AppContext (état global + appels serveur) + helpers purs testés
+  theme/                   # tokens (couleurs par rôle, typo, ombres) — zéro couleur en dur
+supabase/                  # migrations SQL numérotées + Edge Function notify-club (push)
+site/                      # padelconnectci.com (AASA Universal Links, redirections, privacy)
+docs/                      # guides opérateur (push, serveur, App Store, Universal Links)
 ```
 
-## Données
+## Données — tout est réel
 
-- Les **noms et quartiers des clubs sont réels** (vérifiés) ; **tarifs indicatifs** et **photos
-  illustratives libres de droits** sont à confirmer/remplacer par les visuels officiels de chaque club.
-- Le **compte est réel** (serveur Supabase, téléphone + mot de passe, sans vérification SMS pour
-  l'instant). Coachs et certains avis seed restent des **exemples de démonstration** à remplacer.
-
-## Vérifié
-
-- `npx tsc --noEmit` : OK.
-- `npx expo export --platform web` : 25 écrans rendus sans erreur.
+- Les **9 clubs fondateurs** sont réels (noms, quartiers vérifiés) et portent le badge
+  « Partenaire » ; tarifs indicatifs à confirmer par chaque club depuis son Espace Club.
+- **Aucune donnée factice** : coachs et avis sont **vides au lancement** (pas de seed de
+  démonstration) — ils ne viennent que de vrais coachs partenaires et d'avis vérifiés serveur.
+- Photos : uniquement les vraies photos ajoutées par les clubs (sinon repli doré maison).
+- Parties jouées comptées **automatiquement** (réservation dont l'heure de fin est passée) —
+  aucune déclaration manuelle.
 
 ## Aller plus loin
 
-- **[GUIDE-LANCEMENT.md](./GUIDE-LANCEMENT.md)** — présenter aux clubs, installer, ce qui manque
-  pour une vraie app, et qui fait quoi pour la construire.
-- **[STRATEGIE.md](./STRATEGIE.md)** — stratégie, modèle économique, juridique, technique.
-- **kit/** — page de présentation imprimable, argumentaire, accord pilote, feuille de route technique.
+- **CLAUDE.md** — mémoire du projet : règles, architecture, feuille de route, état serveur.
+- **docs/** — guides cliquables pour l'opérateur (sans terminal) : push, serveur, App Store.
+- **[STRATEGIE.md](./STRATEGIE.md)** / **[GUIDE-LANCEMENT.md](./GUIDE-LANCEMENT.md)** — stratégie
+  et lancement ; **kit/** — supports de présentation aux clubs.

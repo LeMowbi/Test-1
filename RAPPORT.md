@@ -671,3 +671,27 @@ Vérifs (chaque vague) : **tsc 0 · eslint 0/0 · tests logique verts · export 
 > reçoit tout). La **démo en ligne reste donc à republier** à sa nouvelle adresse
 > `lemowbi.github.io/PadelConnect/` (build prêt dans `dist/`) — à faire depuis un poste avec accès
 > Git complet, ou quand l'infra le permettra.
+
+---
+
+## v4.28+ — Passage au serveur complet & production TestFlight (résumé)
+
+> Depuis cette section, la **source de vérité de l'historique est `CLAUDE.md` §10** (tenu à jour
+> à chaque lot). Résumé des grandes étapes livrées après v4.27b :
+
+- **Comptes par e-mail** (confirmation par lien, mot de passe oublié in-app), rôles serveur
+  (joueur / club / opérateur) via RLS — plus aucun code PIN local.
+- **Tout branché serveur** : réservations cross-device (+ partagées avec invitations), tournois
+  réels validés par les clubs (niveau +0.50 attribué côté serveur, anti-triche 34/36/37),
+  avis vérifiés, demandes d'ami + push (Edge Function `notify-club`), clubs gérés par
+  l'opérateur (statuts, boosts), stats club, diagnostics anonymes self-hosted.
+- **Universal Links actifs** (padelconnectci.com — invite/CODE et club/ID ouvrent l'app) ;
+  site + politique de confidentialité déployés sur Cloudflare Pages.
+- **Builds TestFlight** : #21 → **#34** (auto-submit EAS). Le #34 embarque le grand audit :
+  corrections de bugs, WCAG, conventions réseau, haptiques/animations (Chip, Toast, Stepper,
+  CountUp, cascades), durcissements SQL.
+- **Audit n°2 (232 agents)** : 126 constats confirmés corrigés par lots (dont récupération de
+  mot de passe, offres factices supprimées, double-occupation tournoi/réservations), améliorations
+  design et produit par rôle — détail dans `CLAUDE.md` §10.
+
+Vérifs (chaque lot) : **tsc 0 · eslint 0/0 · tests logique verts · bundle iOS eager OK**.
