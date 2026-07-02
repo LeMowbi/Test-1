@@ -8,6 +8,7 @@ import { Pressable, StyleSheet, Switch, TextInput, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
 import { BottomSheet } from '@/components/BottomSheet';
 import { Chip } from '@/components/Chip';
+import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
 import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt, type IconName } from '@/components/ui';
@@ -267,39 +268,45 @@ export default function ProfilScreen() {
             // Progression DANS le palier courant : (valeur − seuil courant) / (prochain − seuil courant).
             const pct = next ? `${Math.round(((t.value - floor) / (next - floor)) * 100)}%` : '100%';
             return (
-              <View key={t.label}>
-                {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
-                <View style={styles.trophyRow}>
-                  <IconCircle
-                    icon={t.icon}
-                    color={unlocked ? colors.amber : colors.textFaint}
-                    bg={unlocked ? colors.amberSoft : colors.surfaceAlt}
-                    size={38}
-                  />
-                  <View style={{ flex: 1 }}>
-                    <View style={styles.trophyHead}>
-                      <Txt variant="body" style={{ fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
-                        {t.label}
-                      </Txt>
-                      <Tag label={name ?? 'À débloquer'} tone={unlocked ? 'amber' : 'neutral'} icon={unlocked ? 'trophy' : 'lock-closed'} />
-                    </View>
-                    {next ? (
-                      <>
-                        <View style={styles.trophyTrack}>
-                          <View style={[styles.trophyFill, { width: pct as `${number}%` }]} />
-                        </View>
-                        <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
-                          {t.value}/{next} vers {TIER_NAMES[tier]}
+              <Reveal key={t.label} delay={i * 50}>
+                <View>
+                  {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
+                  <View style={styles.trophyRow}>
+                    <IconCircle
+                      icon={t.icon}
+                      color={unlocked ? colors.amber : colors.textFaint}
+                      bg={unlocked ? colors.amberSoft : colors.surfaceAlt}
+                      size={38}
+                    />
+                    <View style={{ flex: 1 }}>
+                      <View style={styles.trophyHead}>
+                        <Txt variant="body" style={{ fontWeight: '600', flexShrink: 1 }} numberOfLines={1}>
+                          {t.label}
                         </Txt>
-                      </>
-                    ) : (
-                      <Txt variant="small" color={colors.amberDark} style={{ marginTop: 4, fontWeight: '600' }}>
-                        Palier maximal atteint 🏆
-                      </Txt>
-                    )}
+                        <Tag
+                          label={name ?? 'À débloquer'}
+                          tone={unlocked ? 'amber' : 'neutral'}
+                          icon={unlocked ? 'trophy' : 'lock-closed'}
+                        />
+                      </View>
+                      {next ? (
+                        <>
+                          <View style={styles.trophyTrack}>
+                            <View style={[styles.trophyFill, { width: pct as `${number}%` }]} />
+                          </View>
+                          <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
+                            {t.value}/{next} vers {TIER_NAMES[tier]}
+                          </Txt>
+                        </>
+                      ) : (
+                        <Txt variant="small" color={colors.amberDark} style={{ marginTop: 4, fontWeight: '600' }}>
+                          Palier maximal atteint 🏆
+                        </Txt>
+                      )}
+                    </View>
                   </View>
                 </View>
-              </View>
+              </Reveal>
             );
           })}
         </Card>

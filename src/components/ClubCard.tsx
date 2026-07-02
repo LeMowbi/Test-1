@@ -17,8 +17,11 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const { state, toggleFavorite } = useApp();
   const fav = state.favoriteClubIds.includes(club.id);
   const boosted = state.boostedClubIds.includes(club.id);
-  // Photo « de profil » choisie par le club en priorité, sinon la 1ʳᵉ de la galerie.
-  const photo = state.clubCovers[club.id] ?? clubGallery(club, state.clubPhotos[club.id] ?? [])[0];
+  // Galerie complète du club (photo « de profil » en priorité, sinon la 1ʳᵉ de la galerie) —
+  // sert aussi à afficher un badge « N photos » si le club en a plusieurs (déjà chargées, aucun
+  // appel réseau supplémentaire).
+  const gallery = clubGallery(club, state.clubPhotos[club.id] ?? []);
+  const photo = state.clubCovers[club.id] ?? gallery[0];
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
   // Les avis sont VÉRIFIÉS et serveur, affichés sur la fiche club (`4.x ★ (n)`). La carte ne
   // les charge pas (pas de fetch dédié) : elle ne peut donc pas savoir si un club a des avis
@@ -67,6 +70,11 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
             subtitle={club.area}
           />
           {heart}
+          {gallery.length > 1 ? (
+            <View style={styles.photosBadge}>
+              <Tag label={String(gallery.length)} icon="images" tone="neutral" />
+            </View>
+          ) : null}
           {comingSoon ? (
             <View style={styles.boostBadge}>
               <PopIn delay={150}>
@@ -111,6 +119,11 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
       <View>
         <ClubPhoto uri={photo} accent={club.accent} initials={initials(club.name)} height={140} />
         {heart}
+        {gallery.length > 1 ? (
+          <View style={styles.photosBadge}>
+            <Tag label={String(gallery.length)} icon="images" tone="neutral" />
+          </View>
+        ) : null}
         {partner ? (
           <View style={styles.boostBadge}>
             <PopIn delay={150}>
@@ -175,6 +188,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   boostBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm },
+  photosBadge: { position: 'absolute', bottom: spacing.sm, right: spacing.sm },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   areaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },
   footer: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: spacing.md },

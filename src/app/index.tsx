@@ -68,6 +68,8 @@ export default function HomeScreen() {
   // Héro vivant : un reflet qui balaie la carte verte + le point « live » qui pulse.
   const sheen = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
+  // Un ressort d'appui par accès rapide (motif Chip.tsx) — écho visuel du hapticLight() déjà en place.
+  const quickScales = useRef(ACTIONS.map(() => new Animated.Value(1))).current;
   useEffect(() => {
     // L'accueil = hub ne se démonte quasi jamais (empilé derrière les autres routes) :
     // on arrête bien les boucles au démontage, comme Skeleton/BookingConfirmation.
@@ -275,33 +277,35 @@ export default function HomeScreen() {
 
         {/* Actu opérateur — fermable */}
         {showNews && news ? (
-          <View style={styles.newsBanner}>
-            <Ionicons name="megaphone" size={18} color={colors.purple} />
-            <Pressable style={{ flex: 1 }} disabled={!news.link} onPress={() => news.link && Linking.openURL(news.link).catch(() => {})}>
-              <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={2}>
-                {news.title}
-              </Txt>
-              {news.subtitle ? (
-                <Txt variant="small" color={colors.textMuted} numberOfLines={2}>
-                  {news.subtitle}
+          <PopIn delay={50}>
+            <View style={styles.newsBanner}>
+              <Ionicons name="megaphone" size={18} color={colors.purple} />
+              <Pressable style={{ flex: 1 }} disabled={!news.link} onPress={() => news.link && Linking.openURL(news.link).catch(() => {})}>
+                <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={2}>
+                  {news.title}
                 </Txt>
-              ) : null}
-              {news.link ? (
-                <Txt variant="small" color={colors.purple} style={{ fontWeight: '600', marginTop: 2 }}>
-                  En savoir plus →
-                </Txt>
-              ) : null}
-            </Pressable>
-            <Pressable
-              onPress={() => dismissNews(news.id)}
-              hitSlop={8}
-              style={styles.newsClose}
-              accessibilityRole="button"
-              accessibilityLabel="Fermer l'actualité"
-            >
-              <Ionicons name="close" size={16} color={colors.textMuted} />
-            </Pressable>
-          </View>
+                {news.subtitle ? (
+                  <Txt variant="small" color={colors.textMuted} numberOfLines={2}>
+                    {news.subtitle}
+                  </Txt>
+                ) : null}
+                {news.link ? (
+                  <Txt variant="small" color={colors.purple} style={{ fontWeight: '600', marginTop: 2 }}>
+                    En savoir plus →
+                  </Txt>
+                ) : null}
+              </Pressable>
+              <Pressable
+                onPress={() => dismissNews(news.id)}
+                hitSlop={8}
+                style={styles.newsClose}
+                accessibilityRole="button"
+                accessibilityLabel="Fermer l'actualité"
+              >
+                <Ionicons name="close" size={16} color={colors.textMuted} />
+              </Pressable>
+            </View>
+          </PopIn>
         ) : null}
 
         {/* HERO — CTA principal unique, carte VERTE animée (reflet + point qui pulse) */}
@@ -334,21 +338,27 @@ export default function HomeScreen() {
 
         {/* Accès rapide — 4 univers (D1 : Coachs retiré, accessible par fiche club) */}
         <View style={styles.quickRow}>
-          {ACTIONS.map((a) => {
+          {ACTIONS.map((a, i) => {
             // Pastille corail sur « Amis » : découvrabilité des demandes d'ami en attente
             // (sinon invisible dans l'app tant qu'on n'ouvre pas manuellement l'écran Amis).
             const pendingRequests = a.route === '/amis' ? state.friendRequests.length : 0;
+            // Même ressort d'appui que Chip.tsx (0.94 → 1) sur le cercle d'icône seul, pour ne
+            // pas décaler le libellé sous l'icône.
+            const springTo = (to: number, bounciness: number) =>
+              Animated.spring(quickScales[i], { toValue: to, useNativeDriver: true, speed: 40, bounciness }).start();
             return (
               <Pressable
                 key={a.label}
                 onPress={() => go(a.route)}
+                onPressIn={() => springTo(0.94, 0)}
+                onPressOut={() => springTo(1, 6)}
                 style={styles.quickItem}
                 accessibilityRole="button"
                 accessibilityLabel={
                   pendingRequests > 0 ? `${a.label}, ${pendingRequests} demande${pendingRequests > 1 ? 's' : ''} en attente` : a.label
                 }
               >
-                <View style={[styles.quickIcon, { backgroundColor: a.bg }]}>
+                <Animated.View style={[styles.quickIcon, { backgroundColor: a.bg, transform: [{ scale: quickScales[i] }] }]}>
                   <Ionicons name={a.icon} size={22} color={a.tint} />
                   {pendingRequests > 0 ? (
                     <View style={styles.quickBadge}>
@@ -357,7 +367,7 @@ export default function HomeScreen() {
                       </Txt>
                     </View>
                   ) : null}
-                </View>
+                </Animated.View>
                 <Txt variant="small" style={{ fontWeight: '600', textAlign: 'center' }}>
                   {a.label}
                 </Txt>
@@ -370,145 +380,160 @@ export default function HomeScreen() {
 
         {/* a) C-S2 : carte « Nouveau au padel ? » (0 partie jouée) */}
         {activeNudge === 'novice' ? (
-          <Pressable onPress={() => go('/decouvrir')} style={[styles.nudge, { backgroundColor: colors.coralSoft }]}>
-            <View style={[styles.nudgeIcon, { backgroundColor: colors.coral }]}>
-              <Ionicons name="help-circle" size={20} color={colors.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Txt variant="body" style={{ fontWeight: '700' }}>
-                Nouveau au padel ?
-              </Txt>
-              <Txt variant="small" color={colors.textMuted}>
-                Découvrir les règles en 2 minutes →
-              </Txt>
-            </View>
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                setNoviceNudgeDismissed(true);
-              }}
-              hitSlop={8}
-              style={styles.nudgeClose}
-              accessibilityRole="button"
-              accessibilityLabel="Ignorer"
-            >
-              <Ionicons name="close" size={15} color={colors.textMuted} />
+          <PopIn delay={50}>
+            <Pressable onPress={() => go('/decouvrir')} style={[styles.nudge, { backgroundColor: colors.coralSoft }]}>
+              <View style={[styles.nudgeIcon, { backgroundColor: colors.coral }]}>
+                <Ionicons name="help-circle" size={20} color={colors.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt variant="body" style={{ fontWeight: '700' }}>
+                  Nouveau au padel ?
+                </Txt>
+                <Txt variant="small" color={colors.textMuted}>
+                  Découvrir les règles en 2 minutes →
+                </Txt>
+              </View>
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setNoviceNudgeDismissed(true);
+                }}
+                hitSlop={8}
+                style={styles.nudgeClose}
+                accessibilityRole="button"
+                accessibilityLabel="Ignorer"
+              >
+                <Ionicons name="close" size={15} color={colors.textMuted} />
+              </Pressable>
             </Pressable>
-          </Pressable>
+          </PopIn>
         ) : null}
 
         {/* b) B-R4 : bandeau « Complète ton profil » */}
         {activeNudge === 'profile' ? (
-          <Pressable onPress={() => go('/profil')} style={[styles.nudge, { backgroundColor: colors.amberSoft }]}>
-            <View style={[styles.nudgeIcon, { backgroundColor: colors.amber }]}>
-              <Ionicons name="person-circle" size={20} color={colors.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Txt variant="body" style={{ fontWeight: '700' }}>
-                Complète ton profil
-              </Txt>
-              <Txt variant="small" color={colors.textMuted}>
-                {missingFieldHint}
-              </Txt>
-            </View>
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                setProfileNudgeDismissed(true);
-              }}
-              hitSlop={8}
-              style={styles.nudgeClose}
-              accessibilityRole="button"
-              accessibilityLabel="Ignorer"
-            >
-              <Ionicons name="close" size={15} color={colors.textMuted} />
+          <PopIn delay={50}>
+            <Pressable onPress={() => go('/profil')} style={[styles.nudge, { backgroundColor: colors.amberSoft }]}>
+              <View style={[styles.nudgeIcon, { backgroundColor: colors.amber }]}>
+                <Ionicons name="person-circle" size={20} color={colors.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt variant="body" style={{ fontWeight: '700' }}>
+                  Complète ton profil
+                </Txt>
+                <Txt variant="small" color={colors.textMuted}>
+                  {missingFieldHint}
+                </Txt>
+              </View>
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setProfileNudgeDismissed(true);
+                }}
+                hitSlop={8}
+                style={styles.nudgeClose}
+                accessibilityRole="button"
+                accessibilityLabel="Ignorer"
+              >
+                <Ionicons name="close" size={15} color={colors.textMuted} />
+              </Pressable>
             </Pressable>
-          </Pressable>
+          </PopIn>
         ) : null}
 
         {/* c) B-R1 : trophée proche */}
         {activeNudge === 'trophy' && trophyNudge ? (
-          <Pressable
-            onPress={() => go(trophyNudge.cta === 'invite' ? '/amis' : trophyNudge.cta === 'tournament' ? '/competitions' : '/reserver')}
-            style={[styles.nudge, { backgroundColor: colors.amberSoft }]}
-          >
-            <View style={[styles.nudgeIcon, { backgroundColor: colors.amber }]}>
-              <Ionicons name="trophy" size={20} color={colors.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Txt variant="body" style={{ fontWeight: '700' }}>
-                Plus que {trophyNudge.target - trophyNudge.current}{' '}
-                {trophyNudge.cta === 'invite'
-                  ? `ami${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`
-                  : trophyNudge.cta === 'tournament'
-                    ? `tournoi${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`
-                    : `partie${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`}{' '}
-                pour le trophée
-              </Txt>
-              <View style={styles.trophyGaugeTrack}>
-                <View
-                  style={[
-                    styles.trophyGaugeFill,
-                    { width: `${Math.round((trophyNudge.current / trophyNudge.target) * 100)}%` as `${number}%` },
-                  ]}
-                />
+          <PopIn delay={50}>
+            <Pressable
+              onPress={() => go(trophyNudge.cta === 'invite' ? '/amis' : trophyNudge.cta === 'tournament' ? '/competitions' : '/reserver')}
+              style={[styles.nudge, { backgroundColor: colors.amberSoft }]}
+            >
+              <View style={[styles.nudgeIcon, { backgroundColor: colors.amber }]}>
+                <Ionicons name="trophy" size={20} color={colors.white} />
               </View>
-              <Txt variant="small" color={colors.textMuted}>
-                « {trophyNudge.label} » · {trophyNudge.current}/{trophyNudge.target}
-              </Txt>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={colors.amber} />
-          </Pressable>
+              <View style={{ flex: 1 }}>
+                <Txt variant="body" style={{ fontWeight: '700' }}>
+                  Plus que {trophyNudge.target - trophyNudge.current}{' '}
+                  {trophyNudge.cta === 'invite'
+                    ? `ami${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`
+                    : trophyNudge.cta === 'tournament'
+                      ? `tournoi${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`
+                      : `partie${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`}{' '}
+                  pour le trophée
+                </Txt>
+                <View style={styles.trophyGaugeTrack}>
+                  <View
+                    style={[
+                      styles.trophyGaugeFill,
+                      { width: `${Math.round((trophyNudge.current / trophyNudge.target) * 100)}%` as `${number}%` },
+                    ]}
+                  />
+                </View>
+                <Txt variant="small" color={colors.textMuted}>
+                  « {trophyNudge.label} » · {trophyNudge.current}/{trophyNudge.target}
+                </Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={colors.amber} />
+            </Pressable>
+          </PopIn>
         ) : null}
 
         {/* d) D2 : invitation au parrainage (si 0 ami) — sobre, fermable, sans récompense */}
         {activeNudge === 'referral' ? (
-          <Pressable onPress={() => go('/parrainage')} style={[styles.nudge, { backgroundColor: colors.signatureSoft }]}>
-            <View style={[styles.nudgeIcon, { backgroundColor: colors.signature }]}>
-              <Ionicons name="share-social" size={20} color={colors.white} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <Txt variant="body" style={{ fontWeight: '700' }}>
-                Tu connais des padelistes ?
-              </Txt>
-              <Txt variant="small" color={colors.textMuted}>
-                Invite-les sur PadelConnect — on joue mieux à plusieurs →
-              </Txt>
-            </View>
-            <Pressable
-              onPress={(e) => {
-                e.stopPropagation();
-                setReferralNudgeDismissed(true);
-              }}
-              hitSlop={8}
-              style={styles.nudgeClose}
-              accessibilityRole="button"
-              accessibilityLabel="Ignorer"
-            >
-              <Ionicons name="close" size={15} color={colors.textMuted} />
+          <PopIn delay={50}>
+            <Pressable onPress={() => go('/parrainage')} style={[styles.nudge, { backgroundColor: colors.signatureSoft }]}>
+              <View style={[styles.nudgeIcon, { backgroundColor: colors.signature }]}>
+                <Ionicons name="share-social" size={20} color={colors.white} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Txt variant="body" style={{ fontWeight: '700' }}>
+                  Tu connais des padelistes ?
+                </Txt>
+                <Txt variant="small" color={colors.textMuted}>
+                  Invite-les sur PadelConnect — on joue mieux à plusieurs →
+                </Txt>
+              </View>
+              <Pressable
+                onPress={(e) => {
+                  e.stopPropagation();
+                  setReferralNudgeDismissed(true);
+                }}
+                hitSlop={8}
+                style={styles.nudgeClose}
+                accessibilityRole="button"
+                accessibilityLabel="Ignorer"
+              >
+                <Ionicons name="close" size={15} color={colors.textMuted} />
+              </Pressable>
             </Pressable>
-          </Pressable>
+          </PopIn>
         ) : null}
 
         {/* Anniversaire */}
         {birthday && bd ? (
-          <View style={[styles.alert, { backgroundColor: colors.purpleSoft }]}>
-            <Txt variant="h2">{zodiacFor(bd).emoji}</Txt>
-            <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
-              Joyeux anniversaire {state.account?.firstName} ! Un·e {zodiacFor(bd).name} en forme, ça se fête sur un terrain.
-            </Txt>
-          </View>
+          <PopIn delay={50}>
+            <View style={[styles.alert, { backgroundColor: colors.purpleSoft }]}>
+              <Txt variant="h2">{zodiacFor(bd).emoji}</Txt>
+              <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
+                Joyeux anniversaire {state.account?.firstName} ! Un·e {zodiacFor(bd).name} en forme, ça se fête sur un terrain.
+              </Txt>
+            </View>
+          </PopIn>
         ) : null}
 
         {/* Résultats de tournoi disponibles */}
         {pendingResult ? (
-          <Pressable onPress={() => go(`/competition/${pendingResult.id}`)} style={[styles.alert, { backgroundColor: colors.purpleSoft }]}>
-            <Ionicons name="medal-outline" size={16} color={colors.purple} />
-            <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
-              Résultats du tournoi disponibles
-            </Txt>
-            <Ionicons name="chevron-forward" size={15} color={colors.purple} />
-          </Pressable>
+          <PopIn delay={50}>
+            <Pressable
+              onPress={() => go(`/competition/${pendingResult.id}`)}
+              style={[styles.alert, { backgroundColor: colors.purpleSoft }]}
+            >
+              <Ionicons name="medal-outline" size={16} color={colors.purple} />
+              <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
+                Résultats du tournoi disponibles
+              </Txt>
+              <Ionicons name="chevron-forward" size={15} color={colors.purple} />
+            </Pressable>
+          </PopIn>
         ) : null}
 
         {/* Clubs près de vous (C-S4 : carrousel en lecture seule, lien « Tout voir » discret en
@@ -521,6 +546,9 @@ export default function HomeScreen() {
               horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}
+              decelerationRate="fast"
+              snapToInterval={250 + spacing.md}
+              snapToAlignment="start"
             >
               {nearbyClubs.map((c) => (
                 <ClubCard key={c.id} club={c} compact />
@@ -589,6 +617,7 @@ export default function HomeScreen() {
                 <Pressable
                   onPress={() => go('/reservations')}
                   hitSlop={6}
+                  style={({ pressed }) => pressed && { opacity: 0.75 }}
                   accessibilityRole="button"
                   accessibilityLabel="Voir la réservation"
                 >
@@ -609,7 +638,7 @@ export default function HomeScreen() {
                   <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                     <Pressable
                       onPress={() => go('/amis')}
-                      style={[styles.matchAction, { backgroundColor: colors.signatureSoft }]}
+                      style={({ pressed }) => [styles.matchAction, { backgroundColor: colors.signatureSoft }, pressed && { opacity: 0.75 }]}
                       accessibilityRole="button"
                       accessibilityLabel="Inviter un ami"
                     >
@@ -620,7 +649,7 @@ export default function HomeScreen() {
                     </Pressable>
                     <Pressable
                       onPress={notifyPartners}
-                      style={[styles.matchAction, { backgroundColor: colors.greenSoft }]}
+                      style={({ pressed }) => [styles.matchAction, { backgroundColor: colors.greenSoft }, pressed && { opacity: 0.75 }]}
                       accessibilityRole="button"
                       accessibilityLabel="Prévenir mes partenaires"
                     >
@@ -636,7 +665,7 @@ export default function HomeScreen() {
                 <View style={{ marginTop: spacing.md }}>
                   <Pressable
                     onPress={notifyPartners}
-                    style={[styles.matchAction, { backgroundColor: colors.greenSoft }]}
+                    style={({ pressed }) => [styles.matchAction, { backgroundColor: colors.greenSoft }, pressed && { opacity: 0.75 }]}
                     accessibilityRole="button"
                     accessibilityLabel="Prévenir mes partenaires"
                   >

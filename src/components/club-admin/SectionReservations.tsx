@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Alert, Pressable, ScrollView, StyleSheet, View } from 'react-native';
 import { BarChart } from '@/components/BarChart';
 import { useToast } from '@/components/Toast';
-import { Button, Card, Divider, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
+import { Button, Card, Divider, EmptyState, IconCircle, SectionHeader, StatTile, Tag, Txt } from '@/components/ui';
 import { LegendDot } from '@/components/club-admin/LegendDot';
 import { QuickBlock } from '@/components/club-admin/QuickBlock';
 import { type Club } from '@/data/clubs';
@@ -11,7 +11,7 @@ import { competitionBlockedCourts, courtsFor, hasFullDayCompetition, openSlotsFo
 import { DAY_MS, dateKeyLabel, nextDays, weekKeyOf, weekLabel } from '@/lib/days';
 import { fcfa } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
-import { hapticLight } from '@/lib/haptics';
+import { hapticLight, hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { fetchCancelledReservations, fetchNoShowReservations, fetchReliability, type Reliability } from '@/lib/reservations';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
 import { colors, radius, shadows, spacing } from '@/theme';
@@ -102,9 +102,11 @@ export function SectionReservations({
           onPress: () =>
             void markNoShow(r.id).then((ok) => {
               if (ok) {
+                hapticSuccess();
                 toast.show('Absence enregistrée');
                 reloadTraces();
               } else {
+                hapticWarning();
                 toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
               }
             }),
@@ -202,8 +204,16 @@ export function SectionReservations({
             if (blk) return { state: 'blocked', label: blk.reason };
             return { state: 'free' };
           }}
-          onBlock={(dKey, time, court, reason, ts) => blockSlot({ clubId: club.id, dateKey: dKey, time, court, reason }, ts)}
-          onUnblock={(dKey, time, court) => unblockSlot(club.id, dKey, time, court)}
+          onBlock={(dKey, time, court, reason, ts) => {
+            const ok = blockSlot({ clubId: club.id, dateKey: dKey, time, court, reason }, ts);
+            if (ok) hapticSuccess();
+            else hapticWarning();
+            return ok;
+          }}
+          onUnblock={(dKey, time, court) => {
+            unblockSlot(club.id, dKey, time, court);
+            hapticSuccess(); // déblocage toujours positif pour le gérant (le créneau redevient réservable)
+          }}
         />
       ) : null}
 
@@ -360,9 +370,11 @@ export function SectionReservations({
         <SectionHeader title={`Réservations à venir · ${upcomingRes.length}`} />
         {upcomingRes.length === 0 ? (
           <Card>
-            <Txt variant="muted">
-              Aucune réservation à venir pour {club.name}. Dès qu'un joueur réserve, elle apparaît ici avec son nom et son numéro.
-            </Txt>
+            <EmptyState
+              icon="calendar-outline"
+              title="Aucune réservation à venir"
+              text={`Dès qu'un joueur réserve chez ${club.name}, elle apparaît ici avec son nom et son numéro.`}
+            />
           </Card>
         ) : (
           upcomingRes.map((r) => (
@@ -401,7 +413,11 @@ export function SectionReservations({
                     variant={r.clubConfirmed ? 'ghost' : 'primary'}
                     onPress={() =>
                       void confirmReservationByClub(r.id).then((ok) => {
-                        if (!ok) toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
+                        if (ok) hapticSuccess();
+                        else {
+                          hapticWarning();
+                          toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
+                        }
                       })
                     }
                     full
@@ -510,7 +526,11 @@ export function SectionReservations({
         <SectionHeader title={`Historique · ${pastRes.length}`} />
         {pastRes.length === 0 ? (
           <Card>
-            <Txt variant="muted">Les réservations déjà jouées s'afficheront ici, semaine par semaine.</Txt>
+            <EmptyState
+              icon="time-outline"
+              title="Aucun historique"
+              text="Les réservations déjà jouées s'afficheront ici, semaine par semaine."
+            />
           </Card>
         ) : (
           pastByWeek.map((g) => (

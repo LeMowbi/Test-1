@@ -4,6 +4,8 @@ import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Avatar } from '@/components/Avatar';
 import { Confetti } from '@/components/Confetti';
 import { PlayerSheet, type PlayerLike } from '@/components/PlayerSheet';
+import { PopIn } from '@/components/PopIn';
+import { Reveal, staggerDelay } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
 import { useToast } from '@/components/Toast';
@@ -139,36 +141,38 @@ export default function AmisScreen() {
             <SectionHeader title={`Demandes d'ami · ${requests.length}`} />
             <Card>
               {requests.map((r, i) => (
-                <View key={r.requestId}>
-                  {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
-                  <View style={styles.row}>
-                    <Avatar name={r.name} size={44} />
-                    <View style={styles.rowInfo}>
-                      <Txt variant="body" style={styles.rowName}>
-                        {r.name}
-                      </Txt>
-                      <Txt variant="small" color={colors.textMuted}>
-                        {r.level !== undefined ? `Niveau ${r.level.toFixed(1)} · ` : ''}veut t'ajouter
-                      </Txt>
+                <Reveal key={r.requestId} delay={staggerDelay(i)}>
+                  <View>
+                    {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
+                    <View style={styles.row}>
+                      <Avatar name={r.name} size={44} />
+                      <View style={styles.rowInfo}>
+                        <Txt variant="body" style={styles.rowName}>
+                          {r.name}
+                        </Txt>
+                        <Txt variant="small" color={colors.textMuted}>
+                          {r.level !== undefined ? `Niveau ${r.level.toFixed(1)} · ` : ''}veut t'ajouter
+                        </Txt>
+                      </View>
+                    </View>
+                    <View style={styles.reqActions}>
+                      <Button
+                        size="sm"
+                        label={busyReq === r.requestId ? '…' : 'Accepter'}
+                        icon="checkmark"
+                        onPress={() => respond(r.requestId, true, r.name)}
+                        disabled={busyReq === r.requestId}
+                      />
+                      <Button
+                        size="sm"
+                        label="Refuser"
+                        variant="ghost"
+                        onPress={() => respond(r.requestId, false, r.name)}
+                        disabled={busyReq === r.requestId}
+                      />
                     </View>
                   </View>
-                  <View style={styles.reqActions}>
-                    <Button
-                      size="sm"
-                      label={busyReq === r.requestId ? '…' : 'Accepter'}
-                      icon="checkmark"
-                      onPress={() => respond(r.requestId, true, r.name)}
-                      disabled={busyReq === r.requestId}
-                    />
-                    <Button
-                      size="sm"
-                      label="Refuser"
-                      variant="ghost"
-                      onPress={() => respond(r.requestId, false, r.name)}
-                      disabled={busyReq === r.requestId}
-                    />
-                  </View>
-                </View>
+                </Reveal>
               ))}
             </Card>
           </View>
@@ -189,50 +193,52 @@ export default function AmisScreen() {
         ) : (
           <Card>
             {state.friends.map((f, i) => (
-              <View key={f.id}>
-                {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
-                <View style={styles.row}>
-                  <Pressable
-                    onPress={() => openFriend(f)}
-                    style={styles.rowTap}
-                    hitSlop={6}
-                    accessibilityRole="button"
-                    accessibilityLabel={`Voir le profil de ${f.name}`}
-                  >
-                    <Avatar name={f.name} size={44} />
-                    <View style={styles.rowInfo}>
-                      <Txt variant="body" style={styles.rowName}>
-                        {f.name}
-                      </Txt>
-                      <Txt variant="small" color={colors.textMuted}>
-                        {subtitleFor(f.level)}
-                      </Txt>
-                    </View>
-                  </Pressable>
-                  <Button size="sm" label="Retirer" variant="ghost" onPress={() => setRemoveId(removeId === f.id ? null : f.id)} />
-                </View>
-                {removeId === f.id ? (
-                  // Confirmation légère, en place — pas de suppression au premier tap.
-                  <View style={styles.removeConfirm}>
-                    <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-                      Retirer {f.name} de tes amis ?
-                    </Txt>
-                    <Button
-                      size="sm"
-                      label="Oui, retirer"
-                      variant="danger"
-                      onPress={() => {
-                        hapticWarning();
-                        setRemoveId(null);
-                        void removeFriend(f.id).then((ok) => {
-                          if (!ok) toast.show('Retrait impossible — réessaie', { icon: 'alert-circle' });
-                        });
-                      }}
-                    />
-                    <Button size="sm" label="Non" variant="secondary" onPress={() => setRemoveId(null)} />
+              <Reveal key={f.id} delay={staggerDelay(i)}>
+                <View>
+                  {i > 0 ? <Divider style={{ marginVertical: spacing.md }} /> : null}
+                  <View style={styles.row}>
+                    <Pressable
+                      onPress={() => openFriend(f)}
+                      style={styles.rowTap}
+                      hitSlop={6}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Voir le profil de ${f.name}`}
+                    >
+                      <Avatar name={f.name} size={44} />
+                      <View style={styles.rowInfo}>
+                        <Txt variant="body" style={styles.rowName}>
+                          {f.name}
+                        </Txt>
+                        <Txt variant="small" color={colors.textMuted}>
+                          {subtitleFor(f.level)}
+                        </Txt>
+                      </View>
+                    </Pressable>
+                    <Button size="sm" label="Retirer" variant="ghost" onPress={() => setRemoveId(removeId === f.id ? null : f.id)} />
                   </View>
-                ) : null}
-              </View>
+                  {removeId === f.id ? (
+                    // Confirmation légère, en place — pas de suppression au premier tap.
+                    <View style={styles.removeConfirm}>
+                      <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                        Retirer {f.name} de tes amis ?
+                      </Txt>
+                      <Button
+                        size="sm"
+                        label="Oui, retirer"
+                        variant="danger"
+                        onPress={() => {
+                          hapticWarning();
+                          setRemoveId(null);
+                          void removeFriend(f.id).then((ok) => {
+                            if (!ok) toast.show('Retrait impossible — réessaie', { icon: 'alert-circle' });
+                          });
+                        }}
+                      />
+                      <Button size="sm" label="Non" variant="secondary" onPress={() => setRemoveId(null)} />
+                    </View>
+                  ) : null}
+                </View>
+              </Reveal>
             ))}
           </Card>
         )}
@@ -270,7 +276,7 @@ export default function AmisScreen() {
             </View>
 
             {search === 'found' && found ? (
-              <>
+              <PopIn key={found.name}>
                 <View style={styles.foundBox}>
                   <Avatar name={found.name} size={40} />
                   <View style={{ flex: 1 }}>
@@ -293,7 +299,7 @@ export default function AmisScreen() {
                     pill
                   />
                 </View>
-              </>
+              </PopIn>
             ) : search === 'notfound' ? (
               <View style={styles.foundBox}>
                 <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>

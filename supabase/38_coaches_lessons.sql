@@ -288,6 +288,15 @@ begin
     return 'declined';
   end if;
 
+  -- Coach retiré par le club entre-temps : il ne peut plus accepter — la demande est refusée
+  -- proprement (l'élève est prévenu par le push « declined » du webhook lessons).
+  if not exists (
+    select 1 from public.coaches c where c.user_id = l.coach_id and c.club_id = l.club_id and c.active
+  ) then
+    update public.lessons set status = 'declined', responded_at = now() where id = p_id;
+    return 'gone';
+  end if;
+
   if l.starts_at <= (extract(epoch from now()) * 1000)::bigint then
     update public.lessons set status = 'declined', responded_at = now() where id = p_id;
     return 'gone'; -- le créneau est déjà passé : plus rien à réserver

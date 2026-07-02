@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, View } from 'react-native';
 import { BottomSheet } from '@/components/BottomSheet';
+import { Reveal, staggerDelay } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, SectionHeader, Tag, Txt } from '@/components/ui';
 import { findClub } from '@/data/clubs';
@@ -140,45 +141,47 @@ export default function ReservationsScreen() {
       {lessonRequests.length > 0 ? (
         <View style={{ marginTop: spacing.sm }}>
           <SectionHeader title={`Mes cours · ${lessonRequests.length}`} />
-          {lessonRequests.map((l) => (
-            <Card key={l.id} style={{ marginBottom: spacing.sm }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
-                <View style={{ flex: 1 }}>
-                  <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
-                    Cours avec {l.coachName}
-                  </Txt>
-                  <Txt variant="muted">
-                    {l.clubName} · {l.dateLabel} à {l.time} · {l.court}
-                  </Txt>
+          {lessonRequests.map((l, i) => (
+            <Reveal key={l.id} delay={staggerDelay(i)}>
+              <Card style={{ marginBottom: spacing.sm }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
+                      Cours avec {l.coachName}
+                    </Txt>
+                    <Txt variant="muted">
+                      {l.clubName} · {l.dateLabel} à {l.time} · {l.court}
+                    </Txt>
+                  </View>
+                  {l.status === 'pending' ? (
+                    <Tag label="Attente coach" tone="purple" icon="hourglass-outline" />
+                  ) : (
+                    <Tag label="Refusé" tone="coral" icon="close-circle" />
+                  )}
                 </View>
                 {l.status === 'pending' ? (
-                  <Tag label="Attente coach" tone="purple" icon="hourglass-outline" />
+                  <>
+                    <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+                      Le terrain sera réservé dès que {l.coachName} accepte — tu recevras une notification.
+                    </Txt>
+                    <View style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}>
+                      <Button
+                        size="sm"
+                        label={cancellingLesson === l.id ? 'Annulation…' : 'Annuler ma demande'}
+                        icon="close"
+                        variant="ghost"
+                        onPress={() => void cancelLesson(l.id)}
+                        disabled={cancellingLesson !== null}
+                      />
+                    </View>
+                  </>
                 ) : (
-                  <Tag label="Refusé" tone="coral" icon="close-circle" />
-                )}
-              </View>
-              {l.status === 'pending' ? (
-                <>
                   <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-                    Le terrain sera réservé dès que {l.coachName} accepte — tu recevras une notification.
+                    {l.coachName} n'était pas disponible sur ce créneau — tu peux redemander un autre horaire.
                   </Txt>
-                  <View style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}>
-                    <Button
-                      size="sm"
-                      label={cancellingLesson === l.id ? 'Annulation…' : 'Annuler ma demande'}
-                      icon="close"
-                      variant="ghost"
-                      onPress={() => void cancelLesson(l.id)}
-                      disabled={cancellingLesson !== null}
-                    />
-                  </View>
-                </>
-              ) : (
-                <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-                  {l.coachName} n'était pas disponible sur ce créneau — tu peux redemander un autre horaire.
-                </Txt>
-              )}
-            </Card>
+                )}
+              </Card>
+            </Reveal>
           ))}
         </View>
       ) : null}
@@ -197,7 +200,7 @@ export default function ReservationsScreen() {
             />
           </Card>
         ) : (
-          upcoming.map((r) => {
+          upcoming.map((r, idx) => {
             const owner = isOwner(r);
             const canCancel = owner && r.startsAt - now > FIVE_H;
             const [, mm, dd] = r.dateKey.split('-');
@@ -205,108 +208,110 @@ export default function ReservationsScreen() {
             const day = dd ? String(Number(dd)) : '';
             const month = MONTHS[Number(mm) - 1] ?? '';
             return (
-              <Card key={r.id} style={{ marginBottom: spacing.md }}>
-                <View style={styles.row}>
-                  <View style={styles.dateChip}>
-                    <Txt variant="h2" color={colors.onSignature} style={styles.dateDay}>
-                      {day}
-                    </Txt>
-                    <Txt variant="small" color={colors.onSignature} style={styles.dateMonth}>
-                      {month}
-                    </Txt>
-                  </View>
-                  <View style={{ flex: 1 }}>
-                    <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
-                      {r.clubName}
-                    </Txt>
-                    <Txt variant="muted">
-                      {r.time} · {r.court} · 1h30
-                    </Txt>
-                    {r.price ? (
-                      <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
-                        {fcfa(r.price)} · ~{perPlayer(r.price)}/joueur à 4
+              <Reveal key={r.id} delay={staggerDelay(idx)}>
+                <Card style={{ marginBottom: spacing.md }}>
+                  <View style={styles.row}>
+                    <View style={styles.dateChip}>
+                      <Txt variant="h2" color={colors.onSignature} style={styles.dateDay}>
+                        {day}
                       </Txt>
-                    ) : null}
+                      <Txt variant="small" color={colors.onSignature} style={styles.dateMonth}>
+                        {month}
+                      </Txt>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
+                        {r.clubName}
+                      </Txt>
+                      <Txt variant="muted">
+                        {r.time} · {r.court} · 1h30
+                      </Txt>
+                      {r.price ? (
+                        <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
+                          {fcfa(r.price)} · ~{perPlayer(r.price)}/joueur à 4
+                        </Txt>
+                      ) : null}
+                    </View>
+                    {r.clubConfirmed ? (
+                      <Tag label="Confirmé" tone="green" icon="checkmark-circle" />
+                    ) : (
+                      <Tag label="En attente" tone="amber" icon="hourglass-outline" />
+                    )}
                   </View>
-                  {r.clubConfirmed ? (
-                    <Tag label="Confirmé" tone="green" icon="checkmark-circle" />
-                  ) : (
-                    <Tag label="En attente" tone="amber" icon="hourglass-outline" />
-                  )}
-                </View>
 
-                {r.coachName ? (
-                  // Réservation née d'un COURS accepté par le coach (respond_lesson).
-                  <View style={styles.participants}>
-                    <Ionicons name="school-outline" size={14} color={colors.purple} />
-                    <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-                      Cours avec {r.coachName}
-                    </Txt>
-                  </View>
-                ) : null}
-                {!owner && r.bookedBy?.name ? (
-                  <View style={styles.participants}>
-                    <Ionicons name="person-circle-outline" size={14} color={colors.signature} />
-                    <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-                      Réservé par {r.bookedBy.name} — tu es invité
-                    </Txt>
-                  </View>
-                ) : r.invited.length > 0 ? (
-                  <View style={styles.participants}>
-                    <Ionicons name="people-outline" size={14} color={colors.textMuted} />
-                    <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-                      Avec {r.invited.map((i) => i.name).join(', ')}
-                    </Txt>
-                  </View>
-                ) : null}
+                  {r.coachName ? (
+                    // Réservation née d'un COURS accepté par le coach (respond_lesson).
+                    <View style={styles.participants}>
+                      <Ionicons name="school-outline" size={14} color={colors.purple} />
+                      <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                        Cours avec {r.coachName}
+                      </Txt>
+                    </View>
+                  ) : null}
+                  {!owner && r.bookedBy?.name ? (
+                    <View style={styles.participants}>
+                      <Ionicons name="person-circle-outline" size={14} color={colors.signature} />
+                      <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                        Réservé par {r.bookedBy.name} — tu es invité
+                      </Txt>
+                    </View>
+                  ) : r.invited.length > 0 ? (
+                    <View style={styles.participants}>
+                      <Ionicons name="people-outline" size={14} color={colors.textMuted} />
+                      <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                        Avec {r.invited.map((i) => i.name).join(', ')}
+                      </Txt>
+                    </View>
+                  ) : null}
 
-                <Divider style={{ marginVertical: spacing.md }} />
-                {/* Raccourcis contextuels : club + itinéraire */}
-                <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
-                  <Button
-                    size="sm"
-                    label="Voir le club"
-                    icon="business-outline"
-                    variant="secondary"
-                    onPress={() => router.push(`/club/${r.clubId}`)}
-                    pill
-                    full
-                  />
-                  <Button
-                    size="sm"
-                    label="Itinéraire"
-                    icon="navigate-outline"
-                    variant="secondary"
-                    onPress={() => {
-                      const club = findClub(r.clubId, state.customClubs, state.clubInfo);
-                      if (club) openMaps(club);
-                    }}
-                    pill
-                    full
-                  />
-                </View>
-                <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                  <View style={{ flex: 1 }}>
+                  <Divider style={{ marginVertical: spacing.md }} />
+                  {/* Raccourcis contextuels : club + itinéraire */}
+                  <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
                     <Button
                       size="sm"
-                      label="Prévenir mes partenaires"
-                      icon="logo-whatsapp"
+                      label="Voir le club"
+                      icon="business-outline"
                       variant="secondary"
-                      onPress={() => notifyPartners(r)}
+                      onPress={() => router.push(`/club/${r.clubId}`)}
+                      pill
+                      full
+                    />
+                    <Button
+                      size="sm"
+                      label="Itinéraire"
+                      icon="navigate-outline"
+                      variant="secondary"
+                      onPress={() => {
+                        const club = findClub(r.clubId, state.customClubs, state.clubInfo);
+                        if (club) openMaps(club);
+                      }}
                       pill
                       full
                     />
                   </View>
-                  {canCancel ? (
-                    <Button size="sm" label="Annuler" icon="close" variant="danger" onPress={() => setCancelTarget(r)} pill />
+                  <View style={{ flexDirection: 'row', gap: spacing.sm }}>
+                    <View style={{ flex: 1 }}>
+                      <Button
+                        size="sm"
+                        label="Prévenir mes partenaires"
+                        icon="logo-whatsapp"
+                        variant="secondary"
+                        onPress={() => notifyPartners(r)}
+                        pill
+                        full
+                      />
+                    </View>
+                    {canCancel ? (
+                      <Button size="sm" label="Annuler" icon="close" variant="danger" onPress={() => setCancelTarget(r)} pill />
+                    ) : null}
+                  </View>
+                  {owner && !canCancel ? (
+                    <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
+                      Annulation impossible (moins de 5h avant) — à voir directement avec le club.
+                    </Txt>
                   ) : null}
-                </View>
-                {owner && !canCancel ? (
-                  <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                    Annulation impossible (moins de 5h avant) — à voir directement avec le club.
-                  </Txt>
-                ) : null}
-              </Card>
+                </Card>
+              </Reveal>
             );
           })
         )}
@@ -325,35 +330,37 @@ export default function ReservationsScreen() {
               const reg = state.compRegistrations[c.id];
               const subtitle = reg ? `${c.date} · avec ${reg.partner}` : `${c.date} · organisé par toi`;
               return (
-                <View key={c.id}>
-                  {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
-                  <Card onPress={() => router.push(`/competition/${c.id}`)} style={styles.compRow}>
-                    <View style={{ flex: 1 }}>
-                      <Txt variant="body" style={{ fontWeight: '600' }} numberOfLines={1}>
-                        {c.title}
-                      </Txt>
-                      <Txt variant="small" color={colors.textMuted}>
-                        {subtitle}
-                      </Txt>
-                    </View>
-                    {result ? (
-                      myResult?.result === 'win' ? (
-                        <Tag label="Vainqueur !" tone="amber" icon="trophy" />
-                      ) : myResult?.result === 'last' ? (
-                        <Tag label="Fin de tableau" tone="coral" icon="arrow-down" />
-                      ) : !reg ? (
-                        // Organisateur non inscrit à son propre tournoi : « Participé » serait faux.
-                        <Tag label="Terminé" tone="neutral" />
+                <Reveal key={c.id} delay={staggerDelay(i)}>
+                  <View>
+                    {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+                    <Card onPress={() => router.push(`/competition/${c.id}`)} style={styles.compRow}>
+                      <View style={{ flex: 1 }}>
+                        <Txt variant="body" style={{ fontWeight: '600' }} numberOfLines={1}>
+                          {c.title}
+                        </Txt>
+                        <Txt variant="small" color={colors.textMuted}>
+                          {subtitle}
+                        </Txt>
+                      </View>
+                      {result ? (
+                        myResult?.result === 'win' ? (
+                          <Tag label="Vainqueur !" tone="amber" icon="trophy" />
+                        ) : myResult?.result === 'last' ? (
+                          <Tag label="Fin de tableau" tone="coral" icon="arrow-down" />
+                        ) : !reg ? (
+                          // Organisateur non inscrit à son propre tournoi : « Participé » serait faux.
+                          <Tag label="Terminé" tone="neutral" />
+                        ) : (
+                          <Tag label="Participé" tone="blue" />
+                        )
+                      ) : finished ? (
+                        <Tag label="Résultats à venir" tone="neutral" />
                       ) : (
-                        <Tag label="Participé" tone="blue" />
-                      )
-                    ) : finished ? (
-                      <Tag label="Résultats à venir" tone="neutral" />
-                    ) : (
-                      <Tag label="À venir" tone="purple" />
-                    )}
-                  </Card>
-                </View>
+                        <Tag label="À venir" tone="purple" />
+                      )}
+                    </Card>
+                  </View>
+                </Reveal>
               );
             })}
           </Card>
@@ -374,27 +381,29 @@ export default function ReservationsScreen() {
         ) : (
           <Card>
             {pastShown.map((r, i) => (
-              <View key={r.id}>
-                {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
-                <View style={styles.row}>
-                  <View style={{ flex: 1 }}>
-                    <Txt variant="body" style={{ fontWeight: '600' }}>
-                      {r.clubName}
-                    </Txt>
-                    <Txt variant="muted">
-                      {dateKeyLabel(r.dateKey)} · {r.time} · {r.court}
-                    </Txt>
+              <Reveal key={r.id} delay={staggerDelay(i)}>
+                <View>
+                  {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+                  <View style={styles.row}>
+                    <View style={{ flex: 1 }}>
+                      <Txt variant="body" style={{ fontWeight: '600' }}>
+                        {r.clubName}
+                      </Txt>
+                      <Txt variant="muted">
+                        {dateKeyLabel(r.dateKey)} · {r.time} · {r.court}
+                      </Txt>
+                    </View>
+                    <Tag label="Jouée" tone="blue" />
                   </View>
-                  <Tag label="Jouée" tone="blue" />
+                  {/* A-R7 : bouton discret « Rejouer ici » → écran de réservation du club */}
+                  <Pressable onPress={() => router.push(`/reserver/${r.clubId}`)} style={styles.replayBtn}>
+                    <Ionicons name="refresh-outline" size={13} color={colors.signature} />
+                    <Txt variant="small" color={colors.signature} style={{ fontWeight: '600' }}>
+                      Rejouer ici
+                    </Txt>
+                  </Pressable>
                 </View>
-                {/* A-R7 : bouton discret « Rejouer ici » → écran de réservation du club */}
-                <Pressable onPress={() => router.push(`/reserver/${r.clubId}`)} style={styles.replayBtn}>
-                  <Ionicons name="refresh-outline" size={13} color={colors.signature} />
-                  <Txt variant="small" color={colors.signature} style={{ fontWeight: '600' }}>
-                    Rejouer ici
-                  </Txt>
-                </Pressable>
-              </View>
+              </Reveal>
             ))}
             {past.length > PAST_PREVIEW ? (
               <Button

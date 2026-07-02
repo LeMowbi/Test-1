@@ -1,4 +1,5 @@
-import { View, StyleSheet } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Easing, View, StyleSheet } from 'react-native';
 import { Txt } from './ui';
 import { colors, radius, spacing } from '@/theme';
 
@@ -14,24 +15,56 @@ export function BarChart({
   height?: number;
 }) {
   const max = Math.max(1, ...data.map((d) => d.value));
+
+  // Une valeur animée par barre (0 → hauteur finale) — « pousse » à l'apparition, léger décalage
+  // en vague (i × 35 ms), même esprit que le CountUp des StatTile juste au-dessus. On grandit le
+  // tableau de refs au besoin plutôt que de le recréer, pour rester stable si `data` change de
+  // longueur d'un rendu à l'autre.
+  const heightsRef = useRef<Animated.Value[]>([]);
+  while (heightsRef.current.length < data.length) heightsRef.current.push(new Animated.Value(0));
+  const heights = heightsRef.current;
+
+  useEffect(() => {
+    const anim = Animated.parallel(
+      data.map((d, i) => {
+        const pct = Math.max(Math.round((d.value / max) * 100), 4);
+        return Animated.timing(heights[i], {
+          toValue: pct,
+          duration: 450,
+          delay: i * 35,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: false, // on anime une hauteur en %, pas un transform/opacity
+        });
+      }),
+    );
+    anim.start();
+    return () => anim.stop();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
   return (
     <View style={styles.row}>
-      {data.map((d) => {
-        const pct = Math.round((d.value / max) * 100);
-        return (
-          <View key={d.label} style={styles.col}>
-            <Txt variant="small" color={colors.textFaint} style={{ fontSize: 10 }}>
-              {d.value}
-            </Txt>
-            <View style={[styles.track, { height }]}>
-              <View style={[styles.fill, { height: `${Math.max(pct, 4)}%` as `${number}%`, backgroundColor: color }]} />
-            </View>
-            <Txt variant="small" color={colors.textFaint} style={{ fontSize: 9 }} numberOfLines={1}>
-              {d.label}
-            </Txt>
+      {data.map((d, i) => (
+        <View key={d.label} style={styles.col}>
+          <Txt variant="small" color={colors.textFaint} style={{ fontSize: 10 }}>
+            {d.value}
+          </Txt>
+          <View style={[styles.track, { height }]}>
+            <Animated.View
+              style={[
+                styles.fill,
+                {
+                  height: heights[i].interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }),
+                  backgroundColor: color,
+                },
+              ]}
+            />
           </View>
-        );
-      })}
+          <Txt variant="small" color={colors.textFaint} style={{ fontSize: 9 }} numberOfLines={1}>
+            {d.label}
+          </Txt>
+        </View>
+      ))}
     </View>
   );
 }

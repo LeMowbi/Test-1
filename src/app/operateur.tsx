@@ -390,7 +390,7 @@ export default function Operateur() {
 
       {/* Santé plateforme */}
       <View style={styles.health}>
-        <StatTile value={`${activeClubsCount}`} label="Clubs actifs" color={colors.green} bg={colors.greenSoft} />
+        <StatTile value={activeClubsCount} label="Clubs actifs" color={colors.green} bg={colors.greenSoft} />
         <StatTile
           value={`${resThisWeek}${resThisWeek > resPrevWeek ? ' ▲' : resThisWeek < resPrevWeek ? ' ▼' : ''}`}
           label="Résas / 7 j"
@@ -440,7 +440,7 @@ export default function Operateur() {
           Semaine {weekLabel(week)}
         </Txt>
         <View style={styles.totals}>
-          <StatTile value={`${totalCount}`} label="Parties jouées" color={colors.green} bg={colors.greenSoft} />
+          <StatTile value={totalCount} label="Parties jouées" color={colors.green} bg={colors.greenSoft} />
           <StatTile value={fcfa(totalRevenue)} label="Volume" color={colors.green} bg={colors.greenSoft} />
           <StatTile value={fcfa(totalDue)} label="Reste à encaisser" color={colors.amberDark} bg={colors.amberSoft} />
         </View>

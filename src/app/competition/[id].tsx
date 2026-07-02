@@ -4,7 +4,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { Confetti } from '@/components/Confetti';
 import { PlayerSheet, type PlayerLike } from '@/components/PlayerSheet';
+import { PopIn } from '@/components/PopIn';
 import { Screen } from '@/components/Screen';
 import { Button, Card, Divider, EmptyState, Tag, Txt } from '@/components/ui';
 import { findClub } from '@/data/clubs';
@@ -13,7 +15,7 @@ import { openWhatsApp } from '@/lib/contact';
 import { dayKey } from '@/lib/days';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { shareCompetition } from '@/lib/share';
-import { useApp } from '@/store/AppContext';
+import { useApp, type CompResult, type OfficialResult } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
 export default function CompetitionDetail() {
@@ -36,6 +38,7 @@ export default function CompetitionDetail() {
   const [openPlayer, setOpenPlayer] = useState<PlayerLike | null>(null);
   const [registering, setRegistering] = useState(false); // évite double-clic + toast menteur si échec serveur
   const [closing, setClosing] = useState(false); // évite double-clic sur la clôture + retour d'échec
+  const [celebrate, setCelebrate] = useState(false); // confettis quand MON équipe remporte le tournoi (motif amis.tsx)
 
   if (!comp) {
     return (
@@ -109,8 +112,12 @@ export default function CompetitionDetail() {
       !!loser && loser === myTeam && registered,
     );
     setClosing(false);
-    if (ok) hapticSuccess();
-    else hapticWarning();
+    if (ok) {
+      hapticSuccess();
+      // Confettis seulement si le vainqueur désigné, c'est MOI (sinon simple toast, sans fêter
+      // un résultat qui n'est pas le sien — cf. audit).
+      if (winnerName === myTeam && registered) setCelebrate(true);
+    } else hapticWarning();
     setToast(ok ? 'Tournoi clôturé ✓' : 'Clôture impossible — réessaie.');
     setTimeout(() => setToast(null), 2200);
   };
@@ -123,8 +130,10 @@ export default function CompetitionDetail() {
       third: thirdName || undefined,
     });
     setClosing(false);
-    if (ok) hapticSuccess();
-    else hapticWarning();
+    if (ok) {
+      hapticSuccess();
+      if (winnerName === myTeam && registered) setCelebrate(true);
+    } else hapticWarning();
     setToast(ok ? 'Tournoi clôturé ✓' : 'Clôture impossible — réessaie.');
     setTimeout(() => setToast(null), 2200);
   };
@@ -294,65 +303,18 @@ export default function CompetitionDetail() {
         />
       </View>
 
-      {/* Résultats (tournoi clôturé) */}
+      {/* Résultats (tournoi clôturé) — PopIn si c'est MA victoire (le moment le plus fort du
+          produit : le niveau ne bouge que via un tournoi officiel). */}
       {result ? (
-        <Card style={{ marginTop: spacing.lg, borderColor: colors.amber }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
-            <Ionicons name="trophy" size={24} color={colors.amber} />
-            <View style={{ flex: 1 }}>
-              <Txt variant="label" color={colors.textFaint}>
-                Vainqueur
-              </Txt>
-              <Txt variant="h3" color={colors.amberDark}>
-                {result.winner}
-              </Txt>
-            </View>
-            {mine ? (
-              <Tag
-                label={mine.result === 'win' ? 'Vainqueur !' : mine.result === 'last' ? 'Fin de tableau' : 'Participé'}
-                tone={mine.result === 'win' ? 'amber' : mine.result === 'last' ? 'coral' : 'blue'}
-                icon={mine.result === 'win' ? 'trophy' : mine.result === 'last' ? 'arrow-down' : 'checkmark'}
-              />
-            ) : null}
-          </View>
-          {/* Podium americano : 2ᵉ / 3ᵉ place si renseignées. */}
-          {result.second || result.third ? (
-            <View style={{ marginTop: spacing.sm, gap: 2 }}>
-              {result.second ? (
-                <Txt variant="small" color={colors.textMuted}>
-                  🥈 2ᵉ place : <Txt style={{ fontWeight: '600' }}>{result.second}</Txt>
-                </Txt>
-              ) : null}
-              {result.third ? (
-                <Txt variant="small" color={colors.textMuted}>
-                  🥉 3ᵉ place : <Txt style={{ fontWeight: '600' }}>{result.third}</Txt>
-                </Txt>
-              ) : null}
-            </View>
-          ) : null}
-          {result.loser ? (
-            <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
-              Fin de tableau : {result.loser}
-            </Txt>
-          ) : null}
-          {/* levelAfter n'existe que pour les défis locaux ; pour un tournoi serveur on annonce
-              le DELTA (toujours juste) — jamais un « niveau après » potentiellement périmé. */}
-          {mine?.result === 'win' && comp.official ? (
-            <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
-              {mine.levelAfter != null
-                ? `Tournoi officiel gagné : ton niveau passe à ${mine.levelAfter.toFixed(2)} (+0.50).`
-                : 'Tournoi officiel gagné : ton niveau gagne +0.50 🎉'}
-            </Txt>
-          ) : null}
-          {mine?.result === 'last' && comp.official ? (
-            <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
-              {mine.levelAfter != null
-                ? `Fin de tableau : ton niveau passe à ${mine.levelAfter.toFixed(2)} (−0.25).`
-                : 'Fin de tableau : ton niveau perd −0.25.'}
-            </Txt>
-          ) : null}
-        </Card>
+        mine?.result === 'win' ? (
+          <PopIn>
+            <ResultCard result={result} mine={mine} official={comp.official} />
+          </PopIn>
+        ) : (
+          <ResultCard result={result} mine={mine} official={comp.official} />
+        )
       ) : null}
+      {celebrate ? <Confetti onDone={() => setCelebrate(false)} /> : null}
 
       {/* Tournoi terminé SANS inscrit : rien à clôturer — le créateur peut l'annuler. */}
       {canClose && teamList.length === 0 ? (
@@ -674,6 +636,69 @@ export default function CompetitionDetail() {
 
       <PlayerSheet player={openPlayer} onClose={() => setOpenPlayer(null)} />
     </Screen>
+  );
+}
+
+// Card « Résultats » — extraite pour pouvoir l'envelopper d'un PopIn quand mine?.result === 'win'
+// (le moment le plus fort du produit : victoire d'un tournoi OFFICIEL) sans dupliquer le JSX.
+function ResultCard({ result, mine, official }: { result: CompResult; mine?: OfficialResult; official?: boolean }) {
+  return (
+    <Card style={{ marginTop: spacing.lg, borderColor: colors.amber }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
+        <Ionicons name="trophy" size={24} color={colors.amber} />
+        <View style={{ flex: 1 }}>
+          <Txt variant="label" color={colors.textFaint}>
+            Vainqueur
+          </Txt>
+          <Txt variant="h3" color={colors.amberDark}>
+            {result.winner}
+          </Txt>
+        </View>
+        {mine ? (
+          <Tag
+            label={mine.result === 'win' ? 'Vainqueur !' : mine.result === 'last' ? 'Fin de tableau' : 'Participé'}
+            tone={mine.result === 'win' ? 'amber' : mine.result === 'last' ? 'coral' : 'blue'}
+            icon={mine.result === 'win' ? 'trophy' : mine.result === 'last' ? 'arrow-down' : 'checkmark'}
+          />
+        ) : null}
+      </View>
+      {/* Podium americano : 2ᵉ / 3ᵉ place si renseignées. */}
+      {result.second || result.third ? (
+        <View style={{ marginTop: spacing.sm, gap: 2 }}>
+          {result.second ? (
+            <Txt variant="small" color={colors.textMuted}>
+              🥈 2ᵉ place : <Txt style={{ fontWeight: '600' }}>{result.second}</Txt>
+            </Txt>
+          ) : null}
+          {result.third ? (
+            <Txt variant="small" color={colors.textMuted}>
+              🥉 3ᵉ place : <Txt style={{ fontWeight: '600' }}>{result.third}</Txt>
+            </Txt>
+          ) : null}
+        </View>
+      ) : null}
+      {result.loser ? (
+        <Txt variant="small" color={colors.textFaint} style={{ marginTop: 4 }}>
+          Fin de tableau : {result.loser}
+        </Txt>
+      ) : null}
+      {/* levelAfter n'existe que pour les défis locaux ; pour un tournoi serveur on annonce
+          le DELTA (toujours juste) — jamais un « niveau après » potentiellement périmé. */}
+      {mine?.result === 'win' && official ? (
+        <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
+          {mine.levelAfter != null
+            ? `Tournoi officiel gagné : ton niveau passe à ${mine.levelAfter.toFixed(2)} (+0.50).`
+            : 'Tournoi officiel gagné : ton niveau gagne +0.50 🎉'}
+        </Txt>
+      ) : null}
+      {mine?.result === 'last' && official ? (
+        <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
+          {mine.levelAfter != null
+            ? `Fin de tableau : ton niveau passe à ${mine.levelAfter.toFixed(2)} (−0.25).`
+            : 'Fin de tableau : ton niveau perd −0.25.'}
+        </Txt>
+      ) : null}
+    </Card>
   );
 }
 

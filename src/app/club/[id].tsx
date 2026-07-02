@@ -1,8 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, Modal, Pressable, ScrollView, StyleSheet, TextInput, View, useWindowDimensions } from 'react-native';
 import { ClubPhoto } from '@/components/ClubPhoto';
 import { ContactButtons } from '@/components/ContactButtons';
 import { RatingStars } from '@/components/RatingStars';
@@ -31,6 +31,20 @@ import { colors, radius, spacing } from '@/theme';
 function reviewDate(iso: string): string {
   const t = new Date(iso).getTime();
   return Number.isFinite(t) ? new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
+}
+
+// Barre de répartition des notes (5→1 étoiles) : se remplit de 0 % à `pct` au premier montage
+// du bloc « Avis vérifiés » (pas à chaque re-render de `reviews` — effet à dépendances vides,
+// volontairement, pour ne pas rejouer l'anim à chaque nouvel avis publié).
+function RatingBar({ pct, delay }: { pct: number; delay: number }) {
+  const width = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.timing(width, { toValue: pct, duration: 500, delay, easing: Easing.out(Easing.cubic), useNativeDriver: false }).start();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  return (
+    <Animated.View style={[styles.summaryFill, { width: width.interpolate({ inputRange: [0, 100], outputRange: ['0%', '100%'] }) }]} />
+  );
 }
 
 export default function ClubDetail() {
@@ -291,9 +305,11 @@ export default function ClubDetail() {
       {gallery.length > 1 ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginTop: spacing.sm }}>
           {gallery.slice(1).map((uri, i) => (
-            <Pressable key={`${uri}-${i}`} onPress={() => setViewer(i + 1)}>
-              <ClubPhoto uri={uri} accent={club.accent} height={72} width={104} rounded={radius.md} />
-            </Pressable>
+            <Reveal key={`${uri}-${i}`} delay={Math.min(i * 40, 200)}>
+              <Pressable onPress={() => setViewer(i + 1)}>
+                <ClubPhoto uri={uri} accent={club.accent} height={72} width={104} rounded={radius.md} />
+              </Pressable>
+            </Reveal>
           ))}
         </ScrollView>
       ) : null}
@@ -306,12 +322,14 @@ export default function ClubDetail() {
           </Txt>
           <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginTop: spacing.sm }}>
             {courtsWithPhoto.map((c, i) => (
-              <Pressable key={c} onPress={() => setViewer(gallery.length + i)} accessibilityLabel={`Photo du ${c}`}>
-                <ClubPhoto uri={courtPhotoMap[c]} accent={club.accent} height={84} width={128} rounded={radius.md} />
-                <Txt variant="small" color={colors.textMuted} style={{ marginTop: 4, textAlign: 'center' }} numberOfLines={1}>
-                  {c}
-                </Txt>
-              </Pressable>
+              <Reveal key={c} delay={Math.min(i * 40, 200)}>
+                <Pressable onPress={() => setViewer(gallery.length + i)} accessibilityLabel={`Photo du ${c}`}>
+                  <ClubPhoto uri={courtPhotoMap[c]} accent={club.accent} height={84} width={128} rounded={radius.md} />
+                  <Txt variant="small" color={colors.textMuted} style={{ marginTop: 4, textAlign: 'center' }} numberOfLines={1}>
+                    {c}
+                  </Txt>
+                </Pressable>
+              </Reveal>
             ))}
           </ScrollView>
         </View>
@@ -595,7 +613,7 @@ export default function ClubDetail() {
                 </Txt>
               </View>
               <View style={{ flex: 1, gap: 5 }}>
-                {[5, 4, 3, 2, 1].map((s) => {
+                {[5, 4, 3, 2, 1].map((s, i) => {
                   const n = reviews.filter((r) => Math.round(r.rating) === s).length;
                   const pct = reviews.length ? Math.round((n / reviews.length) * 100) : 0;
                   return (
@@ -605,7 +623,7 @@ export default function ClubDetail() {
                       </Txt>
                       <Ionicons name="star" size={10} color={colors.amber} />
                       <View style={styles.summaryTrack}>
-                        <View style={[styles.summaryFill, { width: `${pct}%` as `${number}%` }]} />
+                        <RatingBar pct={pct} delay={i * 60} />
                       </View>
                       <Txt variant="small" color={colors.textFaint} style={{ width: 18, textAlign: 'right' }}>
                         {n}

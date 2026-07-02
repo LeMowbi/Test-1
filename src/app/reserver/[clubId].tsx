@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { StyleSheet, TextInput, View } from 'react-native';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { Animated, Easing, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
+import { Confetti } from '@/components/Confetti';
 import { PopIn } from '@/components/PopIn';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
@@ -40,6 +41,20 @@ export default function ReserverScreen() {
   const [extraName, setExtraName] = useState('');
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+  const [celebrate, setCelebrate] = useState(false); // confettis à l'écran de succès (motif amis.tsx)
+
+  // Anneau qui se dilate autour du badge de succès (même anim que BookingConfirmation.tsx),
+  // démarré seulement une fois l'écran de succès affiché et arrêté à la sortie (règle React
+  // Compiler : hooks toujours appelés, avant tout `return` anticipé — donc déclarés ici).
+  const ring = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    if (!done) return;
+    const ringLoop = Animated.loop(
+      Animated.timing(ring, { toValue: 1, duration: 1800, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+    );
+    ringLoop.start();
+    return () => ringLoop.stop();
+  }, [done, ring]);
 
   if (!club) {
     return (
@@ -131,6 +146,7 @@ export default function ReserverScreen() {
     if (res.ok) {
       hapticSuccess();
       setDone(true);
+      setCelebrate(true);
     } else if (res.reason === 'limit') {
       // Limite anti-blocage (appliquée dans addReservation) : trop de créneaux à venir.
       hapticWarning();
@@ -154,15 +170,21 @@ export default function ReserverScreen() {
   };
 
   if (done) {
+    const ringScale = ring.interpolate({ inputRange: [0, 1], outputRange: [0.8, 2.2] });
+    const ringOpacity = ring.interpolate({ inputRange: [0, 0.15, 1], outputRange: [0, 0.45, 0] });
     return (
       <Screen back title="Réservation">
-        {/* En-tête de succès — dégradé signature pour un retour premium et clair. */}
+        {/* En-tête de succès — dégradé signature pour un retour premium et clair. Parité avec
+            BookingConfirmation.tsx (voie rapide) : anneau qui se dilate + confettis. */}
         <LinearGradient colors={gradients.deepGreen} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={styles.successHero}>
-          <PopIn>
-            <View style={styles.successBadge}>
-              <Ionicons name="checkmark" size={36} color={colors.onSignature} />
-            </View>
-          </PopIn>
+          <View style={styles.successBadgeWrap}>
+            <Animated.View pointerEvents="none" style={[styles.successRing, { opacity: ringOpacity, transform: [{ scale: ringScale }] }]} />
+            <PopIn>
+              <View style={styles.successBadge}>
+                <Ionicons name="checkmark" size={36} color={colors.onSignature} />
+              </View>
+            </PopIn>
+          </View>
           <Txt variant="h2" color={colors.onSignature} style={{ marginTop: spacing.md }}>
             Terrain réservé !
           </Txt>
@@ -170,6 +192,7 @@ export default function ReserverScreen() {
             Le club la reçoit dans son Espace Club et la confirme. Retrouve-la dans « Mes réservations ».
           </Txt>
         </LinearGradient>
+        {celebrate ? <Confetti onDone={() => setCelebrate(false)} /> : null}
         <Card style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
           <View style={styles.summary}>
             <Row label="Club" value={club.name} />
@@ -280,12 +303,14 @@ export default function ReserverScreen() {
         </View>
 
         {compToday ? (
-          <View style={styles.banner}>
-            <Ionicons name="trophy" size={16} color={colors.signature} />
-            <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-              Un tournoi a lieu ce jour à {club.name} — le terrain n'est pas réservable.
-            </Txt>
-          </View>
+          <Reveal>
+            <View style={styles.banner}>
+              <Ionicons name="trophy" size={16} color={colors.coral} />
+              <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+                Un tournoi a lieu ce jour à {club.name} — le terrain n'est pas réservable.
+              </Txt>
+            </View>
+          </Reveal>
         ) : null}
 
         <Label text={day ? 'Créneau' : 'Créneau (choisis d’abord un jour)'} />
@@ -340,7 +365,7 @@ export default function ReserverScreen() {
         ) : null}
 
         {day && slot ? (
-          <>
+          <Reveal>
             <Label text="Terrain" />
             <View style={styles.wrap}>
               {allCourts.map((c) => {
@@ -357,7 +382,7 @@ export default function ReserverScreen() {
                 );
               })}
             </View>
-          </>
+          </Reveal>
         ) : null}
 
         <Label text={`Avec qui ? (toi + ${participantCount}/3 — optionnel)`} />
@@ -461,9 +486,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: spacing.sm,
-    backgroundColor: colors.signatureSoft,
+    backgroundColor: colors.coralSoft,
     borderWidth: 1,
-    borderColor: colors.signature,
+    borderColor: colors.coral,
     borderRadius: radius.md,
     padding: spacing.md,
     marginTop: spacing.md,
@@ -479,6 +504,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
     ...shadows.e2,
   },
+  successBadgeWrap: { width: 72, height: 72, alignItems: 'center', justifyContent: 'center' },
+  successRing: { position: 'absolute', width: 72, height: 72, borderRadius: radius.pill, borderWidth: 3, borderColor: colors.white },
   successBadge: {
     width: 72,
     height: 72,

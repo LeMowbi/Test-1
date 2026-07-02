@@ -3,7 +3,7 @@ import { useMemo, useState } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { ClubCard } from '@/components/ClubCard';
-import { Reveal } from '@/components/Reveal';
+import { Reveal, staggerDelay } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { EmptyState, Txt } from '@/components/ui';
 import { activeClubs } from '@/data/clubs';
@@ -99,7 +99,7 @@ export default function ClubsScreen() {
       ) : (
         list.map((c, i) => (
           // key incluant le filtre → l'entrée se rejoue proprement à chaque changement de filtre.
-          <Reveal key={`${filter}-${c.id}`} delay={Math.min(i * 40, 240)}>
+          <Reveal key={`${filter}-${c.id}`} delay={staggerDelay(i)}>
             <ClubCard club={c} />
           </Reveal>
         ))
