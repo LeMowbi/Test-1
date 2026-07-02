@@ -38,7 +38,7 @@ const ARGS: { icon: keyof typeof Ionicons.glyphMap; tint: string; bg: string; ti
   {
     icon: 'megaphone',
     // colors.blue est un alias legacy de colors.signature (« pas de bleu dans la refonte ») —
-    // on référence directement le vrai token pour lever l'ambiguïté dans le code.
+    // on référence directement le vrai token pour lever l’ambiguïté dans le code.
     tint: colors.signature,
     bg: colors.signatureSoft,
     title: 'Ta vitrine, gérée par toi',
@@ -62,8 +62,8 @@ export default function Pourquoi() {
         </Card>
       ))}
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-        Commission à partir de 10 %, uniquement sur les parties jouées réservées via l'app (taux convenu avec chaque club). Pas
-        d'abonnement, pas de paiement en ligne.
+        Commission à partir de 10 %, uniquement sur les parties jouées réservées via l’app (taux convenu avec chaque club). Pas
+        d’abonnement, pas de paiement en ligne.
       </Txt>
       <View style={{ marginTop: spacing.lg }}>
         <Button label="Inscrire mon club" icon="business" onPress={() => router.push('/inscrire-club')} full />

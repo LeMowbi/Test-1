@@ -6,7 +6,7 @@ import { slotTimestamp } from './days';
 import { supabase } from './supabase';
 import type { BlockedSlot, Invited, Reservation } from '@/store/AppContext';
 
-// Occupation d'un créneau (sans identité) — alimente la disponibilité cross-joueur.
+// Occupation d’un créneau (sans identité) — alimente la disponibilité cross-joueur.
 export type SlotOccupancy = { clubId: string; dateKey: string; time: string; court: string };
 
 type Row = {
@@ -32,7 +32,7 @@ type Row = {
 // Ligne serveur → modèle local.
 export function rowToReservation(row: Row): Reservation {
   // startsAt CANONIQUE : recalculé depuis (date_key + time) en heure fixe Abidjan, pour
-  // neutraliser un éventuel fuseau erroné de l'appareil qui a créé la résa (le starts_at
+  // neutraliser un éventuel fuseau erroné de l’appareil qui a créé la résa (le starts_at
   // stocké ne sert que de repli si la date/heure manquent). Repli sûr contre NaN.
   const storedTs = Number(row.starts_at);
   const startsAt = row.date_key && row.time ? slotTimestamp(row.date_key, row.time) : Number.isFinite(storedTs) ? storedTs : 0;
@@ -81,8 +81,8 @@ function reservationToRow(
   };
 }
 
-// Crée la réservation côté serveur. conflict=true si le terrain vient d'être pris
-// (violation de la contrainte unique 23505) → l'UI repropose un autre terrain.
+// Crée la réservation côté serveur. conflict=true si le terrain vient d’être pris
+// (violation de la contrainte unique 23505) → l’UI repropose un autre terrain.
 export async function insertReservation(
   input: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy' | 'userId'>,
   userId: string,
@@ -103,7 +103,7 @@ export async function insertReservation(
 }
 
 // ─── Créneaux fermés hors app (blocked_slots serveur) ──────────────────────────
-// null = échec réseau → l'appelant garde l'existant.
+// null = échec réseau → l’appelant garde l’existant.
 export async function fetchBlockedSlots(): Promise<BlockedSlot[] | null> {
   const { data, error } = await supabase.from('blocked_slots').select('club_id, date_key, time, court, reason');
   if (error) return null;
@@ -133,9 +133,9 @@ export async function unblockSlotRow(clubId: string, dateKey: string, time: stri
   return !error && data === true;
 }
 
-// Annulation : passe par la fonction serveur (SECURITY DEFINER) qui vérifie l'auteur ET le
+// Annulation : passe par la fonction serveur (SECURITY DEFINER) qui vérifie l’auteur ET le
 // délai des 5h (règle non contournable côté serveur) et met la résa en statut 'cancelled'
-// (le créneau se libère, mais la trace reste pour que le club voie l'annulation).
+// (le créneau se libère, mais la trace reste pour que le club voie l’annulation).
 export async function cancelReservationRow(id: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('cancel_reservation', { p_id: id });
   return !error && data === true;
@@ -143,7 +143,7 @@ export async function cancelReservationRow(id: string): Promise<boolean> {
 
 export async function setClubConfirmedRow(id: string, value: boolean): Promise<boolean> {
   // Passe par la fonction serveur (SECURITY DEFINER) qui ne modifie QUE club_confirmed
-  // après contrôle du rôle — pas d'UPDATE large qui laisserait réécrire prix/terrain.
+  // après contrôle du rôle — pas d’UPDATE large qui laisserait réécrire prix/terrain.
   const { data, error } = await supabase.rpc('set_club_confirmed', { p_id: id, p_value: value });
   return !error && data === true;
 }
@@ -159,8 +159,8 @@ export async function fetchReservations(): Promise<{ ok: boolean; reservations: 
 
 // Réservations ANNULÉES du périmètre (RLS) — pour un compte club/opérateur, ce sont les
 // annulations de son club. On garde la trace (status='cancelled' posé par cancel_reservation)
-// pour que le club soit prévenu qu'un créneau s'est libéré. Trié du plus récent au plus ancien.
-// Convention réseau (CLAUDE.md §8) : `null` en cas d'échec (≠ [] = aucune annulation).
+// pour que le club soit prévenu qu’un créneau s’est libéré. Trié du plus récent au plus ancien.
+// Convention réseau (CLAUDE.md §8) : `null` en cas d’échec (≠ [] = aucune annulation).
 export async function fetchCancelledReservations(): Promise<Reservation[] | null> {
   const { data, error } = await supabase
     .from('reservations')
@@ -172,15 +172,15 @@ export async function fetchCancelledReservations(): Promise<Reservation[] | null
 }
 
 // Absences (no-show) du périmètre (RLS) — pour un compte club/opérateur, ce sont les absences
-// de son club. Trace conservée (status='no_show' posé par mark_no_show). Plus récent d'abord.
-// Convention réseau : `null` en cas d'échec (≠ [] = aucune absence).
+// de son club. Trace conservée (status='no_show' posé par mark_no_show). Plus récent d’abord.
+// Convention réseau : `null` en cas d’échec (≠ [] = aucune absence).
 export async function fetchNoShowReservations(): Promise<Reservation[] | null> {
   const { data, error } = await supabase.from('reservations').select('*').eq('status', 'no_show').order('starts_at', { ascending: false });
   if (error) return null;
   return (data ?? []).map((r) => rowToReservation(r as Row));
 }
 
-// Le club (ou l'opérateur) marque une réservation comme « pas venu » (ou annule l'absence).
+// Le club (ou l’opérateur) marque une réservation comme « pas venu » (ou annule l’absence).
 // Fonction serveur (SECURITY DEFINER) qui vérifie le rôle/le club. false si refusé/conflit.
 export async function markNoShowRow(id: string, value: boolean): Promise<boolean> {
   const { data, error } = await supabase.rpc('mark_no_show', { p_id: id, p_value: value });
@@ -188,7 +188,7 @@ export async function markNoShowRow(id: string, value: boolean): Promise<boolean
 }
 
 // Fiabilité des joueurs (annulations + absences) par id de compte — club/opérateur seulement.
-// Convention réseau : `null` en cas d'échec ({} = aucun joueur demandé / aucun résultat).
+// Convention réseau : `null` en cas d’échec ({} = aucun joueur demandé / aucun résultat).
 export type Reliability = { cancelled: number; noShow: number };
 export async function fetchReliability(userIds: string[]): Promise<Record<string, Reliability> | null> {
   const ids = [...new Set(userIds.filter(Boolean))];
@@ -204,7 +204,7 @@ export async function fetchReliability(userIds: string[]): Promise<Record<string
 
 // Réservation PARTAGÉE : rattache les amis invités (par leur numéro) à la réservation.
 // La résolution numéro → compte se fait côté serveur (fonction SECURITY DEFINER), donc on
-// n'expose jamais les profils. Les non-inscrits sont simplement ignorés.
+// n’expose jamais les profils. Les non-inscrits sont simplement ignorés.
 export async function linkParticipants(reservationId: string, phones: string[]): Promise<void> {
   const clean = phones.map((p) => p.trim()).filter((p) => p.replace(/\D/g, '').length >= 8);
   if (clean.length === 0) return;
@@ -212,10 +212,10 @@ export async function linkParticipants(reservationId: string, phones: string[]):
 }
 
 // Les réservations où JE suis invité (participant), AVEC le statut de mon invitation.
-// 'invited' = à confirmer (Accepter/Refuser), 'accepted' = je viens, 'declined' = j'ai refusé.
+// 'invited' = à confirmer (Accepter/Refuser), 'accepted' = je viens, 'declined' = j’ai refusé.
 export type MyParticipation = { reservationId: string; status: 'invited' | 'accepted' | 'declined' };
-// null = échec réseau (≠ tableau vide = « aucune invitation ») → l'appelant garde l'existant et
-// n'efface pas les invitations en cours au retour au premier plan.
+// null = échec réseau (≠ tableau vide = « aucune invitation ») → l’appelant garde l’existant et
+// n’efface pas les invitations en cours au retour au premier plan.
 export async function fetchMyParticipations(userId: string): Promise<MyParticipation[] | null> {
   const { data, error } = await supabase.from('reservation_participants').select('reservation_id, status').eq('user_id', userId);
   if (error) return null;
@@ -225,15 +225,15 @@ export async function fetchMyParticipations(userId: string): Promise<MyParticipa
   }));
 }
 
-// L'invité répond à une invitation (Accepter / Refuser) — fonction serveur (SECURITY DEFINER).
+// L’invité répond à une invitation (Accepter / Refuser) — fonction serveur (SECURITY DEFINER).
 export async function respondInvitation(reservationId: string, accept: boolean): Promise<boolean> {
   const { data, error } = await supabase.rpc('respond_invitation', { p_reservation_id: reservationId, p_accept: accept });
   return !error && data === true;
 }
 
 // Occupation de TOUS les créneaux pris (vue publique sans identité). Renvoie null en cas
-// d'échec réseau (≠ tableau vide = « aucun créneau pris ») → l'appelant garde l'occupation
-// connue au lieu de la vider et d'afficher de fausses dispos.
+// d’échec réseau (≠ tableau vide = « aucun créneau pris ») → l’appelant garde l’occupation
+// connue au lieu de la vider et d’afficher de fausses dispos.
 export async function fetchOccupancy(): Promise<SlotOccupancy[] | null> {
   const { data, error } = await supabase.from('slot_occupancy').select('*');
   if (error) return null;

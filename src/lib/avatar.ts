@@ -1,7 +1,7 @@
-// Photo de profil → Supabase Storage (bucket public « avatars »), pour qu'elle SURVIVE à une
+// Photo de profil → Supabase Storage (bucket public « avatars »), pour qu’elle SURVIVE à une
 // réinstallation et se synchronise entre appareils. On lit le fichier local en base64, on le
-// décode en binaire, puis on l'envoie sous « {userId}/avatar.jpg » (écrasement = upsert).
-// Renvoie l'URL publique (avec anti-cache) ou null si l'envoi échoue (web, réseau…).
+// décode en binaire, puis on l’envoie sous « {userId}/avatar.jpg » (écrasement = upsert).
+// Renvoie l’URL publique (avec anti-cache) ou null si l’envoi échoue (web, réseau…).
 
 import { decode } from 'base64-arraybuffer';
 import { File } from 'expo-file-system';
@@ -21,7 +21,7 @@ export async function uploadAvatar(userId: string, localUri: string): Promise<st
     });
     if (error) return null;
     const { data } = supabase.storage.from('avatars').getPublicUrl(path);
-    // Anti-cache : même chemin réécrit (upsert) → on force le rafraîchissement de l'image.
+    // Anti-cache : même chemin réécrit (upsert) → on force le rafraîchissement de l’image.
     return `${data.publicUrl}?v=${Date.now()}`;
   } catch {
     return null;

@@ -32,12 +32,12 @@ export function SectionReservations({
   const [planDayKey, setPlanDayKey] = useState<string | null>(null);
   const [showBlockForm, setShowBlockForm] = useState(false);
 
-  // Annulations récentes du club (serveur) : un joueur a annulé → le créneau s'est libéré.
+  // Annulations récentes du club (serveur) : un joueur a annulé → le créneau s’est libéré.
   // On garde la trace (status='cancelled') pour prévenir le club (cf. fonction serveur 09).
   const [cancelled, setCancelled] = useState<Reservation[]>([]);
   // Absences (no-show) marquées par le club : trace conservée (status='no_show').
   const [noShows, setNoShows] = useState<Reservation[]>([]);
-  // Échec réseau → null : on GARDE les listes affichées (on n'écrase jamais avec du vide).
+  // Échec réseau → null : on GARDE les listes affichées (on n’écrase jamais avec du vide).
   const reloadTraces = () => {
     void fetchCancelledReservations().then((rows) => rows && setCancelled(rows.filter((r) => r.clubId === club.id)));
     void fetchNoShowReservations().then((rows) => rows && setNoShows(rows.filter((r) => r.clubId === club.id)));
@@ -69,7 +69,7 @@ export function SectionReservations({
     };
   }, [playerIdsKey]);
 
-  // Badge d'alerte sous le nom d'un joueur peu fiable (≥1 annulation ou absence).
+  // Badge d’alerte sous le nom d’un joueur peu fiable (≥1 annulation ou absence).
   const reliabilityNote = (userId?: string) => {
     const rel = userId ? reliability[userId] : undefined;
     if (!rel || (rel.cancelled === 0 && rel.noShow === 0)) return null;
@@ -86,14 +86,14 @@ export function SectionReservations({
     );
   };
 
-  // Le club marque une absence : créneau libéré + absence comptée (même après l'appel tardif).
-  // Confirmation obligatoire — l'absence pénalise la fiabilité du joueur, un tap par erreur
+  // Le club marque une absence : créneau libéré + absence comptée (même après l’appel tardif).
+  // Confirmation obligatoire — l’absence pénalise la fiabilité du joueur, un tap par erreur
   // aurait des conséquences injustes.
   const onMarkNoShow = (r: Reservation) => {
     const who = r.bookedBy?.name ? ` de ${r.bookedBy.name}` : '';
     Alert.alert(
       'Marquer une absence ?',
-      `Confirmes-tu que ce joueur n'est pas venu ? Le créneau${who} sera libéré et l'absence comptée dans sa fiabilité.`,
+      `Confirmes-tu que ce joueur n’est pas venu ? Le créneau${who} sera libéré et l’absence comptée dans sa fiabilité.`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -130,8 +130,8 @@ export function SectionReservations({
 
   // Planning par TERRAIN pour un jour donné (maquette Espace Club · planning).
   const week = nextDays(7);
-  // Repli sur les créneaux/terrains par défaut tant que le gérant n'a rien personnalisé —
-  // sinon le planning et les mini-stats resteraient vides à l'ouverture de l'Espace Club.
+  // Repli sur les créneaux/terrains par défaut tant que le gérant n’a rien personnalisé —
+  // sinon le planning et les mini-stats resteraient vides à l’ouverture de l’Espace Club.
   const openSlots = openSlotsFor(club, state.clubSlots);
   const courts = courtsFor(club, state.clubCourts);
   const planTimes = [...openSlots].sort();
@@ -139,7 +139,7 @@ export function SectionReservations({
   // « Jour bloqué entièrement » : seulement un tournoi PUBLIÉ sans terrains/créneaux précis.
   // Un tournoi en attente/refusé, ou qui ne réserve que quelques terrains, ne ferme pas la grille.
   const dayTournament = hasFullDayCompetition(club.id, planDay.key, comps);
-  // Statut d'UN terrain à un créneau — réservations app + blocages hors app + créneaux/terrains
+  // Statut d’UN terrain à un créneau — réservations app + blocages hors app + créneaux/terrains
   // réellement réservés par un tournoi publié (pas toute la journée par défaut).
   const courtStatusAt = (court: string, time: string): 'reserved' | 'blocked' | 'tournoi' | 'free' => {
     const compBlocked = competitionBlockedCourts(club.id, planDay.key, time, comps);
@@ -149,7 +149,7 @@ export function SectionReservations({
     return 'free';
   };
 
-  // Mini-stats de la semaine : taux d'occupation + créneau le plus demandé.
+  // Mini-stats de la semaine : taux d’occupation + créneau le plus demandé.
   const weekKeys = new Set(week.map((d) => d.key));
   const weekRes = clubRes.filter((r) => weekKeys.has(r.dateKey));
   const capacity = Math.max(1, planTimes.length * courts.length * 7);
@@ -157,7 +157,7 @@ export function SectionReservations({
   const byHour = new Map<string, number>();
   for (const r of weekRes) byHour.set(r.time, (byHour.get(r.time) ?? 0) + 1);
   const topHour = [...byHour.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? '—';
-  // Créneaux les plus CREUX (parmi les heures d'ouverture, celles jamais réservées cette semaine)
+  // Créneaux les plus CREUX (parmi les heures d’ouverture, celles jamais réservées cette semaine)
   // → le gérant sait où pousser une offre pour remplir.
   const quietHours = planTimes.filter((t) => !byHour.has(t)).slice(0, 3);
 
@@ -165,13 +165,13 @@ export function SectionReservations({
   // parties JOUÉES (revenu encaissé) — même base que la commission.
   const revenueOf = (items: Reservation[]) => items.reduce((sum, r) => sum + (r.price ?? 0), 0);
   // Revenu RÉTROSPECTIF sur les 7 DERNIERS jours (≠ occupation ci-dessus, qui est une prévision
-  // vers l'avant) : `week` (nextDays) démarre AUJOURD'HUI et va vers J+6, donc `weekRes` ne
+  // vers l’avant) : `week` (nextDays) démarre AUJOURD’HUI et va vers J+6, donc `weekRes` ne
   // contient quasiment jamais de parties jouées — on se base ici sur pastRes (déjà jouées).
   const last7DaysRevenue = revenueOf(pastRes.filter((r) => r.startsAt >= now - 7 * DAY_MS));
 
   return (
     <>
-      {/* Vue d'ensemble */}
+      {/* Vue d’ensemble */}
       <View style={styles.stats}>
         <StatTile value={upcomingRes.length} label="À venir" color={colors.signature} bg={colors.signatureSoft} />
         <StatTile value={pastRes.length} label="Jouées" color={colors.green} bg={colors.greenSoft} />
@@ -289,7 +289,7 @@ export function SectionReservations({
                           : st === 'tournoi'
                             ? styles.gcTournoi
                             : styles.gcFree;
-                    // Libellé lu par un lecteur d'écran (les cases libres sont sinon vides).
+                    // Libellé lu par un lecteur d’écran (les cases libres sont sinon vides).
                     const statusLabel =
                       st === 'reserved' ? 'réservé' : st === 'blocked' ? 'bloqué' : st === 'tournoi' ? 'tournoi' : 'libre';
                     return (
@@ -373,7 +373,7 @@ export function SectionReservations({
             <EmptyState
               icon="calendar-outline"
               title="Aucune réservation à venir"
-              text={`Dès qu'un joueur réserve chez ${club.name}, elle apparaît ici avec son nom et son numéro.`}
+              text={`Dès qu’un joueur réserve chez ${club.name}, elle apparaît ici avec son nom et son numéro.`}
             />
           </Card>
         ) : (
@@ -395,7 +395,7 @@ export function SectionReservations({
                     </Txt>
                   ) : null}
                   {r.coachName ? (
-                    // Réservation née d'un cours accepté par le coach (double validation).
+                    // Réservation née d’un cours accepté par le coach (double validation).
                     <Txt variant="small" color={colors.purple} style={{ fontWeight: '600' }}>
                       Cours avec {r.coachName}
                     </Txt>
@@ -422,7 +422,7 @@ export function SectionReservations({
                         hapticSuccess();
                         // Confirmation posée + numéro connu → on PROPOSE de prévenir le joueur
                         // dans la foulée (boucle fermée « confirmée → joueur prévenu », sans
-                        // dépendre d'un second tap que le gérant oublie souvent).
+                        // dépendre d’un second tap que le gérant oublie souvent).
                         if (!wasConfirmed && r.bookedBy?.phone) {
                           Alert.alert('Réservation confirmée ✓', `Prévenir ${r.bookedBy.name} par WhatsApp ?`, [
                             { text: 'Plus tard', style: 'cancel' },
@@ -450,7 +450,7 @@ export function SectionReservations({
                     onPress={() =>
                       openWhatsApp(
                         r.bookedBy!.phone,
-                        // Le message ne doit affirmer « confirmée » QUE si elle l'est vraiment
+                        // Le message ne doit affirmer « confirmée » QUE si elle l’est vraiment
                         // côté serveur (r.clubConfirmed) — sinon on informe sans mentir au joueur.
                         r.clubConfirmed
                           ? `Bonjour ${r.bookedBy!.name}, votre réservation du ${dateKeyLabel(r.dateKey)} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`
@@ -460,9 +460,9 @@ export function SectionReservations({
                   />
                 ) : null}
               </View>
-              {/* Le joueur n'est pas venu (y c. annulation tardive par téléphone) : libère le
-                  créneau et compte l'absence. Proposé seulement une fois le créneau COMMENCÉ —
-                  avant, un tap par erreur compterait une absence injuste des jours à l'avance. */}
+              {/* Le joueur n’est pas venu (y c. annulation tardive par téléphone) : libère le
+                  créneau et compte l’absence. Proposé seulement une fois le créneau COMMENCÉ —
+                  avant, un tap par erreur compterait une absence injuste des jours à l’avance. */}
               {r.startsAt <= now ? (
                 <Button size="sm" label="Pas venu" icon="person-remove-outline" variant="ghost" onPress={() => onMarkNoShow(r)} full />
               ) : null}
@@ -513,7 +513,7 @@ export function SectionReservations({
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.sm }}>
               <Ionicons name="warning-outline" size={16} color={colors.coral} />
               <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-                Joueurs qui ne sont pas venus (ou ont annulé trop tard par téléphone). C'est compté dans leur fiabilité.
+                Joueurs qui ne sont pas venus (ou ont annulé trop tard par téléphone). C’est compté dans leur fiabilité.
               </Txt>
             </View>
             {noShows.slice(0, 8).map((r, i) => (
@@ -547,7 +547,7 @@ export function SectionReservations({
             <EmptyState
               icon="time-outline"
               title="Aucun historique"
-              text="Les réservations déjà jouées s'afficheront ici, semaine par semaine."
+              text="Les réservations déjà jouées s’afficheront ici, semaine par semaine."
             />
           </Card>
         ) : (
@@ -577,7 +577,7 @@ export function SectionReservations({
                       ) : null}
                     </View>
                     {/* Une absence se traite souvent APRÈS le créneau : on laisse 48 h au gérant
-                        pour la signaler depuis l'historique (le serveur accepte une résa passée). */}
+                        pour la signaler depuis l’historique (le serveur accepte une résa passée). */}
                     {now - r.startsAt <= 48 * 3600 * 1000 ? (
                       <Button size="sm" label="Pas venu" icon="person-remove-outline" variant="ghost" onPress={() => onMarkNoShow(r)} />
                     ) : null}

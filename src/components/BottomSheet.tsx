@@ -5,14 +5,14 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Txt } from './ui';
 import { colors, radius, shadows, spacing } from '@/theme';
 
-// Décalage de sortie de la feuille : la hauteur de l'écran garantit qu'elle est toujours
+// Décalage de sortie de la feuille : la hauteur de l’écran garantit qu’elle est toujours
 // entièrement hors-champ, quelle que soit la taille de son contenu (pas besoin de mesurer).
 const SHEET_OFFSET = Dimensions.get('window').height;
 
 // Feuille modale qui monte du bas — overlay sombre, poignée, titre, contenu défilable.
 // Fondu du scrim + glissement de la feuille pilotés à la main (motif Toast.tsx : fade+translateY),
-// avec une sortie symétrique : le Modal natif reste affiché (contenu monté) le temps de l'anim
-// de sortie, et ne se démonte qu'une fois celle-ci terminée.
+// avec une sortie symétrique : le Modal natif reste affiché (contenu monté) le temps de l’anim
+// de sortie, et ne se démonte qu’une fois celle-ci terminée.
 export function BottomSheet({
   visible,
   title,
@@ -29,10 +29,10 @@ export function BottomSheet({
   const insets = useSafeAreaInsets();
   const backdropOpacity = useRef(new Animated.Value(visible ? 1 : 0)).current;
   const sheetY = useRef(new Animated.Value(visible ? 0 : SHEET_OFFSET)).current;
-  // Le Modal natif reste monté tant que `mounted` est vrai — y compris pendant l'anim de sortie
+  // Le Modal natif reste monté tant que `mounted` est vrai — y compris pendant l’anim de sortie
   // (le contenu doit rester visible pendant que la feuille glisse hors champ).
   const [mounted, setMounted] = useState(visible);
-  // Ouverture : ajustement d'état pendant le rendu (pas dans un effet — pattern React standard
+  // Ouverture : ajustement d’état pendant le rendu (pas dans un effet — pattern React standard
   // pour synchroniser un state sur un prop, sans le souci de setState synchrone dans un effet).
   if (visible && !mounted) setMounted(true);
 
@@ -47,7 +47,7 @@ export function BottomSheet({
         Animated.timing(backdropOpacity, { toValue: 0, duration: 200, useNativeDriver: true }),
         Animated.timing(sheetY, { toValue: SHEET_OFFSET, duration: 260, easing: Easing.out(Easing.cubic), useNativeDriver: true }),
       ]).start(({ finished }) => {
-        // setState dans le callback de fin d'anim (asynchrone) — pas un setState synchrone d'effet.
+        // setState dans le callback de fin d’anim (asynchrone) — pas un setState synchrone d’effet.
         if (finished) setMounted(false);
       });
     }

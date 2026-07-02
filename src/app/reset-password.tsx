@@ -11,7 +11,7 @@ import { colors, radius, spacing } from '@/theme';
 
 // Écran de RÉINITIALISATION du mot de passe (ouvert par le lien reçu par e-mail, deep link
 // « padelco://reset-password?code=… »). On échange le code contre une session, puis on laisse
-// l'utilisateur saisir un NOUVEAU mot de passe (supabase.auth.updateUser). Sans cet écran, le
+// l’utilisateur saisir un NOUVEAU mot de passe (supabase.auth.updateUser). Sans cet écran, le
 // bouton « Mot de passe oublié ? » ne permettait jamais de définir un nouveau mot de passe.
 export default function ResetPasswordScreen() {
   const router = useRouter();
@@ -19,7 +19,7 @@ export default function ResetPasswordScreen() {
   const toast = useToast();
   const { refreshSession } = useApp();
   const code = Array.isArray(params.code) ? params.code[0] : params.code;
-  // Sans code dans le lien → « error » d'emblée (évite un setState synchrone dans l'effet).
+  // Sans code dans le lien → « error » d’emblée (évite un setState synchrone dans l’effet).
   const [status, setStatus] = useState<'exchanging' | 'ready' | 'error'>(code ? 'exchanging' : 'error');
   const [pwd, setPwd] = useState('');
   const [pwd2, setPwd2] = useState('');
@@ -52,7 +52,7 @@ export default function ResetPasswordScreen() {
     }
     toast.show('Mot de passe mis à jour ✓');
     // La session Supabase est valide (exchangeCodeForSession + updateUser) mais state.account
-    // n'est pas encore adopté par le Context → sans ça, le garde racine renvoyait vers
+    // n’est pas encore adopté par le Context → sans ça, le garde racine renvoyait vers
     // /onboarding malgré une session active (comme onConfirm dans _layout.tsx).
     await refreshSession();
     router.replace('/');
@@ -78,7 +78,7 @@ export default function ResetPasswordScreen() {
               value={pwd}
               onChangeText={setPwd}
               placeholder="Nouveau mot de passe"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               secureTextEntry={hidden}
               autoCapitalize="none"
               style={styles.inputInner}
@@ -96,7 +96,7 @@ export default function ResetPasswordScreen() {
             value={pwd2}
             onChangeText={setPwd2}
             placeholder="Confirme le mot de passe"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             secureTextEntry={hidden}
             autoCapitalize="none"
             style={styles.input}

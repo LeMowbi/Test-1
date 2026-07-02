@@ -1,7 +1,7 @@
 import { StyleSheet } from 'react-native';
 import { colors, font, radius, spacing } from '@/theme';
 
-// Styles partagés par l'Espace opérateur et ses sous-composants (saisies, sélecteur de club).
+// Styles partagés par l’Espace opérateur et ses sous-composants (saisies, sélecteur de club).
 // Factorisés ici pour éviter de dupliquer les mêmes blocs dans chaque fichier.
 export const opStyles = StyleSheet.create({
   clubInput: {

@@ -1,6 +1,6 @@
-// Disponibilité des terrains — logique centrale, réutilisée par l'écran « Réserver »,
+// Disponibilité des terrains — logique centrale, réutilisée par l’écran « Réserver »,
 // la fiche de réservation et la création de match. Tout est calculé terrain par terrain
-// et indexé sur la KEY stable du jour (AAAA-MM-JJ), jamais sur le libellé d'affichage.
+// et indexé sur la KEY stable du jour (AAAA-MM-JJ), jamais sur le libellé d’affichage.
 
 import { SAMPLE_SLOTS, compareClubs, defaultCourts, type Club } from '@/data/clubs';
 import { isTournamentPublic, type Competition } from '@/data/competitions';
@@ -25,13 +25,13 @@ export function openSlotsFor(club: Club, clubSlots: Record<string, string[]>): s
   return clubSlots[club.id] ?? SAMPLE_SLOTS;
 }
 
-// Terrains d'un club : ceux gérés par le club, sinon « Terrain 1…N » par défaut.
+// Terrains d’un club : ceux gérés par le club, sinon « Terrain 1…N » par défaut.
 export function courtsFor(club: Club, clubCourts: Record<string, string[]>): string[] {
   return clubCourts[club.id] ?? defaultCourts(club);
 }
 
-// Un tournoi a-t-il lieu à ce club ce jour-là ? (n'importe lequel, plage début → fin incluse)
-// Sert aux vues CLUB (planning) : le gérant veut savoir qu'un tournoi se tient, même partiel.
+// Un tournoi a-t-il lieu à ce club ce jour-là ? (n’importe lequel, plage début → fin incluse)
+// Sert aux vues CLUB (planning) : le gérant veut savoir qu’un tournoi se tient, même partiel.
 export function hasCompetition(clubId: string, dateKey: string, comps: Competition[]): boolean {
   return comps.some((c) => c.clubId === clubId && dateKey >= c.dateKey && dateKey <= (c.endDateKey ?? c.dateKey));
 }
@@ -62,20 +62,20 @@ export function competitionBlockedCourts(clubId: string, dateKey: string, time: 
     const courts = c.courtNames ?? [];
     const slots = c.timeSlots ?? [];
     if (courts.length === 0 && slots.length === 0) return 'all'; // seed : bloque tout le club ce jour
-    if (slots.length > 0 && !slots.includes(time)) continue; // ce créneau n'est pas concerné
+    if (slots.length > 0 && !slots.includes(time)) continue; // ce créneau n’est pas concerné
     if (courts.length === 0) return 'all'; // créneaux précis, mais tous les terrains à ces heures
     for (const ct of courts) blocked.add(ct);
   }
   return [...blocked];
 }
 
-// Terrains encore libres d'un club à (jour, heure) — réservés, bloqués hors app ET retenus
+// Terrains encore libres d’un club à (jour, heure) — réservés, bloqués hors app ET retenus
 // par un tournoi exclus. Un tournoi ne bloque QUE ses terrains/créneaux déclarés.
 export function freeCourts(club: Club, dateKey: string, time: string, ctx: AvailCtx): string[] {
   const compBlocked = competitionBlockedCourts(club.id, dateKey, time, ctx.comps);
   if (compBlocked === 'all') return [];
   const taken = ctx.reservations.filter((r) => r.clubId === club.id && r.dateKey === dateKey && r.time === time).map((r) => r.court);
-  // Terrains pris par d'AUTRES joueurs (occupation serveur) — invisibles dans mes résas.
+  // Terrains pris par d’AUTRES joueurs (occupation serveur) — invisibles dans mes résas.
   const occupied = (ctx.occupancy ?? [])
     .filter((o) => o.clubId === club.id && o.dateKey === dateKey && o.time === time)
     .map((o) => o.court);
@@ -95,11 +95,11 @@ export function slotGrid(ctx: Pick<AvailCtx, 'clubs' | 'clubSlots'>): string[] {
 export type ClubAvail = { club: Club; free: number };
 
 // Clubs ayant ≥1 terrain libre à (jour, heure) — créneau ouvert, hors compétition, non passé.
-// Padelta d'abord puis alphabétique (compareClubs), comme toutes les listes joueurs.
+// Padelta d’abord puis alphabétique (compareClubs), comme toutes les listes joueurs.
 export function clubsFreeAt(dateKey: string, time: string, slotTs: number, ctx: AvailCtx): ClubAvail[] {
   if (slotTs <= Date.now()) return [];
   return ctx.clubs
-    .filter((club) => !club.comingSoon) // un club « Bientôt » n'est pas encore réservable
+    .filter((club) => !club.comingSoon) // un club « Bientôt » n’est pas encore réservable
     .filter((club) => openSlotsFor(club, ctx.clubSlots).includes(time))
     .map((club) => ({ club, free: freeCourts(club, dateKey, time, ctx).length }))
     .filter((x) => x.free > 0)

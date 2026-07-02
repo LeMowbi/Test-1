@@ -1,7 +1,7 @@
-// Diagnostics self-hosted : journal d'ERREURS et d'ÉVÉNEMENTS d'usage, écrits dans NOTRE Supabase
+// Diagnostics self-hosted : journal d’ERREURS et d’ÉVÉNEMENTS d’usage, écrits dans NOTRE Supabase
 // (tables app_errors / app_events, cf. 33_diagnostics.sql). Aucun service externe, aucun pistage.
-// Tout est best-effort et TOTALEMENT silencieux : le suivi ne doit jamais casser l'app ni bloquer
-// l'utilisateur. Seul l'opérateur peut relire ces tables (RLS).
+// Tout est best-effort et TOTALEMENT silencieux : le suivi ne doit jamais casser l’app ni bloquer
+// l’utilisateur. Seul l’opérateur peut relire ces tables (RLS).
 
 import Constants from 'expo-constants';
 import { Platform } from 'react-native';
@@ -20,7 +20,7 @@ function describe(error: unknown): { message: string; stack?: string } {
   }
 }
 
-// Enregistre une erreur / un crash. `context` = où c'est arrivé (écran ou action).
+// Enregistre une erreur / un crash. `context` = où c’est arrivé (écran ou action).
 // Ne lève jamais, ne bloque jamais (fire-and-forget).
 export function logError(error: unknown, context?: string): void {
   try {
@@ -30,11 +30,11 @@ export function logError(error: unknown, context?: string): void {
       .insert({ message: message.slice(0, 1000), stack: stack?.slice(0, 4000), context, platform: Platform.OS, app_version: APP_VERSION })
       .then(() => {});
   } catch {
-    // silencieux : un échec de diagnostic ne doit jamais remonter à l'utilisateur.
+    // silencieux : un échec de diagnostic ne doit jamais remonter à l’utilisateur.
   }
 }
 
-// Enregistre un événement d'usage (ex. 'reservation_created'). `props` = détails NON sensibles.
+// Enregistre un événement d’usage (ex. 'reservation_created'). `props` = détails NON sensibles.
 export function track(name: string, props?: Record<string, unknown>): void {
   try {
     void supabase
@@ -46,11 +46,11 @@ export function track(name: string, props?: Record<string, unknown>): void {
   }
 }
 
-// ─── Lecture opérateur (carte « Santé de l'app » de l'Espace opérateur, RPC 39) ───
+// ─── Lecture opérateur (carte « Santé de l’app » de l’Espace opérateur, RPC 39) ───
 
 export type DiagSummary = { errors7d: number; events7d: number; topContext?: string };
 
-// Résumé 7 jours — null si échec réseau OU compte non opérateur (la carte s'affiche « — »).
+// Résumé 7 jours — null si échec réseau OU compte non opérateur (la carte s’affiche « — »).
 export async function fetchDiagSummary(): Promise<DiagSummary | null> {
   const { data, error } = await supabase.rpc('operator_diag_summary');
   if (error) return null;
@@ -76,8 +76,8 @@ export async function fetchRecentErrors(limit = 5): Promise<RecentError[] | null
   }));
 }
 
-// Installe le gestionnaire GLOBAL d'erreurs JS (crashs non rattrapés) → on les journalise avant
-// que l'app ne réagisse. On chaîne le handler existant pour ne pas casser le comportement natif.
+// Installe le gestionnaire GLOBAL d’erreurs JS (crashs non rattrapés) → on les journalise avant
+// que l’app ne réagisse. On chaîne le handler existant pour ne pas casser le comportement natif.
 export function installGlobalErrorLogging(): void {
   const g = globalThis as unknown as {
     ErrorUtils?: {

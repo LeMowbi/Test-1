@@ -1,7 +1,7 @@
-// Notifications PUSH (à distance) : on enregistre le jeton Expo de l'appareil sur le profil
-// pour que le serveur puisse notifier ce compte (club prévenu d'une réservation, ami qui
-// accepte une invitation…). L'envoi se fait côté serveur (Edge Function, cf. docs/PUSH-SETUP.md).
-// Web / simulateur / permission refusée → no-op silencieux (l'app marche sans push).
+// Notifications PUSH (à distance) : on enregistre le jeton Expo de l’appareil sur le profil
+// pour que le serveur puisse notifier ce compte (club prévenu d’une réservation, ami qui
+// accepte une invitation…). L’envoi se fait côté serveur (Edge Function, cf. docs/PUSH-SETUP.md).
+// Web / simulateur / permission refusée → no-op silencieux (l’app marche sans push).
 
 import Constants from 'expo-constants';
 import * as Notifications from 'expo-notifications';
@@ -22,6 +22,6 @@ export async function registerPushToken(userId: string): Promise<void> {
     const token = (await Notifications.getExpoPushTokenAsync({ projectId })).data;
     if (token) await supabase.from('profiles').update({ expo_push_token: token }).eq('id', userId);
   } catch {
-    // pas de push (simulateur, permission refusée, réseau) — sans impact sur le reste de l'app
+    // pas de push (simulateur, permission refusée, réseau) — sans impact sur le reste de l’app
   }
 }

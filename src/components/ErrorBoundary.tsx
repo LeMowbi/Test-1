@@ -4,8 +4,8 @@ import { Button, Txt } from '@/components/ui';
 import { logError } from '@/lib/diagnostics';
 import { colors, spacing } from '@/theme';
 
-// Filet de sécurité : si un écran plante au rendu, on journalise l'erreur (diagnostics) et on
-// affiche un repli propre au lieu d'un écran blanc. « Réessayer » remonte le composant.
+// Filet de sécurité : si un écran plante au rendu, on journalise l’erreur (diagnostics) et on
+// affiche un repli propre au lieu d’un écran blanc. « Réessayer » remonte le composant.
 type Props = { children: ReactNode };
 type State = { hasError: boolean };
 
@@ -30,7 +30,7 @@ export class ErrorBoundary extends Component<Props, State> {
           Oups, un souci est survenu
         </Txt>
         <Txt variant="muted" style={{ textAlign: 'center', marginTop: spacing.sm }}>
-          On a été prévenu automatiquement. Réessaie — si ça persiste, ferme et rouvre l'application.
+          On a été prévenu automatiquement. Réessaie — si ça persiste, ferme et rouvre l’application.
         </Txt>
         <View style={{ marginTop: spacing.lg }}>
           <Button label="Réessayer" icon="refresh" onPress={this.reset} />

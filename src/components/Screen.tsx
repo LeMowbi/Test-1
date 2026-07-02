@@ -25,7 +25,7 @@ type Props = {
   contentStyle?: ViewStyle;
   overlay?: React.ReactNode;
   scrollRef?: React.Ref<ScrollView>;
-  // Élément RefreshControl pour le « tirer pour rafraîchir » (laissé au choix de l'écran).
+  // Élément RefreshControl pour le « tirer pour rafraîchir » (laissé au choix de l’écran).
   refreshControl?: React.ReactElement<RefreshControlProps>;
 };
 
@@ -48,7 +48,13 @@ export function Screen({
     <View style={styles.header}>
       <View style={styles.headerRow}>
         {back ? (
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn} hitSlop={12} accessibilityLabel="Retour">
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={styles.backBtn}
+            hitSlop={12}
+            accessibilityRole="button"
+            accessibilityLabel="Retour"
+          >
             <Ionicons name="chevron-back" size={22} color={colors.text} />
           </TouchableOpacity>
         ) : null}
@@ -83,7 +89,7 @@ export function Screen({
           ref={scrollRef}
           showsVerticalScrollIndicator={false}
           // Le 1er tap sur un bouton ne doit pas être « avalé » par la fermeture du clavier ;
-          // et on referme le clavier dès qu'on fait défiler un formulaire.
+          // et on referme le clavier dès qu’on fait défiler un formulaire.
           keyboardShouldPersistTaps="handled"
           keyboardDismissMode="on-drag"
           refreshControl={refreshControl}

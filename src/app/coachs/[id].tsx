@@ -116,15 +116,15 @@ export default function CoachDetail() {
         </View>
 
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.md }}>
-          La réservation d'un cours se fait directement avec le coach (appel / WhatsApp).
+          La réservation d’un cours se fait directement avec le coach (appel / WhatsApp).
         </Txt>
       </View>
     </Screen>
   );
 }
 
-// Barre d'action basse collante : « Voir le club » (secondaire) + « Appeler » (pill bleu) +
-// « WhatsApp » (canal n°1 en Côte d'Ivoire — le texte au-dessus de cette barre promet les deux).
+// Barre d’action basse collante : « Voir le club » (secondaire) + « Appeler » (pill bleu) +
+// « WhatsApp » (canal n°1 en Côte d’Ivoire — le texte au-dessus de cette barre promet les deux).
 function CoachActionBar({ onClub, onCall, onWhatsApp }: { onClub?: () => void; onCall: () => void; onWhatsApp: () => void }) {
   const insets = useSafeAreaInsets();
   return (

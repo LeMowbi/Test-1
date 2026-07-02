@@ -3,9 +3,9 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Button, Txt } from './ui';
 import { colors, shadows, spacing } from '@/theme';
 
-// Barre d'action collante en bas d'écran : info à gauche (prix…), CTA pill à droite.
+// Barre d’action collante en bas d’écran : info à gauche (prix…), CTA pill à droite.
 // À placer via la prop `overlay` du composant Screen ; prévoir un paddingBottom sur
-// le contenu pour qu'il ne soit pas masqué (≈ 92 + insets).
+// le contenu pour qu’il ne soit pas masqué (≈ 92 + insets).
 export function StickyBar({
   label,
   hint,

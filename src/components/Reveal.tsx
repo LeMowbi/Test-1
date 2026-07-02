@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Animated } from 'react-native';
 
 // Délai de cascade commun à toutes les listes animées (clubs, tournois, réservations…) —
-// une seule cadence dans toute l'app plutôt que plusieurs rythmes différents au choix de chaque écran.
+// une seule cadence dans toute l’app plutôt que plusieurs rythmes différents au choix de chaque écran.
 export const staggerDelay = (i: number, step = 40, cap = 240) => Math.min(i * step, cap);
 
 // Apparition douce (fondu + léger glissement) au montage.

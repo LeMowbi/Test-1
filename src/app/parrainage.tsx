@@ -14,14 +14,14 @@ import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
-// Lien d'invitation : Universal Link padelconnectci.com/invite/CODE — ouvre DIRECTEMENT l'app si
-// installée (code pré-rempli), sinon la page redirige vers l'App Store. Repli sans code : App Store.
+// Lien d’invitation : Universal Link padelconnectci.com/invite/CODE — ouvre DIRECTEMENT l’app si
+// installée (code pré-rempli), sinon la page redirige vers l’App Store. Repli sans code : App Store.
 const APP_STORE_URL = 'https://apps.apple.com/app/id6785261310';
 
 // Parrainage : chaque joueur connecté a un CODE unique. Son filleul le saisit à
-// l'inscription → le lien parrain→filleul est créé côté serveur, et le compteur ci-dessous
+// l’inscription → le lien parrain→filleul est créé côté serveur, et le compteur ci-dessous
 // reflète le nombre RÉEL de filleuls (table referrals, RLS). En démo (hors session) : code
-// indisponible, on garde l'invitation simple.
+// indisponible, on garde l’invitation simple.
 export default function ParrainageScreen() {
   const { state } = useApp();
   const toast = useToast();
@@ -43,14 +43,14 @@ export default function ParrainageScreen() {
     const uid = state.serverUserId;
     if (!uid) return;
     fetchReferralCount(uid).then((n) => {
-      if (alive && n != null) setCount(n); // null = échec réseau → pas d'écrasement
+      if (alive && n != null) setCount(n); // null = échec réseau → pas d’écrasement
     });
     return () => {
       alive = false;
     };
   }, [state.serverUserId]);
 
-  // Avec un code : lien direct qui ouvre l'app (code auto-rempli). Sans code : simple App Store.
+  // Avec un code : lien direct qui ouvre l’app (code auto-rempli). Sans code : simple App Store.
   const link = myCode ? inviteUrl(myCode) : APP_STORE_URL;
   const message =
     `Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes.` +
@@ -77,7 +77,7 @@ export default function ParrainageScreen() {
             Joue à plusieurs
           </Txt>
           <Txt variant="small" color={colors.onPhoto} style={{ marginTop: 4 }}>
-            Le padel, c'est mieux entre amis. Invite-les — dès qu'ils rejoignent, envoie-leur une demande d'ami pour jouer ensemble.
+            Le padel, c’est mieux entre amis. Invite-les — dès qu’ils rejoignent, envoie-leur une demande d’ami pour jouer ensemble.
           </Txt>
         </LinearGradient>
 
@@ -123,7 +123,7 @@ export default function ParrainageScreen() {
           {myCode ? (
             <>
               <Button label="Copier mon code" icon="copy-outline" variant="secondary" onPress={copyCode} full />
-              <Button label="Plus d'options de partage" icon="share-outline" variant="ghost" onPress={shareMore} full />
+              <Button label="Plus d’options de partage" icon="share-outline" variant="ghost" onPress={shareMore} full />
             </>
           ) : null}
         </View>
@@ -131,7 +131,7 @@ export default function ParrainageScreen() {
         <Card style={{ marginTop: spacing.lg, flexDirection: 'row', gap: spacing.md, alignItems: 'center' }}>
           <IconCircle icon="people-outline" color={colors.purple} bg={colors.purpleSoft} />
           <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-            Ton filleul saisit ton code à l'inscription : il apparaît alors dans ton compteur « Amis rejoints ».
+            Ton filleul saisit ton code à l’inscription : il apparaît alors dans ton compteur « Amis rejoints ».
           </Txt>
         </Card>
       </Reveal>

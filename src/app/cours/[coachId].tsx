@@ -23,8 +23,8 @@ import { useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
 // RÉSERVER UN COURS avec un coach du club : jour → créneau (dispos du coach ∩ terrain libre)
-// → terrain. On n'envoie qu'une DEMANDE : le terrain n'est réservé que si le coach accepte
-// (la réservation créée passe ensuite par la confirmation du club, comme d'habitude).
+// → terrain. On n’envoie qu’une DEMANDE : le terrain n’est réservé que si le coach accepte
+// (la réservation créée passe ensuite par la confirmation du club, comme d’habitude).
 export default function CoursScreen() {
   const params = useLocalSearchParams<{ coachId: string; clubId?: string }>();
   const router = useRouter();
@@ -42,7 +42,7 @@ export default function CoursScreen() {
     let alive = true;
     void fetchClubCoaches(clubId).then((list) => {
       if (!alive) return;
-      // setState APRÈS l'await uniquement (règle React Compiler — pas de setState synchrone).
+      // setState APRÈS l’await uniquement (règle React Compiler — pas de setState synchrone).
       if (list) {
         setCoaches(list);
         setLoadFailed(false);
@@ -100,7 +100,7 @@ export default function CoursScreen() {
         <EmptyState
           icon="school-outline"
           title="Coach indisponible"
-          text="Ce coach ne fait plus partie de l'équipe du club. Retourne sur la fiche du club pour en choisir un autre."
+          text="Ce coach ne fait plus partie de l’équipe du club. Retourne sur la fiche du club pour en choisir un autre."
         />
       </Screen>
     );
@@ -120,7 +120,7 @@ export default function CoursScreen() {
   const coachSlots = coach.slots.filter((s) => openSlots.includes(s)).sort();
   const compToday = !!day && hasFullDayCompetition(club.id, day.key, ctx.comps);
   const free = day && slot ? freeCourts(club, day.key, slot, ctx) : [];
-  // Pré-sélection du 1er terrain libre (même confort que l'écran Réserver, A-L2).
+  // Pré-sélection du 1er terrain libre (même confort que l’écran Réserver, A-L2).
   const effectiveCourt = court ?? (day && slot && free.length > 0 ? free[0] : null);
 
   const slotPrice = slot ? priceForSlot(club, slot) : null;
@@ -176,7 +176,7 @@ export default function CoursScreen() {
             Demande envoyée !
           </Txt>
           <Txt variant="small" color={colors.onPhoto} style={{ marginTop: 4, textAlign: 'center' }}>
-            {coach.name} reçoit ta demande. Le terrain sera réservé dès qu'il accepte — tu seras prévenu par notification.
+            {coach.name} reçoit ta demande. Le terrain sera réservé dès qu’il accepte — tu seras prévenu par notification.
           </Txt>
         </LinearGradient>
         <Card style={{ alignItems: 'center', paddingVertical: spacing.lg }}>
@@ -229,7 +229,7 @@ export default function CoursScreen() {
         <View style={styles.banner}>
           <Ionicons name="shield-checkmark-outline" size={16} color={colors.signature} />
           <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-            Le terrain n'est réservé que si {coach.name} accepte ta demande — rien n'est engagé avant.
+            Le terrain n’est réservé que si {coach.name} accepte ta demande — rien n’est engagé avant.
           </Txt>
         </View>
 
@@ -255,7 +255,7 @@ export default function CoursScreen() {
           <View style={styles.banner}>
             <Ionicons name="trophy" size={16} color={colors.signature} />
             <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-              Un tournoi a lieu ce jour à {club.name} — aucun terrain n'est réservable.
+              Un tournoi a lieu ce jour à {club.name} — aucun terrain n’est réservable.
             </Txt>
           </View>
         ) : null}
@@ -284,13 +284,13 @@ export default function CoursScreen() {
         </View>
         {coachSlots.length === 0 ? (
           <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-            {coach.name} n'a pas encore publié ses disponibilités — repasse un peu plus tard.
+            {coach.name} n’a pas encore publié ses disponibilités — repasse un peu plus tard.
           </Txt>
         ) : null}
 
         {day && slot ? (
           <>
-            <Label text="Terrain (réservé à l'acceptation)" />
+            <Label text="Terrain (réservé à l’acceptation)" />
             <View style={styles.wrap}>
               {free.map((c) => (
                 <Chip key={c} label={c} active={c === effectiveCourt} onPress={() => setCourt(c)} size="lg" />

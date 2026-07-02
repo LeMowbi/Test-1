@@ -6,8 +6,8 @@ import { opStyles } from '@/components/operator/styles';
 import { fcfa } from '@/lib/format';
 import { colors, spacing } from '@/theme';
 
-// Frais fixe des tournois JOUEURS : l'opérateur fixe le montant (FCFA) figé à chaque nouvelle
-// création de tournoi par un joueur. Les tournois des clubs n'en paient pas.
+// Frais fixe des tournois JOUEURS : l’opérateur fixe le montant (FCFA) figé à chaque nouvelle
+// création de tournoi par un joueur. Les tournois des clubs n’en paient pas.
 export function TournamentFee({
   fee,
   onSet,
@@ -54,7 +54,7 @@ export function TournamentFee({
           value={draft}
           onChangeText={setDraft}
           placeholder={`${fee}`}
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.textMuted}
           keyboardType="numeric"
           style={[opStyles.clubInput, { width: 96, marginTop: 0, textAlign: 'center' }]}
         />

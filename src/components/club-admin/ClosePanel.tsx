@@ -32,12 +32,12 @@ export function ClosePanel({
   // Americano : tournoi par rotation → clôture par un podium (2ᵉ/3ᵉ place), pas une fin de tableau.
   const isAmericano = comp.format.toLowerCase().includes('americano');
 
-  // Aucun inscrit : rien à clôturer — on propose d'annuler le tournoi (avec confirmation).
+  // Aucun inscrit : rien à clôturer — on propose d’annuler le tournoi (avec confirmation).
   if (teams.length === 0) {
     return (
       <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
         <Txt variant="body" color={colors.textMuted}>
-          Aucune équipe ne s'est inscrite : il n'y a pas de vainqueur à désigner.
+          Aucune équipe ne s’est inscrite : il n’y a pas de vainqueur à désigner.
         </Txt>
         {onDelete ? (
           confirmDelete ? (

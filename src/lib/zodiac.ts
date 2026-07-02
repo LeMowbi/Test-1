@@ -1,5 +1,5 @@
 // Date de naissance → âge + signe astrologique avec un petit message padel.
-// La date s'écrit JJ/MM/AAAA (saisie simple, sans calendrier).
+// La date s’écrit JJ/MM/AAAA (saisie simple, sans calendrier).
 
 export type Zodiac = { name: string; emoji: string; message: string };
 
@@ -7,10 +7,10 @@ const SIGNS: { until: [number, number]; sign: Zodiac }[] = [
   { until: [1, 19], sign: { name: 'Capricorne', emoji: '🐐', message: 'Discipliné — le lob parfait se travaille.' } },
   { until: [2, 18], sign: { name: 'Verseau', emoji: '🏺', message: 'Imprévisible — tes adversaires ne verront rien venir.' } },
   { until: [3, 20], sign: { name: 'Poissons', emoji: '🐟', message: 'Instinctif — tu sens les balles avant tout le monde.' } },
-  { until: [4, 19], sign: { name: 'Bélier', emoji: '🐏', message: "Fonceur — la bandeja n'a qu'à bien se tenir." } },
+  { until: [4, 19], sign: { name: 'Bélier', emoji: '🐏', message: "Fonceur — la bandeja n’a qu’à bien se tenir." } },
   { until: [5, 20], sign: { name: 'Taureau', emoji: '🐂', message: 'Solide au filet — rien ne passe.' } },
-  { until: [6, 20], sign: { name: 'Gémeaux', emoji: '👯', message: "Le double, c'est ton élément naturel." } },
-  { until: [7, 22], sign: { name: 'Cancer', emoji: '🦀', message: "Joueur d'équipe — ton partenaire a de la chance." } },
+  { until: [6, 20], sign: { name: 'Gémeaux', emoji: '👯', message: "Le double, c’est ton élément naturel." } },
+  { until: [7, 22], sign: { name: 'Cancer', emoji: '🦀', message: "Joueur d’équipe — ton partenaire a de la chance." } },
   { until: [8, 22], sign: { name: 'Lion', emoji: '🦁', message: 'Né pour briller au centre du court.' } },
   { until: [9, 22], sign: { name: 'Vierge', emoji: '🌾', message: 'Précis — chaque vitre est calculée.' } },
   { until: [10, 22], sign: { name: 'Balance', emoji: '⚖️', message: 'Élégant — ton jeu est un plaisir à regarder.' } },
@@ -19,9 +19,9 @@ const SIGNS: { until: [number, number]; sign: Zodiac }[] = [
   { until: [12, 31], sign: { name: 'Capricorne', emoji: '🐐', message: 'Discipliné — le lob parfait se travaille.' } },
 ];
 
-// Masque de saisie JJ/MM/AAAA : seuls les chiffres comptent, les « / » s'insèrent
+// Masque de saisie JJ/MM/AAAA : seuls les chiffres comptent, les « / » s’insèrent
 // automatiquement (0 → 0, 01 → 01/, 0101 → 01/01/, 01011999 → 01/01/1999).
-// Au backspace, on n'impose pas de slash final (le chiffre s'efface naturellement).
+// Au backspace, on n’impose pas de slash final (le chiffre s’efface naturellement).
 export function maskBirthDate(next: string, prev: string): string {
   const digits = next.replace(/\D/g, '').slice(0, 8);
   const deleting = next.length < prev.length;
@@ -53,7 +53,7 @@ export function zodiacFor(date: Date): Zodiac {
   return SIGNS[SIGNS.length - 1].sign;
 }
 
-// Vrai si la date de naissance tombe aujourd'hui (jour + mois).
+// Vrai si la date de naissance tombe aujourd’hui (jour + mois).
 export function isBirthdayToday(birthDate?: string): boolean {
   if (!birthDate) return false;
   const d = parseBirthDate(birthDate);

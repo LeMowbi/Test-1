@@ -1,7 +1,7 @@
-// Photos de club → Supabase Storage (bucket public « club-photos »), pour qu'elles soient
-// visibles par TOUS les joueurs et survivent à une réinstallation. Même principe que l'avatar :
-// on lit le fichier local en base64, on le décode, puis on l'envoie sous « {clubId}/{nom}.jpg ».
-// Le nom est unique (dérivé du temps) pour empiler plusieurs photos. Renvoie l'URL publique.
+// Photos de club → Supabase Storage (bucket public « club-photos »), pour qu’elles soient
+// visibles par TOUS les joueurs et survivent à une réinstallation. Même principe que l’avatar :
+// on lit le fichier local en base64, on le décode, puis on l’envoie sous « {clubId}/{nom}.jpg ».
+// Le nom est unique (dérivé du temps) pour empiler plusieurs photos. Renvoie l’URL publique.
 
 import { decode } from 'base64-arraybuffer';
 import { File } from 'expo-file-system';
@@ -27,7 +27,7 @@ export async function uploadClubPhoto(clubId: string, localUri: string): Promise
   }
 }
 
-// Suppression best-effort d'une photo de club à partir de son URL publique (le gérant la retire).
+// Suppression best-effort d’une photo de club à partir de son URL publique (le gérant la retire).
 export async function removeClubPhotoFile(url: string): Promise<void> {
   try {
     const marker = '/club-photos/';
@@ -36,6 +36,6 @@ export async function removeClubPhotoFile(url: string): Promise<void> {
     const path = url.slice(i + marker.length).split('?')[0];
     await supabase.storage.from('club-photos').remove([path]);
   } catch {
-    // best-effort : si la suppression du fichier échoue, l'URL est déjà retirée de la liste.
+    // best-effort : si la suppression du fichier échoue, l’URL est déjà retirée de la liste.
   }
 }

@@ -1,9 +1,9 @@
 // Rappels de match LOCAUX (sans serveur) via expo-notifications : une notification
-// programmée ~2 h avant chaque réservation à venir. L'utilisateur active/désactive le tout
-// via l'interrupteur « Rappels » du profil. Web : tout est neutralisé (no-op).
+// programmée ~2 h avant chaque réservation à venir. L’utilisateur active/désactive le tout
+// via l’interrupteur « Rappels » du profil. Web : tout est neutralisé (no-op).
 //
 // Ce fichier gère aussi le TAP sur une notification (locale OU push serveur) : on route vers
-// l'écran concerné plutôt que de rouvrir l'app là où elle en était (cf. useNotificationTapRouter).
+// l’écran concerné plutôt que de rouvrir l’app là où elle en était (cf. useNotificationTapRouter).
 
 import * as Notifications from 'expo-notifications';
 import { useEffect } from 'react';
@@ -11,8 +11,8 @@ import { Platform } from 'react-native';
 
 const isNative = Platform.OS === 'ios' || Platform.OS === 'android';
 const REMINDER_LEAD_MS = 2 * 60 * 60 * 1000; // 1ᵉʳ rappel : 2 h avant le créneau
-// 2ᵉ rappel : 15 min AVANT la limite d'annulation gratuite (5 h avant le match), pour laisser
-// le temps d'annuler sans frais si on ne peut plus venir → 5 h 15 min avant le créneau.
+// 2ᵉ rappel : 15 min AVANT la limite d’annulation gratuite (5 h avant le match), pour laisser
+// le temps d’annuler sans frais si on ne peut plus venir → 5 h 15 min avant le créneau.
 const CANCEL_DEADLINE_MS = 5 * 60 * 60 * 1000; // doit rester aligné avec la règle serveur (09_cancel_security)
 const CANCEL_WARNING_LEAD_MS = CANCEL_DEADLINE_MS + 15 * 60 * 1000;
 
@@ -28,10 +28,10 @@ if (isNative) {
   });
 }
 
-// `isOwner` : true si JE suis l'auteur de la réservation (celui qui peut l'annuler). Un ami
-// simplement INVITÉ n'a ni bouton « Annuler » ni « équipe » à confirmer — ses rappels doivent
+// `isOwner` : true si JE suis l’auteur de la réservation (celui qui peut l’annuler). Un ami
+// simplement INVITÉ n’a ni bouton « Annuler » ni « équipe » à confirmer — ses rappels doivent
 // donc être différents (cf. scheduleMatchReminder). Par défaut true (compat : tous les points
-// d'entrée qui planifient MA propre réservation, jamais celle d'un tiers).
+// d’entrée qui planifient MA propre réservation, jamais celle d’un tiers).
 export type ReminderInput = { id: string; clubName: string; time: string; startsAt: number; court: string; isOwner?: boolean };
 
 // Demande la permission (idempotent). Renvoie true si accordée.
@@ -57,9 +57,9 @@ async function scheduleAt(when: number, r: ReminderInput, title: string, body: s
   });
 }
 
-// Programme les rappels d'UNE réservation (chacun ignoré si sa date est déjà passée) :
+// Programme les rappels d’UNE réservation (chacun ignoré si sa date est déjà passée) :
 //  1) 5 h 15 min avant → dernière fenêtre pour annuler sans frais (AUTEUR uniquement : un
-//     invité n'a pas de bouton « Annuler », ce rappel ne le concerne pas) ;
+//     invité n’a pas de bouton « Annuler », ce rappel ne le concerne pas) ;
 //  2) 2 h avant → le match approche (tout le monde, texte adapté selon le rôle).
 export async function scheduleMatchReminder(r: ReminderInput): Promise<void> {
   if (!isNative) return;
@@ -69,7 +69,7 @@ export async function scheduleMatchReminder(r: ReminderInput): Promise<void> {
       r.startsAt - CANCEL_WARNING_LEAD_MS,
       r,
       'Tu joues toujours ? ⏳',
-      `${r.clubName} à ${r.time} · ${r.court}. Dans 15 min, l'annulation gratuite ne sera plus possible.`,
+      `${r.clubName} à ${r.time} · ${r.court}. Dans 15 min, l’annulation gratuite ne sera plus possible.`,
     );
   }
   await scheduleAt(
@@ -82,7 +82,7 @@ export async function scheduleMatchReminder(r: ReminderInput): Promise<void> {
   );
 }
 
-// Annule le rappel d'une réservation donnée (à l'annulation de la résa).
+// Annule le rappel d’une réservation donnée (à l’annulation de la résa).
 export async function cancelMatchReminder(reservationId: string): Promise<void> {
   if (!isNative) return;
   const all = await Notifications.getAllScheduledNotificationsAsync();
@@ -93,8 +93,8 @@ export async function cancelMatchReminder(reservationId: string): Promise<void> 
   );
 }
 
-// Resynchronise TOUS les rappels : on efface les nôtres puis on (re)planifie selon l'état.
-// Appelé au démarrage, après une réservation, et au basculement de l'interrupteur.
+// Resynchronise TOUS les rappels : on efface les nôtres puis on (re)planifie selon l’état.
+// Appelé au démarrage, après une réservation, et au basculement de l’interrupteur.
 export async function syncMatchReminders(reservations: ReminderInput[], enabled: boolean): Promise<void> {
   if (!isNative) return;
   const all = await Notifications.getAllScheduledNotificationsAsync();
@@ -105,7 +105,7 @@ export async function syncMatchReminders(reservations: ReminderInput[], enabled:
 }
 
 // ─── Tap sur une notification → navigation ────────────────────────────────────
-// Route l'utilisateur vers l'écran concerné au lieu de rouvrir l'app là où elle en était.
+// Route l’utilisateur vers l’écran concerné au lieu de rouvrir l’app là où elle en était.
 // `kind` couvre les rappels locaux (match-reminder) ET les push serveur (notify-club) qui
 // portent désormais un payload `data` (friend_request / reservation / tournament).
 type NotificationData = { kind?: string; id?: string; reservationId?: string };
@@ -116,15 +116,15 @@ function routeForNotification(data: NotificationData | null | undefined): string
       return '/amis';
     case 'reservation':
     case 'match-reminder':
-      // Pas d'écran par réservation individuelle : on amène à la liste, où elle est visible.
+      // Pas d’écran par réservation individuelle : on amène à la liste, où elle est visible.
       return '/reservations';
     case 'lesson':
-      // Demande de cours reçue → l'Espace Coach (Accepter / Refuser).
+      // Demande de cours reçue → l’Espace Coach (Accepter / Refuser).
       return '/coach-admin';
     case 'club_reservation':
     case 'club_tournament':
       // Push destiné au GÉRANT (nouvelle résa / annulation / demande de tournoi) → un seul
-      // tap ouvre l'Espace Club au lieu de laisser naviguer Profil → Espace Club à la main.
+      // tap ouvre l’Espace Club au lieu de laisser naviguer Profil → Espace Club à la main.
       return '/club-admin';
     case 'tournament':
       return data.id ? `/competition/${data.id}` : '/competitions';

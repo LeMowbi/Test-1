@@ -6,7 +6,7 @@ import { useToast } from '@/components/Toast';
 import { opStyles } from '@/components/operator/styles';
 import { colors, radius, spacing } from '@/theme';
 
-// Petit éditeur d'actu d'accueil : titre (obligatoire), sous-titre + lien (optionnels).
+// Petit éditeur d’actu d’accueil : titre (obligatoire), sous-titre + lien (optionnels).
 export function NewsEditor({
   news,
   onPublish,
@@ -39,38 +39,38 @@ export function NewsEditor({
   return (
     <Card>
       <Txt variant="muted" style={{ marginBottom: spacing.sm }}>
-        S'affiche en bandeau en haut de l'accueil joueur. Publier une nouvelle actu la fait réapparaître même chez ceux qui l'avaient
+        S’affiche en bandeau en haut de l’accueil joueur. Publier une nouvelle actu la fait réapparaître même chez ceux qui l’avaient
         fermée.
       </Txt>
       <TextInput
         value={title}
         onChangeText={setTitle}
         placeholder="Titre (obligatoire)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         style={opStyles.newsInput}
       />
       <TextInput
         value={subtitle}
         onChangeText={setSubtitle}
         placeholder="Sous-titre (optionnel)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         style={opStyles.newsInput}
       />
       <TextInput
         value={link}
         onChangeText={setLink}
         placeholder="Lien (optionnel — https://…)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         autoCapitalize="none"
         keyboardType="url"
         style={opStyles.newsInput}
       />
-      {/* Aperçu EN DIRECT du bandeau tel qu'il apparaîtra sur l'accueil joueur (mêmes
-          couleurs/typo que index.tsx) — l'opérateur ne publie plus à l'aveugle. */}
+      {/* Aperçu EN DIRECT du bandeau tel qu’il apparaîtra sur l’accueil joueur (mêmes
+          couleurs/typo que index.tsx) — l’opérateur ne publie plus à l’aveugle. */}
       {title.trim().length > 0 ? (
         <View style={{ marginTop: spacing.md }}>
           <Txt variant="label" color={colors.textFaint}>
-            Aperçu sur l'accueil joueur
+            Aperçu sur l’accueil joueur
           </Txt>
           <View style={styles.preview}>
             <Ionicons name="megaphone" size={18} color={colors.purple} />
@@ -125,7 +125,7 @@ export function NewsEditor({
 }
 
 const styles = StyleSheet.create({
-  // Réplique fidèle du bandeau d'accueil (index.tsx, styles.newsBanner/newsClose).
+  // Réplique fidèle du bandeau d’accueil (index.tsx, styles.newsBanner/newsClose).
   preview: {
     flexDirection: 'row',
     alignItems: 'flex-start',

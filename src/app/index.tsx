@@ -25,7 +25,7 @@ import { colors, gradients, radius, shadows, spacing } from '@/theme';
 // Accès rapide — 4 univers (Réserver / Tournois / Amis / Mes réservations).
 // D1 : Coachs retiré du hub (consultés sur chaque fiche club + lien « Voir tous les coachs »)
 // pour garder la priorité visuelle sur « Réserver ». Grille 4 items équilibrée, pas de tabbar.
-// Libellé « Mes réservations » aligné sur l'écran de destination (reservations.tsx) et le
+// Libellé « Mes réservations » aligné sur l’écran de destination (reservations.tsx) et le
 // raccourci du profil, pour ne pas avoir deux noms différents pour la même destination.
 type Action = { icon: keyof typeof Ionicons.glyphMap; label: string; route: string; tint: string; bg: string };
 const ACTIONS: Action[] = [
@@ -39,17 +39,17 @@ const MONTHS_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.',
 const AVATAR_TONES = [colors.signature, colors.blue, colors.purple, colors.coral];
 
 // ─── Compte à rebours doux ────────────────────────────────────────────────────
-// B-R2 : libellé « dans X jours / demain / aujourd'hui » pour la carte prochain match.
+// B-R2 : libellé « dans X jours / demain / aujourd’hui » pour la carte prochain match.
 // Calculé en JOURS CALENDAIRES (via dayKey, cohérent avec la pastille de date), pas en
-// durée écoulée — sinon un match demain 07:30 vu à 20:00 la veille (~11h30 d'écart) se
-// lirait à tort « aujourd'hui ».
+// durée écoulée — sinon un match demain 07:30 vu à 20:00 la veille (~11h30 d’écart) se
+// lirait à tort « aujourd’hui ».
 function countdownLabel(startsAt: number): string {
   const now = Date.now();
   if (startsAt <= now) return 'maintenant';
   const [y1, m1, d1] = dayKey(new Date(startsAt)).split('-').map(Number);
   const [y2, m2, d2] = dayKey(new Date(now)).split('-').map(Number);
   const diffDays = Math.round((Date.UTC(y1, m1 - 1, d1) - Date.UTC(y2, m2 - 1, d2)) / DAY_MS);
-  if (diffDays <= 0) return "aujourd'hui";
+  if (diffDays <= 0) return "aujourd’hui";
   if (diffDays === 1) return 'demain';
   return `dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
@@ -58,8 +58,8 @@ export default function HomeScreen() {
   const router = useRouter();
   const { state, dismissNews, stats, myReservations } = useApp();
   const { refreshControl } = usePullToRefresh();
-  // Tap léger sur chaque navigation depuis l'accueil (CTA héro, 4 accès rapides, cartes) —
-  // cohérent avec le vocabulaire haptique du reste de l'app.
+  // Tap léger sur chaque navigation depuis l’accueil (CTA héro, 4 accès rapides, cartes) —
+  // cohérent avec le vocabulaire haptique du reste de l’app.
   const go = (route: string) => {
     hapticLight();
     router.push(route as never);
@@ -68,10 +68,10 @@ export default function HomeScreen() {
   // Héro vivant : un reflet qui balaie la carte verte + le point « live » qui pulse.
   const sheen = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
-  // Un ressort d'appui par accès rapide (motif Chip.tsx) — écho visuel du hapticLight() déjà en place.
+  // Un ressort d’appui par accès rapide (motif Chip.tsx) — écho visuel du hapticLight() déjà en place.
   const quickScales = useRef(ACTIONS.map(() => new Animated.Value(1))).current;
   useEffect(() => {
-    // L'accueil = hub ne se démonte quasi jamais (empilé derrière les autres routes) :
+    // L’accueil = hub ne se démonte quasi jamais (empilé derrière les autres routes) :
     // on arrête bien les boucles au démontage, comme Skeleton/BookingConfirmation.
     const sheenLoop = Animated.loop(
       Animated.timing(sheen, { toValue: 1, duration: 3400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
@@ -112,7 +112,7 @@ export default function HomeScreen() {
   const competitions = [...state.myCompetitions, ...seedCompetitions]
     .filter((c) => isTournamentPublic(c) && c.dateKey >= today)
     .slice(0, 2);
-  // MES réservations seulement (un compte club/opérateur en reçoit d'autres via RLS).
+  // MES réservations seulement (un compte club/opérateur en reçoit d’autres via RLS).
   // Inclut la résa EN COURS (startsAt + SESSION_MS > now) pour que le match reste affiché
   // pendant les 1h30 de jeu, au lieu de disparaître entre « prochain match » et « rejouer ».
   // Les invitations PAS ENCORE ACCEPTÉES sont exclues (comme dans « Mes réservations ») :
@@ -123,18 +123,18 @@ export default function HomeScreen() {
     .sort((a, b) => a.startsAt - b.startsAt)[0];
 
   // A-L1 : dernier club joué/réservé (la réservation passée la plus récente).
-  // N'apparaît QUE s'il n'y a AUCUNE réservation à venir.
+  // N’apparaît QUE s’il n’y a AUCUNE réservation à venir.
   const lastPlayed = !upcoming
     ? ([...myReservations].filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt)[0] ?? null)
     : null;
   const lastPlayedClub = lastPlayed ? findClub(lastPlayed.clubId, state.customClubs, state.clubInfo) : null;
 
-  // Invitations partagées encore À CONFIRMER (résas à venir) : l'accueil est le hub — sans ce
-  // bandeau, un invité qui n'ouvre pas « Mes réservations » peut rater une partie où on l'attend.
+  // Invitations partagées encore À CONFIRMER (résas à venir) : l’accueil est le hub — sans ce
+  // bandeau, un invité qui n’ouvre pas « Mes réservations » peut rater une partie où on l’attend.
   const pendingInviteCount = state.reservations.filter((r) => state.pendingInvitationIds.includes(r.id) && r.startsAt > now).length;
 
   // B-R5 : tournoi inscrit à venir (≤ 7 jours).
-  // Tournois où je suis inscrit OU que j'ai créés (mes engagements personnels).
+  // Tournois où je suis inscrit OU que j’ai créés (mes engagements personnels).
   const myTournamentIds = new Set([
     ...Object.keys(state.compRegistrations),
     ...state.myCompetitions.filter((c) => c.createdByMe).map((c) => c.id),
@@ -146,13 +146,13 @@ export default function HomeScreen() {
         if (!c) return false;
         if (c.dateKey < today) return false;
         const [y, m, d] = c.dateKey.split('-').map(Number);
-        // UTC fixe (Abidjan), comme slotTimestamp/dayKey — pas le fuseau de l'appareil.
+        // UTC fixe (Abidjan), comme slotTimestamp/dayKey — pas le fuseau de l’appareil.
         const compTs = Date.UTC(y, m - 1, d);
         return compTs - now <= 7 * DAY_MS;
       })
       .sort((a, b) => a.dateKey.localeCompare(b.dateKey))[0] ?? null;
 
-  // Clin d'œil anniversaire (ADN de l'app : astro + fun).
+  // Clin d’œil anniversaire (ADN de l’app : astro + fun).
   const bd = state.account?.birthDate ? parseBirthDate(state.account.birthDate) : null;
   const birthday = isBirthdayToday(state.account?.birthDate);
 
@@ -162,11 +162,11 @@ export default function HomeScreen() {
     .filter((x) => !!x.res && now - x.res.closedAt < 7 * DAY_MS)
     .sort((a, b) => b.res!.closedAt - a.res!.closedAt)[0];
 
-  // Actu d'accueil (opérateur) — masquée si le joueur l'a fermée (réapparaît si nouvelle).
+  // Actu d’accueil (opérateur) — masquée si le joueur l’a fermée (réapparaît si nouvelle).
   const news = state.operatorNews;
   const showNews = !!news && state.dismissedNewsId !== news.id;
 
-  // Équipe du prochain match (toi + invités) pour la pile d'avatars.
+  // Équipe du prochain match (toi + invités) pour la pile d’avatars.
   const matchPlayers = upcoming ? [fullName || 'Toi', ...upcoming.invited.map((i) => i.name)].slice(0, 4) : [];
   const [, mm, dd] = upcoming ? upcoming.dateKey.split('-') : ['', '', ''];
 
@@ -174,7 +174,7 @@ export default function HomeScreen() {
   // Règle : un seul nudge affiché à la fois ; mutuellement exclusifs par priorité.
   //   a) 0 partie jouée → carte « Nouveau au padel ? » (C-S2)
   //   b) profil incomplet → bandeau « Complète ton profil » (B-R4)
-  //   c) trophée proche → « Plus qu'X partie(s)… » (B-R1)
+  //   c) trophée proche → « Plus qu’X partie(s)… » (B-R1)
   // La carte contextuelle (prochain match / rejouer) et la carte tournoi (B-R5) sont séparées du nudge.
 
   // B-R4 : profil incomplet si birthDate / photo / genre manquent.
@@ -285,7 +285,7 @@ export default function HomeScreen() {
           </Pressable>
         </View>
 
-        {/* Invitations partagées à confirmer — prioritaire (on t'attend sur un terrain) */}
+        {/* Invitations partagées à confirmer — prioritaire (on t’attend sur un terrain) */}
         {pendingInviteCount > 0 ? (
           <PopIn delay={50}>
             <Pressable
@@ -328,7 +328,7 @@ export default function HomeScreen() {
                 hitSlop={8}
                 style={styles.newsClose}
                 accessibilityRole="button"
-                accessibilityLabel="Fermer l'actualité"
+                accessibilityLabel="Fermer l’actualité"
               >
                 <Ionicons name="close" size={16} color={colors.textMuted} />
               </Pressable>
@@ -352,7 +352,7 @@ export default function HomeScreen() {
             <Txt variant="display" color={colors.white} style={{ fontSize: 26, marginTop: spacing.sm, maxWidth: 240 }}>
               Réserve ton prochain match
             </Txt>
-            {/* Le CTA « atterrit » juste après l'apparition du hero (seul élément sans mouvement propre). */}
+            {/* Le CTA « atterrit » juste après l’apparition du hero (seul élément sans mouvement propre). */}
             <PopIn delay={300}>
               <View style={styles.heroCta}>
                 <Txt variant="body" color={colors.signature} style={{ fontWeight: '700' }}>
@@ -367,11 +367,11 @@ export default function HomeScreen() {
         {/* Accès rapide — 4 univers (D1 : Coachs retiré, accessible par fiche club) */}
         <View style={styles.quickRow}>
           {ACTIONS.map((a, i) => {
-            // Pastille corail sur « Amis » : découvrabilité des demandes d'ami en attente
-            // (sinon invisible dans l'app tant qu'on n'ouvre pas manuellement l'écran Amis).
+            // Pastille corail sur « Amis » : découvrabilité des demandes d’ami en attente
+            // (sinon invisible dans l’app tant qu’on n’ouvre pas manuellement l’écran Amis).
             const pendingRequests = a.route === '/amis' ? state.friendRequests.length : 0;
-            // Même ressort d'appui que Chip.tsx (0.94 → 1) sur le cercle d'icône seul, pour ne
-            // pas décaler le libellé sous l'icône.
+            // Même ressort d’appui que Chip.tsx (0.94 → 1) sur le cercle d’icône seul, pour ne
+            // pas décaler le libellé sous l’icône.
             const springTo = (to: number, bounciness: number) =>
               Animated.spring(quickScales[i], { toValue: to, useNativeDriver: true, speed: 40, bounciness }).start();
             return (
@@ -708,8 +708,8 @@ export default function HomeScreen() {
             </Card>
           </View>
         ) : lastPlayedClub ? (
-          /* A-L1 : Rejouer au dernier club (seulement si 0 réservation à venir) — l'heure de la
-             dernière partie est pré-remplie (l'habitué rejoue souvent au même créneau). */
+          /* A-L1 : Rejouer au dernier club (seulement si 0 réservation à venir) — l’heure de la
+             dernière partie est pré-remplie (l’habitué rejoue souvent au même créneau). */
           <View style={styles.section}>
             <Card onPress={() => go(`/reserver/${lastPlayedClub.id}?time=${encodeURIComponent(lastPlayed?.time ?? '')}`)}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
@@ -741,10 +741,10 @@ export default function HomeScreen() {
                   <Txt variant="muted">
                     {(() => {
                       const [y, m, d] = upcomingTournament.dateKey.split('-').map(Number);
-                      // UTC fixe (Abidjan), comme le reste de l'app — pas le fuseau de l'appareil.
+                      // UTC fixe (Abidjan), comme le reste de l’app — pas le fuseau de l’appareil.
                       const compTs = Date.UTC(y, m - 1, d);
                       const diffDays = Math.ceil((compTs - now) / DAY_MS);
-                      if (diffDays <= 0) return "aujourd'hui !";
+                      if (diffDays <= 0) return "aujourd’hui !";
                       if (diffDays === 1) return 'demain !';
                       return `dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
                     })()}
@@ -772,7 +772,7 @@ export default function HomeScreen() {
 
 const styles = StyleSheet.create({
   header: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm, marginBottom: spacing.md },
-  // Anneau or autour de l'avatar (handoff refonte).
+  // Anneau or autour de l’avatar (handoff refonte).
   avatarRing: {
     padding: 2,
     borderRadius: radius.pill,

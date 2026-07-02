@@ -7,36 +7,36 @@ export type Competition = {
   title: string;
   organizerType: 'club' | 'joueur';
   organizer: string;
-  organizerId?: string; // id serveur de l'organisateur (tournois serveur) — sert au « c'est moi »
-  organizerPhone?: string; // numéro de l'organisateur (pour régler les frais d'inscription)
+  organizerId?: string; // id serveur de l’organisateur (tournois serveur) — sert au « c’est moi »
+  organizerPhone?: string; // numéro de l’organisateur (pour régler les frais d’inscription)
   clubId?: string;
   clubName?: string;
-  date: string; // libellé d'affichage (jour de DÉBUT)
+  date: string; // libellé d’affichage (jour de DÉBUT)
   dateKey: string; // identité stable du jour de début (AAAA-MM-JJ) — base du blocage des terrains
   // Tournoi sur PLUSIEURS jours (ex. americano sur un week-end) : jour de fin optionnel.
-  // Absent ou égal au jour de début → événement d'une seule journée.
+  // Absent ou égal au jour de début → événement d’une seule journée.
   endDate?: string;
   endDateKey?: string;
   format: string;
   level: string;
   reward: string; // récompense / dotation
-  fee: string; // frais d'inscription
-  slots: number; // nombre d'ÉQUIPES (capacité)
+  fee: string; // frais d’inscription
+  slots: number; // nombre d’ÉQUIPES (capacité)
   registered: number;
   official?: boolean;
   createdByMe?: boolean;
-  // Tournoi serveur (synchronisé) vs seed/local : pilote l'écriture (RPC) côté store.
+  // Tournoi serveur (synchronisé) vs seed/local : pilote l’écriture (RPC) côté store.
   server?: boolean;
   // Terrains et créneaux PRÉCIS réservés au tournoi (bloqués). Vides = ancien comportement
   // (tout le club bloqué ce jour-là) — gardé pour les seeds de démonstration.
   courtNames?: string[];
   timeSlots?: string[];
   // Roster RÉEL des équipes inscrites (tournois serveur) — « Prénom & Partenaire ». Remplace
-  // les noms de démonstration : le nombre d'inscrits et les noms affichés sont vrais.
+  // les noms de démonstration : le nombre d’inscrits et les noms affichés sont vrais.
   teamNames?: string[];
   commission?: number; // frais fixe PadelConnect figé à la création (tournois joueurs)
-  // Modération : un tournoi créé par un JOUEUR reste « pending » jusqu'à validation du
-  // club hôte (« rejected » s'il est refusé). Club / seeds → visibles directement.
+  // Modération : un tournoi créé par un JOUEUR reste « pending » jusqu’à validation du
+  // club hôte (« rejected » s’il est refusé). Club / seeds → visibles directement.
   status?: 'pending' | 'approved' | 'rejected';
 };
 
@@ -45,7 +45,7 @@ export function isTournamentPublic(c: Competition): boolean {
   return c.status !== 'pending' && c.status !== 'rejected';
 }
 
-// Libellé de date : « du X au Y » si le tournoi s'étale sur plusieurs jours, sinon le jour seul.
+// Libellé de date : « du X au Y » si le tournoi s’étale sur plusieurs jours, sinon le jour seul.
 // Dérivé de dateKey/endDateKey (date ABSOLUE) — jamais du libellé relatif figé à la création
 // (sinon « Demain 30 » resterait affiché une fois le jour passé).
 export function compDateLabel(c: Competition): string {
@@ -54,19 +54,19 @@ export function compDateLabel(c: Competition): string {
 }
 
 // Aucun tournoi de démonstration : les tournois affichés sont RÉELS (créés par les clubs/joueurs
-// et synchronisés côté serveur). On n'expose donc jamais d'inscrits ni d'équipes inventés.
+// et synchronisés côté serveur). On n’expose donc jamais d’inscrits ni d’équipes inventés.
 export const seedCompetitions: Competition[] = [];
 
-// Nombre d'équipes inscrites (jamais au-dessus de la capacité). Tournoi SERVEUR : le compteur
+// Nombre d’équipes inscrites (jamais au-dessus de la capacité). Tournoi SERVEUR : le compteur
 // serveur est déjà exact (ma propre inscription incluse) → on le prend tel quel. Seeds de démo :
-// mon inscription LOCALE s'ajoute au nombre figé de la démo.
+// mon inscription LOCALE s’ajoute au nombre figé de la démo.
 export function teamCount(comp: Competition, isRegistered: boolean): number {
   if (comp.server) return Math.min(comp.slots, comp.registered);
   return Math.min(comp.slots, comp.registered + (isRegistered ? 1 : 0));
 }
 
 // Équipes à afficher : le roster RÉEL pour un tournoi serveur (aucun nom fictif). Un tournoi
-// local (hors session) n'a pas de roster serveur : seule MON équipe (si inscrit) est connue.
+// local (hors session) n’a pas de roster serveur : seule MON équipe (si inscrit) est connue.
 // `myTeam` est mis en tête pour le mettre en avant.
 export function teamsToShow(comp: Competition, myTeam?: string): string[] {
   if (comp.server) {
@@ -77,14 +77,14 @@ export function teamsToShow(comp: Competition, myTeam?: string): string[] {
   return myTeam ? [myTeam] : [];
 }
 
-// Le tournoi a-t-il des frais d'inscription (≠ gratuit) ? Sert à proposer de contacter
-// l'organisateur pour le règlement.
+// Le tournoi a-t-il des frais d’inscription (≠ gratuit) ? Sert à proposer de contacter
+// l’organisateur pour le règlement.
 export function hasEntryFee(fee: string | undefined): boolean {
   const v = (fee ?? '').trim().toLowerCase();
   return v.length > 0 && v !== 'gratuit';
 }
 
-// Frais / récompense saisis librement par l'organisateur : on formate les nombres
+// Frais / récompense saisis librement par l’organisateur : on formate les nombres
 // avec séparateurs de milliers (« 10000 FCFA » → « 10 000 FCFA ») et un champ vide
 // devient « Gratuit » — même règle partout (cartes, fiches, partage).
 export function formatFee(s: string | undefined): string {

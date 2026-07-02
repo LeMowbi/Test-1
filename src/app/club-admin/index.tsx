@@ -20,7 +20,7 @@ import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
 const SECTIONS = ['Réservations', 'Mon club', 'Tournois'] as const;
-// Motifs de blocage d'un créneau hors app (repris dans le bottom sheet de détail créneau).
+// Motifs de blocage d’un créneau hors app (repris dans le bottom sheet de détail créneau).
 const BLOCK_REASONS = ['Résa téléphone/WhatsApp', 'Entretien', 'Privatisé', 'Autre'];
 const CLUB_TYPES: Club['type'][] = ['Couvert', 'Extérieur', 'Mixte'];
 
@@ -44,7 +44,7 @@ export default function ClubAdmin() {
   const [selectedCell, setSelectedCell] = useState<{ dateKey: string; time: string; label: string } | null>(null);
   const [blockingCourt, setBlockingCourt] = useState<string | null>(null);
 
-  // Inscription d'un nouveau club (validée ensuite par l'opérateur PadelConnect).
+  // Inscription d’un nouveau club (validée ensuite par l’opérateur PadelConnect).
   const [showSignup, setShowSignup] = useState(false);
   const [ncName, setNcName] = useState('');
   const [ncArea, setNcArea] = useState('');
@@ -55,7 +55,7 @@ export default function ClubAdmin() {
 
   const manageable = manageableClubs(state.customClubs, state.clubInfo);
   // Un compte 'club' gère UNIQUEMENT le club que le serveur lui a attribué
-  // (serverManagedClubId). L'opérateur, lui, peut basculer librement.
+  // (serverManagedClubId). L’opérateur, lui, peut basculer librement.
   const isOperator = state.role === 'operator';
   const managedId = isOperator ? state.managedClubId : (state.serverManagedClubId ?? undefined);
   const club = findClub(managedId, state.customClubs, state.clubInfo) ?? clubsByName[0];
@@ -70,8 +70,8 @@ export default function ClubAdmin() {
   // Réservations à venir en attente de confirmation → rappel visible depuis tous les onglets.
   const pendingConfirm = clubRes.filter((r) => !r.clubConfirmed && r.startsAt > now).length;
   const clubBlocked = state.blockedSlots.filter((b) => b.clubId === club.id);
-  // Repli sur les terrains par défaut : la fiche détail d'un créneau doit lister les terrains
-  // même si le gérant n'a pas encore personnalisé sa configuration.
+  // Repli sur les terrains par défaut : la fiche détail d’un créneau doit lister les terrains
+  // même si le gérant n’a pas encore personnalisé sa configuration.
   const courts = courtsFor(club, state.clubCourts);
   const cellRes = selectedCell
     ? clubRes
@@ -84,7 +84,7 @@ export default function ClubAdmin() {
   const submitSignup = async () => {
     if (!signupReady || sendingSignup) return;
     setSendingSignup(true);
-    // La demande part D'ABORD sur le SERVEUR (club_requests) : sans ça l'opérateur ne la
+    // La demande part D’ABORD sur le SERVEUR (club_requests) : sans ça l’opérateur ne la
     // voit jamais dans son espace. En cas de succès seulement, on crée aussi le club local
     // « en attente » pour que le gérant prépare sa page tout de suite (activé après validation).
     const res = await submitClubRequest({
@@ -118,8 +118,8 @@ export default function ClubAdmin() {
     </View>
   );
 
-  // Espace réservé aux comptes CLUB (et à l'opérateur). Un joueur normal est bloqué —
-  // l'entrée n'apparaît déjà pas dans son profil, et un accès direct est refusé ici.
+  // Espace réservé aux comptes CLUB (et à l’opérateur). Un joueur normal est bloqué —
+  // l’entrée n’apparaît déjà pas dans son profil, et un accès direct est refusé ici.
   if (state.role !== 'club' && state.role !== 'operator') {
     return (
       <Screen back title="Espace Club">
@@ -137,7 +137,7 @@ export default function ClubAdmin() {
   }
 
   // Compte 'club' sans club rattaché (serverManagedClubId nul) : on NE retombe PAS sur
-  // un club réel par défaut — on bloque proprement (sinon il éditerait le club d'un autre).
+  // un club réel par défaut — on bloque proprement (sinon il éditerait le club d’un autre).
   if (!isOperator && !state.serverManagedClubId) {
     return (
       <Screen back title="Espace Club">
@@ -147,7 +147,7 @@ export default function ClubAdmin() {
             Aucun club rattaché
           </Txt>
           <Txt variant="muted" style={{ marginTop: 4, textAlign: 'center' }}>
-            Ton compte n'est rattaché à aucun club pour l'instant. Contacte PadelConnect pour activer ton club.
+            Ton compte n’est rattaché à aucun club pour l’instant. Contacte PadelConnect pour activer ton club.
           </Txt>
         </Card>
       </Screen>
@@ -164,13 +164,13 @@ export default function ClubAdmin() {
         <View style={styles.demoBanner}>
           <Ionicons name="information-circle" size={16} color={colors.signatureDark} />
           <Txt variant="small" color={colors.signatureDark} style={{ flex: 1 }}>
-            Tu n'es pas connecté : tes modifications restent sur cet appareil. Connecte-toi pour qu'elles soient enregistrées et visibles
+            Tu n’es pas connecté : tes modifications restent sur cet appareil. Connecte-toi pour qu’elles soient enregistrées et visibles
             par les joueurs.
           </Txt>
         </View>
       ) : null}
 
-      {/* Club géré — l'opérateur peut basculer entre clubs ; un compte club voit le sien. */}
+      {/* Club géré — l’opérateur peut basculer entre clubs ; un compte club voit le sien. */}
       <View style={{ marginTop: spacing.lg }}>
         <SectionHeader title="Club géré" />
         {isOperator ? (
@@ -193,11 +193,11 @@ export default function ClubAdmin() {
           </View>
         )}
 
-        {/* Inscription d'un nouveau club — validée par PadelConnect */}
+        {/* Inscription d’un nouveau club — validée par PadelConnect */}
         <Pressable onPress={() => setShowSignup((v) => !v)} style={styles.signupLink}>
           <Ionicons name={showSignup ? 'chevron-down' : 'add-circle-outline'} size={16} color={colors.blue} />
           <Txt variant="small" color={colors.blue} style={{ fontWeight: '700' }}>
-            Ton club n'est pas dans la liste ? Inscris-le
+            Ton club n’est pas dans la liste ? Inscris-le
           </Txt>
         </Pressable>
 
@@ -205,20 +205,20 @@ export default function ClubAdmin() {
           <Card style={{ marginTop: spacing.sm, borderColor: colors.blue }}>
             <Txt variant="h3">Inscrire mon club</Txt>
             <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
-              Ta demande passe par PadelConnect : tu prépares ta page tout de suite, elle devient visible des joueurs dès l'activation.
+              Ta demande passe par PadelConnect : tu prépares ta page tout de suite, elle devient visible des joueurs dès l’activation.
             </Txt>
             <TextInput
               value={ncName}
               onChangeText={setNcName}
               placeholder="Nom du club"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
             <TextInput
               value={ncArea}
               onChangeText={setNcArea}
               placeholder="Quartier / commune (ex. Cocody)"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
             <View style={[styles.wrap, { marginTop: spacing.md }]}>
@@ -235,7 +235,7 @@ export default function ClubAdmin() {
               value={ncPrice}
               onChangeText={setNcPrice}
               placeholder="Tarif de la session 1h30 (FCFA, ex. 15000)"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               style={styles.input}
             />
@@ -243,7 +243,7 @@ export default function ClubAdmin() {
               value={ncPhone}
               onChangeText={setNcPhone}
               placeholder="Téléphone du club (optionnel)"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
               style={styles.input}
             />
@@ -259,9 +259,9 @@ export default function ClubAdmin() {
             <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
               {club.name} est{' '}
               <Txt variant="small" style={{ fontWeight: '700' }}>
-                en attente d'activation
+                en attente d’activation
               </Txt>{' '}
-              par PadelConnect. Prépare ta page (photos, terrains, créneaux) : les joueurs la verront dès l'activation.
+              par PadelConnect. Prépare ta page (photos, terrains, créneaux) : les joueurs la verront dès l’activation.
             </Txt>
             <Pressable
               onPress={() => {
@@ -282,7 +282,7 @@ export default function ClubAdmin() {
       <SegmentedControl options={SECTIONS} value={section} onChange={setSection} />
 
       {/* Rappel visible depuis les AUTRES onglets : des réservations attendent la confirmation
-          du gérant (un tap ramène à l'onglet Réservations). */}
+          du gérant (un tap ramène à l’onglet Réservations). */}
       {section !== 'Réservations' && pendingConfirm > 0 ? (
         <Pressable
           onPress={() => setSection('Réservations')}
@@ -304,7 +304,7 @@ export default function ClubAdmin() {
 
       {section === 'Tournois' ? <SectionTournois club={club} comps={comps} onCloseComp={setClosingId} /> : null}
 
-      {/* Détail d'un créneau (bottom sheet) — état de chaque terrain + Bloquer / Débloquer */}
+      {/* Détail d’un créneau (bottom sheet) — état de chaque terrain + Bloquer / Débloquer */}
       <BottomSheet
         visible={!!selectedCell}
         title={selectedCell?.label ?? ''}
@@ -418,11 +418,11 @@ export default function ClubAdmin() {
           )
         ) : null}
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.md }}>
-          Un créneau bloqué n'est jamais facturé ni compté — c'est une simple indisponibilité.
+          Un créneau bloqué n’est jamais facturé ni compté — c’est une simple indisponibilité.
         </Txt>
       </BottomSheet>
 
-      {/* Clôture d'un tournoi (bottom sheet) — désignation du vainqueur par l'organisateur */}
+      {/* Clôture d’un tournoi (bottom sheet) — désignation du vainqueur par l’organisateur */}
       <BottomSheet visible={!!closingComp} title="Clôturer le tournoi" subtitle={closingComp?.title} onClose={() => setClosingId(null)}>
         {closingComp ? (
           <ClosePanel

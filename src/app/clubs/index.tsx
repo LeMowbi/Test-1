@@ -24,7 +24,7 @@ export default function ClubsScreen() {
   const [filter, setFilter] = useState('Tous');
   const [query, setQuery] = useState('');
 
-  // state.clubStatus est une dépendance RÉELLE (bien qu'indirecte) : activeClubs lit le registre
+  // state.clubStatus est une dépendance RÉELLE (bien qu’indirecte) : activeClubs lit le registre
   // module clubStatusMap, synchronisé depuis state.clubStatus. Sans cette dépendance, un changement
   // de statut opérateur (club masqué / « Bientôt ») ne rafraîchit pas la liste. Le linter ne voit
   // pas la dépendance indirecte → on la conserve volontairement.
@@ -40,7 +40,7 @@ export default function ClubsScreen() {
     if (filter === 'Favoris') base = base.filter((c) => state.favoriteClubIds.includes(c.id));
     else if (filter === 'Couvert' || filter === 'Extérieur' || filter === 'Mixte') base = base.filter((c) => c.type === filter);
     const boosted = state.boostedClubIds;
-    // Clubs sponsorisés d'abord (signalés par un badge), le reste en ordre alphabétique.
+    // Clubs sponsorisés d’abord (signalés par un badge), le reste en ordre alphabétique.
     return [...base].sort((a, b) => Number(boosted.includes(b.id)) - Number(boosted.includes(a.id)));
   }, [all, query, filter, state.favoriteClubIds, state.boostedClubIds]);
 
@@ -98,7 +98,7 @@ export default function ClubsScreen() {
         )
       ) : (
         list.map((c, i) => (
-          // key incluant le filtre → l'entrée se rejoue proprement à chaque changement de filtre.
+          // key incluant le filtre → l’entrée se rejoue proprement à chaque changement de filtre.
           <Reveal key={`${filter}-${c.id}`} delay={staggerDelay(i)}>
             <ClubCard club={c} />
           </Reveal>

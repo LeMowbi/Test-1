@@ -1,5 +1,5 @@
 // Couche données « tournois serveur ». Un tournoi vit désormais sur Supabase (visible par
-// tous, synchronisé d'un appareil à l'autre) au lieu de rester dans un seul téléphone.
+// tous, synchronisé d’un appareil à l’autre) au lieu de rester dans un seul téléphone.
 // Règles métier appliquées côté serveur (RPC SECURITY DEFINER) : club → publié direct ;
 // joueur → en attente de validation du club hôte ; frais fixe figé à la création.
 
@@ -75,8 +75,8 @@ function rowToCompetition(r: CompetitionRow, myUserId: string): Competition {
 
 export type ServerCompetitions = { comps: Competition[]; closes: Record<string, CompClose> };
 
-// Tous les tournois visibles + l'état de clôture des tournois terminés. null = échec réseau
-// (l'appelant garde l'existant).
+// Tous les tournois visibles + l’état de clôture des tournois terminés. null = échec réseau
+// (l’appelant garde l’existant).
 export async function fetchCompetitions(myUserId: string): Promise<ServerCompetitions | null> {
   const { data, error } = await supabase.rpc('fetch_competitions');
   if (error) return null;
@@ -124,7 +124,7 @@ export type CreateCompetitionInput = {
   level: string;
 };
 
-// Crée un tournoi côté serveur. Renvoie l'id créé, ou null si refusé (droits) / échec.
+// Crée un tournoi côté serveur. Renvoie l’id créé, ou null si refusé (droits) / échec.
 export async function createCompetition(input: CreateCompetitionInput): Promise<string | null> {
   const { data, error } = await supabase.rpc('create_competition', {
     p_title: input.title,
@@ -184,7 +184,7 @@ export async function deleteCompetition(id: string): Promise<boolean> {
 }
 
 // Frais fixe (FCFA) appliqué aux tournois joueurs — lu à la création (affichage) et réglé
-// par l'opérateur. null = échec réseau.
+// par l’opérateur. null = échec réseau.
 export async function fetchTournamentFee(): Promise<number | null> {
   const { data, error } = await supabase.from('tournament_config').select('player_fee').maybeSingle();
   if (error || !data) return null;

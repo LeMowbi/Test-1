@@ -28,7 +28,7 @@ export default function DecouvrirScreen() {
         </Txt>
       </LinearGradient>
 
-      {/* Paragraphe d'intro */}
+      {/* Paragraphe d’intro */}
       <Txt variant="body" color={colors.textMuted} style={styles.intro}>
         Un mélange de tennis et de squash, joué à 4 sur un terrain vitré. Facile à prendre en main, fun dès la première partie — parfait
         entre amis.

@@ -7,7 +7,7 @@ import { levelLabel } from '@/lib/format';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
-// Données minimales d'un joueur (ou d'une équipe inscrite) pour la mini-fiche.
+// Données minimales d’un joueur (ou d’une équipe inscrite) pour la mini-fiche.
 export type PlayerLike = {
   id: string;
   name: string;

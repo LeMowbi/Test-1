@@ -1,8 +1,8 @@
 // Coachs & cours côté serveur. Le CLUB promeut un compte joueur en coach (retrouvé par
 // téléphone) ; le coach règle sa fiche (spécialité, tarif indicatif, disponibilités) et
-// reçoit les demandes de cours. LE TERRAIN N'EST RÉSERVÉ QU'À L'ACCEPTATION du coach
-// (respond_lesson crée la réservation, que le club confirme ensuite comme d'habitude).
-// Convention réseau (CLAUDE.md §8) : `null` en cas d'échec (≠ []/{} = succès vide).
+// reçoit les demandes de cours. LE TERRAIN N’EST RÉSERVÉ QU’À L’ACCEPTATION du coach
+// (respond_lesson crée la réservation, que le club confirme ensuite comme d’habitude).
+// Convention réseau (CLAUDE.md §8) : `null` en cas d’échec (≠ []/{} = succès vide).
 
 import { supabase } from './supabase';
 
@@ -18,7 +18,7 @@ export type ServerCoach = {
 // Ma fiche coach (affichage de l'« Espace Coach » + réglages).
 export type CoachProfile = { clubId: string; specialty: string; price?: number; slots: string[] };
 
-// Un cours (demande → accepté/refusé). Vu par l'élève ET par le coach.
+// Un cours (demande → accepté/refusé). Vu par l’élève ET par le coach.
 export type Lesson = {
   id: string;
   coachId: string;
@@ -75,7 +75,7 @@ function toLesson(r: LessonRow): Lesson {
   };
 }
 
-// Coachs ACTIFS d'un club (fiche club, réservation de cours).
+// Coachs ACTIFS d’un club (fiche club, réservation de cours).
 export async function fetchClubCoaches(clubId: string): Promise<ServerCoach[] | null> {
   const { data, error } = await supabase.rpc('fetch_club_coaches', { p_club_id: clubId });
   if (error) return null;
@@ -88,7 +88,7 @@ export async function fetchClubCoaches(clubId: string): Promise<ServerCoach[] | 
   }));
 }
 
-// Ma fiche coach — null si je ne suis pas coach actif (ou en cas d'échec réseau : undefined).
+// Ma fiche coach — null si je ne suis pas coach actif (ou en cas d’échec réseau : undefined).
 export async function fetchMyCoachProfile(): Promise<CoachProfile | null | undefined> {
   const { data, error } = await supabase.rpc('my_coach_profile');
   if (error) return undefined; // échec réseau ≠ « pas coach »
@@ -116,13 +116,13 @@ export async function clubAddCoach(
   return { status: row.status as 'ok' | 'already' | 'not_found' | 'forbidden', name: row.name ?? undefined };
 }
 
-// Le gérant retire un coach (désactivation — l'historique de cours est conservé).
+// Le gérant retire un coach (désactivation — l’historique de cours est conservé).
 export async function clubRemoveCoach(userId: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('club_remove_coach', { p_user_id: userId });
   return !error && data === true;
 }
 
-// L'ÉLÈVE demande un cours (le terrain n'est pas réservé : il le sera à l'acceptation).
+// L’ÉLÈVE demande un cours (le terrain n’est pas réservé : il le sera à l’acceptation).
 export async function requestLesson(input: {
   coachId: string;
   clubId: string;
@@ -157,20 +157,20 @@ export async function respondLesson(id: string, accept: boolean): Promise<'ok' |
   return s === 'ok' || s === 'declined' || s === 'conflict' || s === 'gone' ? s : 'error';
 }
 
-// L'élève annule sa demande EN ATTENTE (un cours accepté = une réservation → annulation normale).
+// L’élève annule sa demande EN ATTENTE (un cours accepté = une réservation → annulation normale).
 export async function cancelLessonRequest(id: string): Promise<boolean> {
   const { data, error } = await supabase.rpc('cancel_lesson_request', { p_id: id });
   return !error && data === true;
 }
 
-// Mes cours côté ÉLÈVE (RLS : student_id = moi). Plus récents d'abord.
+// Mes cours côté ÉLÈVE (RLS : student_id = moi). Plus récents d’abord.
 export async function fetchMyLessons(userId: string): Promise<Lesson[] | null> {
   const { data, error } = await supabase.from('lessons').select('*').eq('student_id', userId).order('starts_at', { ascending: false });
   if (error) return null;
   return ((data ?? []) as LessonRow[]).map(toLesson);
 }
 
-// Les cours côté COACH (RLS : coach_id = moi). Demandes en attente d'abord, puis par date.
+// Les cours côté COACH (RLS : coach_id = moi). Demandes en attente d’abord, puis par date.
 export async function fetchCoachLessons(userId: string): Promise<Lesson[] | null> {
   const { data, error } = await supabase.from('lessons').select('*').eq('coach_id', userId).order('starts_at', { ascending: false });
   if (error) return null;

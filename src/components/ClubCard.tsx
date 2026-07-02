@@ -24,7 +24,7 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const photo = state.clubCovers[club.id] ?? gallery[0];
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
   // Note RÉELLE (avis vérifiés, agrégat serveur state.clubRatings — un seul appel pour tous
-  // les clubs). Absente tant qu'un club n'a aucun avis : on n'affiche alors rien (jamais de
+  // les clubs). Absente tant qu’un club n’a aucun avis : on n’affiche alors rien (jamais de
   // note inventée). Même donnée que la fiche club → liste et détail restent cohérents.
   const rating = state.clubRatings[club.id];
   const comingSoon = !!club.comingSoon; // club pré-chargé, pas encore réservable
@@ -100,7 +100,7 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           {comingSoon ? (
             <Tag label="Pas encore réservable" tone="neutral" />
           ) : rating ? (
-            // Note RÉELLE (mêmes avis vérifiés que la fiche) — rien tant qu'il n'y a aucun avis.
+            // Note RÉELLE (mêmes avis vérifiés que la fiche) — rien tant qu’il n’y a aucun avis.
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={12} color={colors.amber} />
               <Txt variant="small" style={{ fontWeight: '700' }}>
@@ -178,7 +178,7 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
             </Txt>
           )}
           {!comingSoon && rating ? (
-            // Note RÉELLE (mêmes avis vérifiés que la fiche) — rien tant qu'il n'y a aucun avis.
+            // Note RÉELLE (mêmes avis vérifiés que la fiche) — rien tant qu’il n’y a aucun avis.
             <View style={styles.ratingRow}>
               <Ionicons name="star" size={12} color={colors.amber} />
               <Txt variant="small" style={{ fontWeight: '700' }}>

@@ -29,8 +29,8 @@ export function Confetti({ onDone }: { onDone?: () => void }) {
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>
       {PIECES.map((p, i) => {
-        // La chute traverse tout l'écran (H + 40) quel que soit le format de l'appareil,
-        // au lieu d'une valeur fixe qui faisait disparaître les confettis en milieu d'écran.
+        // La chute traverse tout l’écran (H + 40) quel que soit le format de l’appareil,
+        // au lieu d’une valeur fixe qui faisait disparaître les confettis en milieu d’écran.
         const translateY = progress[i].interpolate({ inputRange: [0, 1], outputRange: [-40, H + 40] });
         const opacity = progress[i].interpolate({ inputRange: [0, 0.85, 1], outputRange: [1, 1, 0] });
         const rotate = progress[i].interpolate({ inputRange: [0, 1], outputRange: [`${p.rotate}deg`, `${p.rotate + 320}deg`] });

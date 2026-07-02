@@ -1,9 +1,9 @@
 import { useEffect, useRef } from 'react';
 import { Animated, type ViewStyle } from 'react-native';
 
-// Apparition « pop » (ressort) : l'élément grandit de 0 à sa taille avec un léger rebond.
+// Apparition « pop » (ressort) : l’élément grandit de 0 à sa taille avec un léger rebond.
 // Pour les moments de célébration (réservation confirmée, tournoi remporté…). Fondu associé
-// pour éviter un flash à l'échelle 0. `style` permet de conserver la mise en page (ex. flex: 1).
+// pour éviter un flash à l’échelle 0. `style` permet de conserver la mise en page (ex. flex: 1).
 export function PopIn({ children, delay = 0, style }: { children: React.ReactNode; delay?: number; style?: ViewStyle }) {
   const scale = useRef(new Animated.Value(0)).current;
   const opacity = useRef(new Animated.Value(0)).current;

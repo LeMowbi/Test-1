@@ -1,12 +1,12 @@
-// Tarification par plage horaire. Chaque gérant définit librement jusqu'à 3 plages
+// Tarification par plage horaire. Chaque gérant définit librement jusqu’à 3 plages
 // (heure de début, heure de fin, prix). Sans plage, le club garde son tarif unique
-// (priceFrom) — rétro-compatible. Le prix RÉEL d'un créneau est stocké sur la
+// (priceFrom) — rétro-compatible. Le prix RÉEL d’un créneau est stocké sur la
 // réservation au moment de la création (cf. addReservation), pour que la commission
 // opérateur et la répartition « par joueur » soient exactes même si le tarif change.
 
 import type { Club, PriceTier } from '@/data/clubs';
 
-// Plages valides d'un club (prix > 0 et bornes renseignées).
+// Plages valides d’un club (prix > 0 et bornes renseignées).
 export function priceTiersFor(club: Club): PriceTier[] {
   return (club.priceTiers ?? []).filter((t) => t.price > 0 && t.start && t.end);
 }
@@ -17,10 +17,10 @@ export function minPrice(club: Club): number {
   return tiers.length ? Math.min(...tiers.map((t) => t.price)) : club.priceFrom;
 }
 
-// Prix d'un créneau « HH:MM » : la plage qui le contient, sinon le tarif unique.
+// Prix d’un créneau « HH:MM » : la plage qui le contient, sinon le tarif unique.
 // Le repli `minPrice` est une CEINTURE DE SÉCURITÉ silencieuse : grâce à
-// validateTiers (à l'enregistrement), une saisie valide couvre 07:00→24:00 sans
-// trou, donc ce repli n'est en pratique jamais atteint.
+// validateTiers (à l’enregistrement), une saisie valide couvre 07:00→24:00 sans
+// trou, donc ce repli n’est en pratique jamais atteint.
 export function priceForSlot(club: Club, time: string): number {
   const tiers = priceTiersFor(club);
   if (tiers.length) {
@@ -30,15 +30,15 @@ export function priceForSlot(club: Club, time: string): number {
   return club.priceFrom;
 }
 
-// ——— Regroupement d'affichage par plage nommée (fiche club, purement visuel) ———
+// ——— Regroupement d’affichage par plage nommée (fiche club, purement visuel) ———
 // Si le gérant a NOMMÉ ses plages, la fiche club les présente en onglets
 // (SegmentedControl). On ne regroupe que lorsque TOUTES les plages ont un nom et
-// qu'il y a au moins 2 noms distincts ; sinon on rend la liste à plat (rétro-compat).
+// qu’il y a au moins 2 noms distincts ; sinon on rend la liste à plat (rétro-compat).
 // Plusieurs plages partageant un même nom sont rangées sous le même onglet, dans
-// l'ordre d'origine. Aucune incidence sur le prix : c'est de la présentation.
+// l’ordre d’origine. Aucune incidence sur le prix : c’est de la présentation.
 export function groupTiersByLabel(tiers: PriceTier[]): { label: string; items: PriceTier[] }[] {
   if (tiers.length === 0) return [];
-  if (!tiers.every((t) => (t.label ?? '').trim())) return []; // une plage sans nom → pas d'onglets
+  if (!tiers.every((t) => (t.label ?? '').trim())) return []; // une plage sans nom → pas d’onglets
   const order: string[] = [];
   const byLabel = new Map<string, PriceTier[]>();
   for (const t of tiers) {
@@ -49,15 +49,15 @@ export function groupTiersByLabel(tiers: PriceTier[]): { label: string; items: P
     }
     byLabel.get(key)!.push(t);
   }
-  if (order.length < 2) return []; // un seul nom → l'onglet n'apporte rien, liste à plat
+  if (order.length < 2) return []; // un seul nom → l’onglet n’apporte rien, liste à plat
   return order.map((label) => ({ label, items: byLabel.get(label)! }));
 }
 
-// ——— Validation des plages tarifaires (à l'enregistrement, Espace Club) ———
+// ——— Validation des plages tarifaires (à l’enregistrement, Espace Club) ———
 // Fonction PURE et testable. Reçoit les plages COMPLÈTES (les plages incomplètes
-// sont déjà ignorées par l'appelant). Règle : soit aucune plage (→ tarif unique,
+// sont déjà ignorées par l’appelant). Règle : soit aucune plage (→ tarif unique,
 // rétro-compatible), soit une couverture CONTINUE 07:00 → 24:00, sans trou ni
-// chevauchement. Renvoie un message d'erreur précis et actionnable.
+// chevauchement. Renvoie un message d’erreur précis et actionnable.
 
 const OPEN_MIN = 7 * 60; // 07:00
 const CLOSE_MIN = 24 * 60; // 24:00 (minuit, borne de fin exclusive des plages)
@@ -75,7 +75,7 @@ export function timeToMinutes(t: string): number | null {
 export type TierValidation = { ok: true } | { ok: false; error: string };
 
 export function validateTiers(tiers: PriceTier[]): TierValidation {
-  if (tiers.length === 0) return { ok: true }; // aucune plage → le tarif unique s'applique
+  if (tiers.length === 0) return { ok: true }; // aucune plage → le tarif unique s’applique
 
   const parsed = tiers.map((t) => ({ t, s: timeToMinutes(t.start), e: timeToMinutes(t.end) }));
   for (const p of parsed) {

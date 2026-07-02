@@ -34,15 +34,15 @@ export default function ReservationsScreen() {
   const { refreshControl } = usePullToRefresh(refreshLessons);
 
   const now = Date.now();
-  // « Mes réservations » = celles que j'ai créées + celles où un ami m'a invité (résa
+  // « Mes réservations » = celles que j’ai créées + celles où un ami m’a invité (résa
   // PARTAGÉE). La source unique est `myReservations` (cf. AppContext) : un compte
   // club/opérateur ne voit donc pas le périmètre RLS de son club sur cet écran joueur.
   const mine = myReservations;
-  // Suis-je l'AUTEUR de la résa ? (sinon je suis invité → pas d'annulation, RLS = auteur).
+  // Suis-je l’AUTEUR de la résa ? (sinon je suis invité → pas d’annulation, RLS = auteur).
   // Une résa avec un bookedBy mais sans mon user_id = je suis invité, même hors session :
   // on ne propose donc PAS « Annuler » à un invité.
   const isOwner = (r: Reservation) => (state.serverUserId ? !r.userId || r.userId === state.serverUserId : !r.bookedBy);
-  // Invitations à confirmer (résa partagée) : on les sort de « À venir » tant qu'elles sont
+  // Invitations à confirmer (résa partagée) : on les sort de « À venir » tant qu’elles sont
   // en attente, pour les présenter à part avec Accepter / Refuser.
   const isPending = (r: Reservation) => state.pendingInvitationIds.includes(r.id);
   const upcomingAll = mine.filter((r) => !isPlayed(r, now)).sort((a, b) => a.startsAt - b.startsAt);
@@ -66,8 +66,8 @@ export default function ReservationsScreen() {
     toast.show(ok ? 'Demande de cours annulée' : 'Annulation impossible — réessaie', ok ? undefined : { icon: 'alert-circle' });
   };
 
-  // Mes tournois : ceux où mon équipe est inscrite ET ceux que J'AI créés (dédupliqués),
-  // pour qu'un défi créé sans s'y inscrire reste retrouvable ici (et clôturable).
+  // Mes tournois : ceux où mon équipe est inscrite ET ceux que J’AI créés (dédupliqués),
+  // pour qu’un défi créé sans s’y inscrire reste retrouvable ici (et clôturable).
   const today = dayKey(new Date());
   const myCompIds = new Set([
     ...Object.keys(state.compRegistrations),
@@ -78,7 +78,7 @@ export default function ReservationsScreen() {
     .filter((c): c is NonNullable<typeof c> => !!c)
     .sort((a, b) => b.dateKey.localeCompare(a.dateKey));
 
-  // Récap envoyé aux partenaires (WhatsApp s'ouvre avec le message, tu choisis le destinataire).
+  // Récap envoyé aux partenaires (WhatsApp s’ouvre avec le message, tu choisis le destinataire).
   // La part par joueur se calcule sur le PRIX RÉEL du créneau (terrain à 4).
   const notifyPartners = (r: Reservation) => {
     const who = r.invited.length ? `\nÉquipe : ${r.invited.map((i) => i.name).join(', ')}` : '';
@@ -97,8 +97,8 @@ export default function ReservationsScreen() {
     } else toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
   };
 
-  // Synchronise une résa À VENIR dans le calendrier du téléphone (même helper que l'écran de
-  // succès — l'habitué réserve plusieurs jours à l'avance et veut la retrouver dans son agenda).
+  // Synchronise une résa À VENIR dans le calendrier du téléphone (même helper que l’écran de
+  // succès — l’habitué réserve plusieurs jours à l’avance et veut la retrouver dans son agenda).
   const addToCalendar = async (r: Reservation) => {
     const club = findClub(r.clubId, state.customClubs, state.clubInfo);
     const res = await addReservationToCalendar({ clubName: r.clubName, startsAt: r.startsAt, court: r.court, area: club?.area ?? '' });
@@ -119,7 +119,7 @@ export default function ReservationsScreen() {
       subtitle="À venir, statut du club, passées"
       refreshControl={state.serverUserId ? refreshControl : undefined}
     >
-      {/* Invitations à confirmer — un ami t'a ajouté à sa réservation partagée. */}
+      {/* Invitations à confirmer — un ami t’a ajouté à sa réservation partagée. */}
       {pendingInvites.length > 0 ? (
         <View style={{ marginTop: spacing.sm }}>
           <SectionHeader title={`Invitations · ${pendingInvites.length}`} />
@@ -144,7 +144,7 @@ export default function ReservationsScreen() {
               <Divider style={{ marginVertical: spacing.md }} />
               <View style={{ flexDirection: 'row', gap: spacing.sm }}>
                 <View style={{ flex: 1 }}>
-                  <Button size="sm" label="J'accepte" icon="checkmark" onPress={() => respond(r, true)} full />
+                  <Button size="sm" label="J’accepte" icon="checkmark" onPress={() => respond(r, true)} full />
                 </View>
                 <Button size="sm" label="Refuser" icon="close" variant="ghost" onPress={() => respond(r, false)} />
               </View>
@@ -153,7 +153,7 @@ export default function ReservationsScreen() {
         </View>
       ) : null}
 
-      {/* Mes cours — demandes envoyées aux coachs (le terrain n'est réservé qu'à l'acceptation) */}
+      {/* Mes cours — demandes envoyées aux coachs (le terrain n’est réservé qu’à l’acceptation) */}
       {lessonRequests.length > 0 ? (
         <View style={{ marginTop: spacing.sm }}>
           <SectionHeader title={`Mes cours · ${lessonRequests.length}`} />
@@ -177,7 +177,7 @@ export default function ReservationsScreen() {
                 </View>
                 {l.status === 'pending' ? (
                   <>
-                    <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+                    <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
                       Le terrain sera réservé dès que {l.coachName} accepte — tu recevras une notification.
                     </Txt>
                     <View style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}>
@@ -192,8 +192,8 @@ export default function ReservationsScreen() {
                     </View>
                   </>
                 ) : (
-                  <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-                    {l.coachName} n'était pas disponible sur ce créneau — tu peux redemander un autre horaire.
+                  <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
+                    {l.coachName} n’était pas disponible sur ce créneau — tu peux redemander un autre horaire.
                   </Txt>
                 )}
               </Card>
@@ -256,7 +256,7 @@ export default function ReservationsScreen() {
                   </View>
 
                   {r.coachName ? (
-                    // Réservation née d'un COURS accepté par le coach (respond_lesson).
+                    // Réservation née d’un COURS accepté par le coach (respond_lesson).
                     <View style={styles.participants}>
                       <Ionicons name="school-outline" size={14} color={colors.purple} />
                       <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
@@ -352,7 +352,7 @@ export default function ReservationsScreen() {
               const myResult = state.officialResults.find((o) => o.compId === c.id);
               // Fin de plage incluse : un tournoi multi-jours EN COURS reste « À venir ».
               const finished = (c.endDateKey ?? c.dateKey) < today;
-              // Inscrit → « avec {partenaire} » ; créé sans s'y inscrire → « organisé par toi ».
+              // Inscrit → « avec {partenaire} » ; créé sans s’y inscrire → « organisé par toi ».
               const reg = state.compRegistrations[c.id];
               const subtitle = reg ? `${c.date} · avec ${reg.partner}` : `${c.date} · organisé par toi`;
               return (
@@ -400,8 +400,8 @@ export default function ReservationsScreen() {
           <Card>
             <EmptyState
               icon="time-outline"
-              title="Aucune partie jouée pour l'instant"
-              text="Tes parties jouées s'afficheront ici, comptées automatiquement."
+              title="Aucune partie jouée pour l’instant"
+              text="Tes parties jouées s’afficheront ici, comptées automatiquement."
             />
           </Card>
         ) : (
@@ -421,8 +421,8 @@ export default function ReservationsScreen() {
                     </View>
                     <Tag label="Jouée" tone="blue" />
                   </View>
-                  {/* A-R7 : « Rejouer ici » → réservation du club, avec l'HEURE habituelle
-                      pré-remplie (l'habitué rejoue souvent au même créneau — il ne reste que
+                  {/* A-R7 : « Rejouer ici » → réservation du club, avec l’HEURE habituelle
+                      pré-remplie (l’habitué rejoue souvent au même créneau — il ne reste que
                       le jour et le terrain à choisir). */}
                   <Pressable
                     onPress={() => router.push(`/reserver/${r.clubId}?time=${encodeURIComponent(r.time)}`)}

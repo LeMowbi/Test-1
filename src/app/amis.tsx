@@ -17,7 +17,7 @@ import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
-// Indicatif Côte d'Ivoire pré-rempli (modifiable) : la plupart des joueurs sont locaux.
+// Indicatif Côte d’Ivoire pré-rempli (modifiable) : la plupart des joueurs sont locaux.
 const DEFAULT_DIAL = '+225 ';
 
 export default function AmisScreen() {
@@ -28,21 +28,21 @@ export default function AmisScreen() {
   const [phone, setPhone] = useState(DEFAULT_DIAL);
   const [removeId, setRemoveId] = useState<string | null>(null); // ami en cours de retrait (confirmation)
   const [openPlayer, setOpenPlayer] = useState<PlayerLike | null>(null);
-  // Recherche serveur par numéro : on n'invite QUE de vrais joueurs PadelConnect (pas de nom fictif).
+  // Recherche serveur par numéro : on n’invite QUE de vrais joueurs PadelConnect (pas de nom fictif).
   const [searching, setSearching] = useState(false);
   const [sending, setSending] = useState(false);
   const [found, setFound] = useState<{ name: string; level?: number } | null>(null);
   const [foundPhone, setFoundPhone] = useState<string | null>(null); // numéro EXACT correspondant à `found`
   const [search, setSearch] = useState<'idle' | 'found' | 'notfound'>('idle');
   const [busyReq, setBusyReq] = useState<string | null>(null); // demande reçue en cours de réponse
-  const [celebrate, setCelebrate] = useState(false); // confettis à l'acceptation d'une demande
+  const [celebrate, setCelebrate] = useState(false); // confettis à l’acceptation d’une demande
 
   const openFriend = (f: { id: string; name: string; level?: number }) => setOpenPlayer({ id: f.id, name: f.name, level: f.level });
 
   const phoneReady = phone.replace(/\D/g, '').length >= 8;
   const requests = state.friendRequests;
 
-  // Cherche le joueur par son numéro côté serveur. On n'invite que s'il a un VRAI compte.
+  // Cherche le joueur par son numéro côté serveur. On n’invite que s’il a un VRAI compte.
   const doSearch = async () => {
     if (!phoneReady || searching) return;
     const q = phone; // copie locale : on ignore le résultat si le numéro a changé entre-temps
@@ -50,7 +50,7 @@ export default function AmisScreen() {
     setSearch('idle');
     const res = await findPlayerByPhone(q);
     setSearching(false);
-    if (q !== phone) return; // recherche périmée (le champ a changé pendant l'attente)
+    if (q !== phone) return; // recherche périmée (le champ a changé pendant l’attente)
     if (res) {
       setFound(res);
       setFoundPhone(q); // numéro EXACT ayant produit ce résultat, utilisé par sendRequest
@@ -62,7 +62,7 @@ export default function AmisScreen() {
     }
   };
 
-  // Envoie une DEMANDE d'ami : la personne doit l'accepter (elle n'est pas ajoutée d'office).
+  // Envoie une DEMANDE d’ami : la personne doit l’accepter (elle n’est pas ajoutée d’office).
   // On invite le numéro AFFICHÉ (foundPhone), pas le numéro courant du champ (qui a pu changer).
   const sendRequest = async () => {
     if (!found || !foundPhone || sending) return;
@@ -72,7 +72,7 @@ export default function AmisScreen() {
     const name = res.friend?.name ?? found.name;
     if (res.status === 'sent') {
       hapticSuccess();
-      toast.show(`Demande envoyée à ${name} — il doit l'accepter ✓`);
+      toast.show(`Demande envoyée à ${name} — il doit l’accepter ✓`);
     } else if (res.status === 'accepted') {
       hapticSuccess();
       toast.show(`${name} est maintenant ton ami 🎾`);
@@ -104,7 +104,7 @@ export default function AmisScreen() {
     }
     if (accept) {
       hapticSuccess();
-      setCelebrate(true); // 🎉 nouveau lien d'amitié
+      setCelebrate(true); // 🎉 nouveau lien d’amitié
     } else {
       hapticWarning();
     }
@@ -126,7 +126,7 @@ export default function AmisScreen() {
       'Rejoins-moi sur PadelConnect 🎾 — on réserve un terrain de padel à Abidjan en 2 minutes. https://apps.apple.com/app/id6785261310',
     );
 
-  // Le numéro change → la recherche précédente n'est plus valable.
+  // Le numéro change → la recherche précédente n’est plus valable.
   const onPhone = (t: string) => {
     setPhone(t);
     if (search !== 'idle') setSearch('idle');
@@ -135,10 +135,10 @@ export default function AmisScreen() {
   return (
     <Screen back title="Amis" subtitle="Tes partenaires de jeu — invite-les sur tes réservations" refreshControl={refreshControl}>
       <View style={{ marginTop: spacing.sm }}>
-        {/* Demandes REÇUES en attente : à accepter ou refuser (l'ami a le choix, dans les deux sens). */}
+        {/* Demandes REÇUES en attente : à accepter ou refuser (l’ami a le choix, dans les deux sens). */}
         {requests.length > 0 ? (
           <View style={{ marginBottom: spacing.lg }}>
-            <SectionHeader title={`Demandes d'ami · ${requests.length}`} />
+            <SectionHeader title={`Demandes d’ami · ${requests.length}`} />
             <Card>
               {requests.map((r, i) => (
                 <Reveal key={r.requestId} delay={staggerDelay(i)}>
@@ -151,7 +151,7 @@ export default function AmisScreen() {
                           {r.name}
                         </Txt>
                         <Txt variant="small" color={colors.textMuted}>
-                          {r.level !== undefined ? `Niveau ${r.level.toFixed(1)} · ` : ''}veut t'ajouter
+                          {r.level !== undefined ? `Niveau ${r.level.toFixed(1)} · ` : ''}veut t’ajouter
                         </Txt>
                       </View>
                     </View>
@@ -182,7 +182,7 @@ export default function AmisScreen() {
           <>
             <EmptyState
               icon="people-outline"
-              title="Aucun ami pour l'instant"
+              title="Aucun ami pour l’instant"
               text="Ajoute tes partenaires ci-dessous : tu pourras les inviter en réservant."
               tone="signature"
             />
@@ -246,9 +246,9 @@ export default function AmisScreen() {
         <View style={styles.section}>
           <Card>
             <Txt variant="h3">Ajouter un ami</Txt>
-            <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
-              Entre son numéro (ou choisis un contact) : s'il est sur PadelConnect, tu lui envoies une demande. Il devient ton ami dès qu'il
-              l'accepte.
+            <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
+              Entre son numéro (ou choisis un contact) : s’il est sur PadelConnect, tu lui envoies une demande. Il devient ton ami dès qu’il
+              l’accepte.
             </Txt>
             {contactsSupported ? (
               <View style={{ marginTop: spacing.sm }}>
@@ -266,7 +266,7 @@ export default function AmisScreen() {
               value={phone}
               onChangeText={onPhone}
               placeholder="Numéro (+225…)"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               keyboardType="phone-pad"
               editable={!searching}
               style={styles.input}
@@ -303,7 +303,7 @@ export default function AmisScreen() {
             ) : search === 'notfound' ? (
               <View style={styles.foundBox}>
                 <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
-                  Personne avec ce numéro sur PadelConnect. Invite-le à s'inscrire.
+                  Personne avec ce numéro sur PadelConnect. Invite-le à s’inscrire.
                 </Txt>
                 <Button size="sm" label="Inviter" icon="logo-whatsapp" variant="secondary" onPress={invite} />
               </View>
@@ -318,7 +318,7 @@ export default function AmisScreen() {
   );
 }
 
-// Sous-titre « Niveau X », ou « Joueur PadelConnect » si le niveau n'est pas renseigné.
+// Sous-titre « Niveau X », ou « Joueur PadelConnect » si le niveau n’est pas renseigné.
 function subtitleFor(level: number | undefined): string {
   return level !== undefined ? `Niveau ${level.toFixed(1)}` : 'Joueur PadelConnect';
 }

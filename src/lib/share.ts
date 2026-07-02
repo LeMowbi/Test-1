@@ -5,7 +5,7 @@ import { APP_DOMAIN } from '@/lib/referrals';
 export type ShareResult = 'shared' | 'copied' | 'none';
 
 // Partage un message : feuille native quand elle existe, sinon (web de bureau)
-// copie le lien dans le presse-papiers — l'appelant affiche « Lien copié ! ».
+// copie le lien dans le presse-papiers — l’appelant affiche « Lien copié ! ».
 async function shareMessage(message: string): Promise<ShareResult> {
   if (Platform.OS === 'web' && typeof navigator !== 'undefined' && !(navigator as any).share) {
     try {
@@ -23,8 +23,8 @@ async function shareMessage(message: string): Promise<ShareResult> {
   }
 }
 
-// Partage la fiche d'un club — Universal Link /club/ID (déclaré dans l'AASA) : ouvre
-// directement la fiche dans l'app si elle est installée, sinon la page renvoie à l'App Store.
+// Partage la fiche d’un club — Universal Link /club/ID (déclaré dans l’AASA) : ouvre
+// directement la fiche dans l’app si elle est installée, sinon la page renvoie à l’App Store.
 export function shareClub(club: { id: string; name: string; area: string }): Promise<ShareResult> {
   const message = `Découvre ${club.name} (${club.area}) sur PadelConnect — réserve ton terrain en quelques secondes 🎾\n${APP_DOMAIN}/club/${club.id}`;
   return shareMessage(message);
@@ -34,7 +34,7 @@ export function shareClub(club: { id: string; name: string; area: string }): Pro
 export function shareCompetition(comp: Competition): Promise<ShareResult> {
   const where = comp.clubName ? ` à ${comp.clubName}` : '';
   // Plage COMPLÈTE (début → fin) et non le seul jour de début : un tournoi sur plusieurs jours
-  // était partagé comme s'il durait un jour.
+  // était partagé comme s’il durait un jour.
   const message =
     `Tournoi de padel${where} : « ${comp.title} » le ${compDateLabel(comp)} 🏆\n` +
     (comp.reward.trim() ? `Récompense : ${formatFee(comp.reward)}. ` : '') +

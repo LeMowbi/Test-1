@@ -35,7 +35,7 @@ export const colors = {
   amber: '#C29A3A', // or « accent » (icônes/étoiles/jauges sur fond clair ou photo)
   amberDark: '#785A10', // or « texte » sur tint or (amberSoft) : contraste ≈ 5.2:1 → WCAG AA OK
   amberSoft: '#F3E7CC',
-  // Balle de padel (touche d'énergie / point « live »).
+  // Balle de padel (touche d’énergie / point « live »).
   lime: '#C6F24A',
 
   text: '#15211C', // encre principale (quasi-noir vert)
@@ -49,7 +49,7 @@ export const colors = {
   scrim: 'rgba(12,26,22,0.55)', // overlay bas de photo + fond des bottom sheets
   scrimStrong: 'rgba(12,26,22,0.85)',
 
-  // CORAIL réutilisé pour erreurs (cohérent avec l'urgence).
+  // CORAIL réutilisé pour erreurs (cohérent avec l’urgence).
   danger: '#C0492F',
   dangerSoft: '#FBE7DF',
   white: '#FFFFFF',
@@ -57,7 +57,7 @@ export const colors = {
   onSignature: '#FFFFFF',
   onPhoto: 'rgba(255,255,255,0.85)',
   onPhotoSoft: 'rgba(255,255,255,0.16)',
-  sheen: 'rgba(255,255,255,0.12)', // reflet animé qui balaie la bannière d'accueil
+  sheen: 'rgba(255,255,255,0.12)', // reflet animé qui balaie la bannière d’accueil
   limeGlow: 'rgba(198,242,74,0.35)',
   overlay: 'rgba(12,26,22,0.5)', // backdrop des sheets (refonte)
   viewerBg: '#000000',
@@ -70,7 +70,7 @@ export const gradients = {
   deepPurple: ['#7B6CE8', '#5B4FC9'] as const, // bandeau univers Tournois (violet)
 } as const;
 
-// Palette d'accents pour les visuels de club (placeholders) — référence les tokens.
+// Palette d’accents pour les visuels de club (placeholders) — référence les tokens.
 export const ACCENTS = [colors.green, colors.amber, colors.purple, colors.coral, colors.signature] as const;
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24, xxl: 32, xxxl: 48 } as const;
@@ -99,7 +99,7 @@ export const font = {
   },
 } as const;
 
-// Échelle d'élévations (handoff v4.6) — remplace l'ombre unique.
+// Échelle d’élévations (handoff v4.6) — remplace l’ombre unique.
 // e1 : cartes au repos · e2 : héros / CTA primaire / cartes mises en avant ·
 // e3 : bottom sheets & modales.
 export const shadows = {

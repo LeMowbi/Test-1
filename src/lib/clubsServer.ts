@@ -1,7 +1,7 @@
-// Couche données « clubs serveur ». Les 9 clubs de base restent embarqués dans l'app
-// (rapides, hors-ligne) ; cette table ne contient que les clubs AJOUTÉS via l'app.
-// L'opérateur approuve une demande → un club est créé ici et apparaît chez tous les
-// joueurs, SANS nouvelle version de l'app.
+// Couche données « clubs serveur ». Les 9 clubs de base restent embarqués dans l’app
+// (rapides, hors-ligne) ; cette table ne contient que les clubs AJOUTÉS via l’app.
+// L’opérateur approuve une demande → un club est créé ici et apparaît chez tous les
+// joueurs, SANS nouvelle version de l’app.
 
 import { serverRowToClub, type Club, type CustomClub, type PriceTier } from '@/data/clubs';
 import { supabase } from './supabase';
@@ -18,7 +18,7 @@ export type ClubOverride = {
 };
 
 // Toutes les surcharges de page (édités par les gérants) → { clubId: surcharge } pour fusion.
-// null = échec réseau (≠ {} = « aucune surcharge ») → l'appelant garde l'existant (convention §8).
+// null = échec réseau (≠ {} = « aucune surcharge ») → l’appelant garde l’existant (convention §8).
 export async function fetchClubOverrides(): Promise<Record<string, ClubOverride> | null> {
   const { data, error } = await supabase.from('club_overrides').select('*');
   if (error) return null;
@@ -61,7 +61,7 @@ export type ClubConfig = {
   offers?: ClubOffer[];
   coaches?: ClubCoach[];
   photos?: string[]; // photos GÉNÉRALES du club (galerie)
-  coverUrl?: string; // photo « de profil » : celle de la carte, avant d'ouvrir la fiche
+  coverUrl?: string; // photo « de profil » : celle de la carte, avant d’ouvrir la fiche
   courtPhotos?: Record<string, string>; // une photo PAR TERRAIN → { nom du terrain: url }
 };
 
@@ -77,7 +77,7 @@ type ClubConfigRow = {
 };
 
 // Toutes les configs de club → { clubId: config } pour fusion dans le store au chargement.
-// null = échec réseau (≠ {} = « aucune config ») → l'appelant garde l'existant (convention §8).
+// null = échec réseau (≠ {} = « aucune config ») → l’appelant garde l’existant (convention §8).
 export async function fetchClubConfigs(): Promise<Record<string, ClubConfig> | null> {
   const { data, error } = await supabase.from('club_config').select('*');
   if (error) return null;
@@ -97,7 +97,7 @@ export async function fetchClubConfigs(): Promise<Record<string, ClubConfig> | n
 }
 
 // Le gérant pousse SA config (mise à jour partielle : seuls les champs fournis changent).
-// Le serveur refuse si ce n'est pas son club. false si refusé/échec.
+// Le serveur refuse si ce n’est pas son club. false si refusé/échec.
 export async function upsertClubConfig(clubId: string, c: ClubConfig): Promise<boolean> {
   const { data, error } = await supabase.rpc('upsert_club_config', {
     p_club_id: clubId,
@@ -140,37 +140,37 @@ type ClubRow = {
 
 // Clubs serveur visibles (actifs + « Bientôt ») → modèle local, fusionnés avec les clubs
 // de base. Les 'coming_soon' arrivent avec leur badge ; les 'hidden' restent exclus.
-// null = échec réseau (≠ [] = « aucun club serveur ») → l'appelant garde l'existant, sinon
-// une micro-coupure au premier plan ferait DISPARAÎTRE tous les clubs serveur de l'affichage.
+// null = échec réseau (≠ [] = « aucun club serveur ») → l’appelant garde l’existant, sinon
+// une micro-coupure au premier plan ferait DISPARAÎTRE tous les clubs serveur de l’affichage.
 export async function fetchServerClubs(): Promise<CustomClub[] | null> {
   const { data, error } = await supabase.from('clubs').select('*').in('status', ['active', 'coming_soon']);
   if (error) return null;
   return (data ?? []).map((row) => serverRowToClub(row as ClubRow));
 }
 
-// Opérateur : change le statut d'un club (active | coming_soon | hidden).
+// Opérateur : change le statut d’un club (active | coming_soon | hidden).
 export async function setClubStatus(clubId: string, status: 'active' | 'coming_soon' | 'hidden'): Promise<boolean> {
   const { data, error } = await supabase.rpc('set_club_status', { p_id: clubId, p_status: status });
   return !error && data === true;
 }
 
-// Statut piloté par l'opérateur pour N'IMPORTE QUEL club (y compris les 9 de base) → clubId → statut.
+// Statut piloté par l’opérateur pour N’IMPORTE QUEL club (y compris les 9 de base) → clubId → statut.
 export async function fetchClubStatus(): Promise<Record<string, 'active' | 'coming_soon' | 'hidden'> | null> {
   const { data, error } = await supabase.from('club_status').select('club_id, status');
-  if (error) return null; // échec réseau ≠ « aucun statut » → l'appelant garde l'existant
+  if (error) return null; // échec réseau ≠ « aucun statut » → l’appelant garde l’existant
   const out: Record<string, 'active' | 'coming_soon' | 'hidden'> = {};
   for (const r of (data ?? []) as { club_id: string; status: 'active' | 'coming_soon' | 'hidden' }[]) out[r.club_id] = r.status;
   return out;
 }
 
-// Opérateur : bascule le statut d'un club de base (ou tout club) — visible par tous.
+// Opérateur : bascule le statut d’un club de base (ou tout club) — visible par tous.
 export async function setBaseClubStatus(clubId: string, status: 'active' | 'coming_soon' | 'hidden'): Promise<boolean> {
   const { data, error } = await supabase.rpc('set_base_club_status', { p_club_id: clubId, p_status: status });
   return !error && data === true;
 }
 
-// Boosts « Sponsorisé » pilotés par l'opérateur → { clubId: date d'expiration (ms) }. null si
-// échec réseau (on garde l'existant). Lu par tous (le club boosté remonte avec son badge).
+// Boosts « Sponsorisé » pilotés par l’opérateur → { clubId: date d’expiration (ms) }. null si
+// échec réseau (on garde l’existant). Lu par tous (le club boosté remonte avec son badge).
 export async function fetchClubBoosts(): Promise<Record<string, number> | null> {
   const { data, error } = await supabase.from('club_boost').select('club_id, expires_at');
   if (error) return null;
@@ -182,7 +182,7 @@ export async function fetchClubBoosts(): Promise<Record<string, number> | null> 
   return out;
 }
 
-// Opérateur : active/prolonge un boost (date d'expiration ISO) ou le retire (null).
+// Opérateur : active/prolonge un boost (date d’expiration ISO) ou le retire (null).
 export async function setClubBoost(clubId: string, expiresAtMs: number | null): Promise<boolean> {
   const { data, error } = await supabase.rpc('set_club_boost', {
     p_club_id: clubId,
@@ -197,23 +197,23 @@ export async function deleteClub(clubId: string): Promise<boolean> {
   return !error && data === true;
 }
 
-// Commission propre à chaque club (lue par l'opérateur) → { clubId: taux } (0.10 = 10 %).
+// Commission propre à chaque club (lue par l’opérateur) → { clubId: taux } (0.10 = 10 %).
 export async function fetchClubCommissions(): Promise<Record<string, number> | null> {
   const { data, error } = await supabase.from('club_commission').select('club_id, rate');
-  if (error) return null; // échec réseau ≠ « aucune commission » → l'appelant garde l'existant
+  if (error) return null; // échec réseau ≠ « aucune commission » → l’appelant garde l’existant
   const out: Record<string, number> = {};
   for (const r of (data ?? []) as { club_id: string; rate: number }[]) out[r.club_id] = r.rate;
   return out;
 }
 
-// Opérateur : fixe la commission (taux 0–1) d'un club. false si refusé/échec.
+// Opérateur : fixe la commission (taux 0–1) d’un club. false si refusé/échec.
 export async function setClubCommission(clubId: string, rate: number): Promise<boolean> {
   const { data, error } = await supabase.rpc('set_club_commission', { p_club_id: clubId, p_rate: rate });
   return !error && data === true;
 }
 
 // Suivi des règlements opérateur (persistant serveur) → { key: 'sent' | 'paid' }. null = échec
-// réseau (l'appelant garde l'existant). Vide pour les non-opérateurs (RLS).
+// réseau (l’appelant garde l’existant). Vide pour les non-opérateurs (RLS).
 export async function fetchOperatorPayments(): Promise<Record<string, 'sent' | 'paid'> | null> {
   const { data, error } = await supabase.from('operator_payments').select('key, status');
   if (error) return null;
@@ -222,28 +222,28 @@ export async function fetchOperatorPayments(): Promise<Record<string, 'sent' | '
   return out;
 }
 
-// Opérateur : fixe (ou retire, avec 'tofacture') le statut de règlement d'une clé. false si refusé.
+// Opérateur : fixe (ou retire, avec 'tofacture') le statut de règlement d’une clé. false si refusé.
 export async function setOperatorPayment(key: string, status: 'sent' | 'paid' | 'tofacture'): Promise<boolean> {
   const { data, error } = await supabase.rpc('set_operator_payment', { p_key: key, p_status: status });
   return !error && data === true;
 }
 
-// Opérateur : donne l'accès « Espace Club » à un joueur (par son numéro) pour un club donné —
-// n'importe quel club, y compris les 9 de base. Renvoie le nom du joueur promu si trouvé.
+// Opérateur : donne l’accès « Espace Club » à un joueur (par son numéro) pour un club donné —
+// n’importe quel club, y compris les 9 de base. Renvoie le nom du joueur promu si trouvé.
 export async function grantClubAccessByPhone(phone: string, clubId: string): Promise<{ ok: boolean; name?: string }> {
   const { data, error } = await supabase.rpc('grant_club_access_by_phone', { p_phone: phone.trim(), p_club_id: clubId });
   if (error || !data) return { ok: false };
   return { ok: true, name: data as string };
 }
 
-// Opérateur : retire l'accès gérant d'un joueur (par son numéro). Renvoie son nom si trouvé.
+// Opérateur : retire l’accès gérant d’un joueur (par son numéro). Renvoie son nom si trouvé.
 export async function revokeClubAccessByPhone(phone: string): Promise<{ ok: boolean; name?: string }> {
   const { data, error } = await supabase.rpc('revoke_club_access_by_phone', { p_phone: phone.trim() });
   if (error || !data) return { ok: false };
   return { ok: true, name: data as string };
 }
 
-// Opérateur : pré-charge un club « Bientôt » sans demande préalable. Renvoie l'id créé.
+// Opérateur : pré-charge un club « Bientôt » sans demande préalable. Renvoie l’id créé.
 export async function createClub(input: {
   name: string;
   area: string;
@@ -262,8 +262,8 @@ export async function createClub(input: {
   return { ok: true, clubId: data as string };
 }
 
-// Approuve une demande de club : crée le club + donne l'accès gérant au demandeur
-// (fonction serveur SECURITY DEFINER réservée à l'opérateur). Renvoie l'id du club créé.
+// Approuve une demande de club : crée le club + donne l’accès gérant au demandeur
+// (fonction serveur SECURITY DEFINER réservée à l’opérateur). Renvoie l’id du club créé.
 export async function approveClubRequest(requestId: string): Promise<{ ok: boolean; clubId?: string }> {
   const { data, error } = await supabase.rpc('approve_club_request', { p_request_id: requestId });
   if (error || !data) return { ok: false };

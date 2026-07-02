@@ -1,5 +1,5 @@
 // Retours haptiques (vibration légère) sur les moments clés — pour un ressenti « premium ».
-// No-op sur le web et silencieux si l'appareil ne supporte pas (jamais d'erreur visible).
+// No-op sur le web et silencieux si l’appareil ne supporte pas (jamais d’erreur visible).
 
 import * as Haptics from 'expo-haptics';
 import { Platform } from 'react-native';

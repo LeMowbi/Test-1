@@ -33,11 +33,11 @@ export default function CompetitionDetail() {
   const [secondName, setSecondName] = useState(''); // americano : 2ᵉ place (facultatif)
   const [thirdName, setThirdName] = useState(''); // americano : 3ᵉ place (facultatif)
   const [pickingLoser, setPickingLoser] = useState(false); // 2ᵉ étape de clôture
-  const [confirmCancel, setConfirmCancel] = useState(false); // annulation d'un tournoi sans inscrit
+  const [confirmCancel, setConfirmCancel] = useState(false); // annulation d’un tournoi sans inscrit
   const [toast, setToast] = useState<string | null>(null);
   const [openPlayer, setOpenPlayer] = useState<PlayerLike | null>(null);
   const [registering, setRegistering] = useState(false); // évite double-clic + toast menteur si échec serveur
-  const [closing, setClosing] = useState(false); // évite double-clic sur la clôture + retour d'échec
+  const [closing, setClosing] = useState(false); // évite double-clic sur la clôture + retour d’échec
   const [celebrate, setCelebrate] = useState(false); // confettis quand MON équipe remporte le tournoi (motif amis.tsx)
 
   if (!comp) {
@@ -50,7 +50,7 @@ export default function CompetitionDetail() {
 
   const reg = state.compRegistrations[comp.id];
   const registered = !!reg;
-  // Club hôte (pour que l'organisateur d'un tournoi en attente puisse le contacter et le faire valider).
+  // Club hôte (pour que l’organisateur d’un tournoi en attente puisse le contacter et le faire valider).
   const hostClub = comp.clubId ? findClub(comp.clubId, state.customClubs, state.clubInfo) : undefined;
   const contactClub = () =>
     hostClub?.contactPhone
@@ -61,25 +61,25 @@ export default function CompetitionDetail() {
       : undefined;
   // Cycle de vie : à venir → terminé (jour STRICTEMENT passé) → clôturé (vainqueur désigné).
   // Le jour même = en cours, pas encore « terminé » (on ne clôture pas avant que ça se joue).
-  // Pour un tournoi multi-jours, c'est la date de FIN qui fait foi.
+  // Pour un tournoi multi-jours, c’est la date de FIN qui fait foi.
   const played = (comp.endDateKey ?? comp.dateKey) < dayKey(new Date());
   const result = state.compResults[comp.id];
   const mine = state.officialResults.find((o) => o.compId === comp.id);
   const myTeam = registered ? `${state.account?.firstName ?? 'Toi'} & ${reg.partner}` : '';
   // Un défi AMICAL créé par un joueur se clôture ici, par son créateur. Un tournoi OFFICIEL
-  // ne se clôture JAMAIS depuis cette fiche (réservé à l'Espace Club) — sinon un joueur
-  // pourrait s'auto-attribuer des points de niveau.
+  // ne se clôture JAMAIS depuis cette fiche (réservé à l’Espace Club) — sinon un joueur
+  // pourrait s’auto-attribuer des points de niveau.
   const canClose = !!comp.createdByMe && !comp.official && played && !result;
   const teams = teamCount(comp, registered);
   const teamList = teamsToShow(comp, registered ? myTeam : undefined);
-  // Frais d'inscription à régler → contacter l'organisateur : le club (tournoi club) ou le
-  // joueur organisateur (tournoi joueur). WhatsApp, canal n°1 en Côte d'Ivoire.
+  // Frais d’inscription à régler → contacter l’organisateur : le club (tournoi club) ou le
+  // joueur organisateur (tournoi joueur). WhatsApp, canal n°1 en Côte d’Ivoire.
   const feeContactPhone = comp.organizerType === 'club' ? hostClub?.contactPhone : comp.organizerPhone;
   const contactForFee = () =>
     feeContactPhone
       ? openWhatsApp(
           feeContactPhone,
-          `Bonjour, je viens de m'inscrire au tournoi « ${comp.title} » sur PadelConnect — comment régler les frais d'inscription (${formatFee(comp.fee)}) ?`,
+          `Bonjour, je viens de m’inscrire au tournoi « ${comp.title} » sur PadelConnect — comment régler les frais d’inscription (${formatFee(comp.fee)}) ?`,
         )
       : undefined;
   const left = Math.max(0, comp.slots - teams);
@@ -95,12 +95,12 @@ export default function CompetitionDetail() {
     setPartnerName('');
   };
 
-  // Americano : tournoi par rotation → on clôture par un PODIUM (1ᵉ/2ᵉ/3ᵉ) plutôt qu'un
+  // Americano : tournoi par rotation → on clôture par un PODIUM (1ᵉ/2ᵉ/3ᵉ) plutôt qu’un
   // unique vainqueur + dernier. La détection se fait sur le format choisi à la création.
   const isAmericano = comp.format.toLowerCase().includes('americano');
 
   // Clôture effective : vainqueur + (option) dernière équipe. Gardée (anti double-tap) + retour
-  // d'échec par toast, aligné sur le flux d'inscription de cet écran.
+  // d’échec par toast, aligné sur le flux d’inscription de cet écran.
   const doClose = async (loser?: string) => {
     if (closing) return;
     setClosing(true);
@@ -114,8 +114,8 @@ export default function CompetitionDetail() {
     setClosing(false);
     if (ok) {
       hapticSuccess();
-      // Confettis seulement si le vainqueur désigné, c'est MOI (sinon simple toast, sans fêter
-      // un résultat qui n'est pas le sien — cf. audit).
+      // Confettis seulement si le vainqueur désigné, c’est MOI (sinon simple toast, sans fêter
+      // un résultat qui n’est pas le sien — cf. audit).
       if (winnerName === myTeam && registered) setCelebrate(true);
     } else hapticWarning();
     setToast(ok ? 'Tournoi clôturé ✓' : 'Clôture impossible — réessaie.');
@@ -183,7 +183,7 @@ export default function CompetitionDetail() {
         </View>
       </LinearGradient>
 
-      {/* Chips d'info sous le héros */}
+      {/* Chips d’info sous le héros */}
       <View style={styles.chipsRow}>
         {comp.reward.trim() ? (
           <View style={[styles.infoChip, styles.infoChipReward]}>
@@ -223,18 +223,18 @@ export default function CompetitionDetail() {
         <View style={styles.pendingBanner}>
           <Ionicons name="close-circle-outline" size={16} color={colors.danger} />
           <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-            Ce tournoi n'a pas été retenu par {comp.clubName ?? 'le club hôte'}.
+            Ce tournoi n’a pas été retenu par {comp.clubName ?? 'le club hôte'}.
           </Txt>
         </View>
       ) : null}
 
-      {/* Frais PadelConnect (Wave) — visible par l'ORGANISATEUR d'un tournoi joueur, pour qu'il
-          sache qu'un montant est dû. PadelConnect le recontacte depuis l'Espace opérateur. */}
+      {/* Frais PadelConnect (Wave) — visible par l’ORGANISATEUR d’un tournoi joueur, pour qu’il
+          sache qu’un montant est dû. PadelConnect le recontacte depuis l’Espace opérateur. */}
       {comp.createdByMe && comp.organizerType === 'joueur' && (comp.commission ?? 0) > 0 && comp.status !== 'rejected' ? (
         <View style={[styles.pendingBanner, { backgroundColor: colors.amberSoft }]}>
           <Ionicons name="cash-outline" size={16} color={colors.amber} />
           <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-            Frais d'organisation PadelConnect : {formatFee(`${comp.commission} FCFA`)}, à régler par Wave. PadelConnect te contactera.
+            Frais d’organisation PadelConnect : {formatFee(`${comp.commission} FCFA`)}, à régler par Wave. PadelConnect te contactera.
           </Txt>
         </View>
       ) : null}
@@ -303,7 +303,7 @@ export default function CompetitionDetail() {
         />
       </View>
 
-      {/* Résultats (tournoi clôturé) — PopIn si c'est MA victoire (le moment le plus fort du
+      {/* Résultats (tournoi clôturé) — PopIn si c’est MA victoire (le moment le plus fort du
           produit : le niveau ne bouge que via un tournoi officiel). */}
       {result ? (
         mine?.result === 'win' ? (
@@ -316,12 +316,12 @@ export default function CompetitionDetail() {
       ) : null}
       {celebrate ? <Confetti onDone={() => setCelebrate(false)} /> : null}
 
-      {/* Tournoi terminé SANS inscrit : rien à clôturer — le créateur peut l'annuler. */}
+      {/* Tournoi terminé SANS inscrit : rien à clôturer — le créateur peut l’annuler. */}
       {canClose && teamList.length === 0 ? (
         <Card style={{ marginTop: spacing.lg, borderColor: colors.danger }}>
           <Txt variant="h3">Tournoi terminé sans inscrit</Txt>
           <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
-            Aucune équipe ne s'est inscrite : il n'y a pas de vainqueur à désigner.
+            Aucune équipe ne s’est inscrite : il n’y a pas de vainqueur à désigner.
           </Txt>
           <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
             {confirmCancel ? (
@@ -355,7 +355,7 @@ export default function CompetitionDetail() {
             <>
               <Txt variant="h3">Clôturer & désigner le vainqueur</Txt>
               <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
-                Le tournoi est terminé : sélectionne l'équipe qui a gagné. C'est toi (l'organisateur) qui décides.
+                Le tournoi est terminé : sélectionne l’équipe qui a gagné. C’est toi (l’organisateur) qui décides.
               </Txt>
               <View style={{ marginTop: spacing.sm, gap: 6 }}>
                 {teamList.map((t) => {
@@ -386,13 +386,13 @@ export default function CompetitionDetail() {
               </View>
               {comp.official ? (
                 <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-                  Tournoi officiel : l'équipe vainqueure gagne +0.50 de niveau.
+                  Tournoi officiel : l’équipe vainqueure gagne +0.50 de niveau.
                 </Txt>
               ) : null}
             </>
           ) : isAmericano ? (
             <>
-              <Txt variant="h3">Podium de l'americano</Txt>
+              <Txt variant="h3">Podium de l’americano</Txt>
               <Txt variant="small" color={colors.textMuted} style={{ marginTop: 2 }}>
                 1ʳᵉ place : <Txt style={{ fontWeight: '700' }}>{winnerName}</Txt>. Ajoute la 2ᵉ et la 3ᵉ place (facultatif).
               </Txt>
@@ -515,17 +515,17 @@ export default function CompetitionDetail() {
             </View>
             {played && !result ? <Tag label="Résultats à venir" tone="neutral" icon="hourglass-outline" /> : null}
           </View>
-          {/* Frais d'inscription à régler → on propose de contacter l'organisateur (WhatsApp). */}
+          {/* Frais d’inscription à régler → on propose de contacter l’organisateur (WhatsApp). */}
           {!played && hasEntryFee(comp.fee) && feeContactPhone ? (
             <View style={{ marginTop: spacing.md }}>
               <Txt variant="small" color={colors.textMuted}>
-                Frais d'inscription : <Txt style={{ fontWeight: '600' }}>{formatFee(comp.fee)}</Txt>. Règle-les directement avec
-                l'organisateur.
+                Frais d’inscription : <Txt style={{ fontWeight: '600' }}>{formatFee(comp.fee)}</Txt>. Règle-les directement avec
+                l’organisateur.
               </Txt>
               <View style={{ marginTop: spacing.sm }}>
                 <Button
                   size="sm"
-                  label={comp.organizerType === 'club' ? 'Contacter le club (règlement)' : "Contacter l'organisateur (règlement)"}
+                  label={comp.organizerType === 'club' ? 'Contacter le club (règlement)' : "Contacter l’organisateur (règlement)"}
                   icon="logo-whatsapp"
                   variant="secondary"
                   onPress={contactForFee}
@@ -536,7 +536,7 @@ export default function CompetitionDetail() {
           ) : null}
           {played && !result && !comp.createdByMe ? (
             <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-              L'organisateur désignera l'équipe vainqueure — tes stats se mettront à jour automatiquement.
+              L’organisateur désignera l’équipe vainqueure — tes stats se mettront à jour automatiquement.
             </Txt>
           ) : null}
           {!played ? (
@@ -570,7 +570,7 @@ export default function CompetitionDetail() {
         </Card>
       ) : (
         <View style={{ marginTop: spacing.lg }}>
-          <Txt variant="h3">S'inscrire en équipe</Txt>
+          <Txt variant="h3">S’inscrire en équipe</Txt>
           <Txt variant="muted" style={{ marginTop: 2 }}>
             Le padel se joue à 2 : choisis ton coéquipier.
           </Txt>
@@ -604,13 +604,13 @@ export default function CompetitionDetail() {
               setPartnerId(null);
             }}
             placeholder="Nom du coéquipier"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             style={styles.input}
           />
 
           <View style={{ marginTop: spacing.lg }}>
             <Button
-              label="S'inscrire en équipe"
+              label="S’inscrire en équipe"
               icon="add"
               onPress={async () => {
                 if (!canRegister || registering) return;
@@ -639,8 +639,8 @@ export default function CompetitionDetail() {
   );
 }
 
-// Card « Résultats » — extraite pour pouvoir l'envelopper d'un PopIn quand mine?.result === 'win'
-// (le moment le plus fort du produit : victoire d'un tournoi OFFICIEL) sans dupliquer le JSX.
+// Card « Résultats » — extraite pour pouvoir l’envelopper d’un PopIn quand mine?.result === 'win'
+// (le moment le plus fort du produit : victoire d’un tournoi OFFICIEL) sans dupliquer le JSX.
 function ResultCard({ result, mine, official }: { result: CompResult; mine?: OfficialResult; official?: boolean }) {
   return (
     <Card style={{ marginTop: spacing.lg, borderColor: colors.amber }}>
@@ -682,7 +682,7 @@ function ResultCard({ result, mine, official }: { result: CompResult; mine?: Off
           Fin de tableau : {result.loser}
         </Txt>
       ) : null}
-      {/* levelAfter n'existe que pour les défis locaux ; pour un tournoi serveur on annonce
+      {/* levelAfter n’existe que pour les défis locaux ; pour un tournoi serveur on annonce
           le DELTA (toujours juste) — jamais un « niveau après » potentiellement périmé. */}
       {mine?.result === 'win' && official ? (
         <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>

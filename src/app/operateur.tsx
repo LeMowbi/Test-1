@@ -86,7 +86,7 @@ export default function Operateur() {
     const { ok } = await operatorSetClubStatus(clubId, current ? 'active' : 'coming_soon');
     if (!ok) toast.show('Changement impossible — réessaie', { icon: 'alert-circle' });
   };
-  // Boost serveur (visible par tous) : on prévient si l'écriture échoue.
+  // Boost serveur (visible par tous) : on prévient si l’écriture échoue.
   const doBoost = (clubId: string, days: number) =>
     void setBoost(clubId, days).then(({ ok }) => {
       if (!ok) toast.show('Boost impossible — réessaie', { icon: 'alert-circle' });
@@ -102,7 +102,7 @@ export default function Operateur() {
     setBaseBusy(null);
     if (!ok) toast.show('Changement impossible — réessaie', { icon: 'alert-circle' });
   };
-  // Remet dans l'app un club de base précédemment retiré (statut 'hidden' → 'active').
+  // Remet dans l’app un club de base précédemment retiré (statut 'hidden' → 'active').
   const restoreBaseClub = async (clubId: string) => {
     if (baseBusy) return;
     setBaseBusy(clubId);
@@ -112,8 +112,8 @@ export default function Operateur() {
   };
 
   // ── Suppression de club (confirmation) ───────────────────────────────────────
-  // Club serveur → suppression DÉFINITIVE ; club de base → retrait de l'app (réversible),
-  // car il vit dans le code de l'app et ne peut pas être effacé de la base.
+  // Club serveur → suppression DÉFINITIVE ; club de base → retrait de l’app (réversible),
+  // car il vit dans le code de l’app et ne peut pas être effacé de la base.
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string; server: boolean } | null>(null);
   const [deleting, setDeleting] = useState(false);
   const confirmDelete = async () => {
@@ -129,16 +129,16 @@ export default function Operateur() {
     }
   };
 
-  // Messages d'aide / signalements (table support_messages, RLS opérateur).
+  // Messages d’aide / signalements (table support_messages, RLS opérateur).
   const [support, setSupport] = useState<ServerSupportMessage[]>([]);
   const [supportError, setSupportError] = useState(false);
   // Refs vers les actions serveur : leur identité change à chaque rendu (objet de contexte
   // recréé), donc on les appelle via une ref stable pour NE PAS relancer les fetch en boucle
-  // à chaque changement d'état (effets à dépendances vides).
+  // à chaque changement d’état (effets à dépendances vides).
   const fetchSupportRef = useRef(fetchSupportMessages);
   fetchSupportRef.current = fetchSupportMessages;
   // Rechargement des signalements — réutilisé au montage ET par le pull-to-refresh (sinon
-  // le message d'erreur promettait « tire pour rafraîchir » sans que ça ne recharge rien).
+  // le message d’erreur promettait « tire pour rafraîchir » sans que ça ne recharge rien).
   const loadSupport = useCallback(async () => {
     const { ok, messages } = await fetchSupportRef.current();
     setSupportError(!ok);
@@ -147,7 +147,7 @@ export default function Operateur() {
   useEffect(() => {
     let alive = true;
     // On lit le drapeau `ok` : un échec réseau (ok=false, messages=[]) ne doit PAS afficher
-    // « aucun signalement » à tort ni écraser la liste — on signale l'erreur à la place.
+    // « aucun signalement » à tort ni écraser la liste — on signale l’erreur à la place.
     fetchSupportRef.current().then(({ ok, messages }) => {
       if (!alive) return;
       setSupportError(!ok);
@@ -162,19 +162,19 @@ export default function Operateur() {
     const prev = support.find((m) => m.id === id)?.status;
     setSupport((cur) => cur.map((m) => (m.id === id ? { ...m, status } : m)));
     const { ok } = await setSupportMessageStatus(id, status);
-    // Échec serveur : on annule l'affichage optimiste (sinon le statut affiché ment).
+    // Échec serveur : on annule l’affichage optimiste (sinon le statut affiché ment).
     if (!ok && prev) setSupport((cur) => cur.map((m) => (m.id === id ? { ...m, status: prev } : m)));
   };
   const newSupport = support.filter((m) => m.status === 'new').length;
   // Clubs démo LOCAUX seulement (les clubs serveur ont fromServer=true et sont gérés ailleurs).
   const demoClubs = state.customClubs.filter((c) => !c.fromServer);
 
-  // Demandes d'inscription reçues sur le SERVEUR (table club_requests, lisible par le
+  // Demandes d’inscription reçues sur le SERVEUR (table club_requests, lisible par le
   // seul opérateur via RLS). Un joueur les envoie depuis « Inscrire mon club ».
   const [requests, setRequests] = useState<ServerClubRequest[]>([]);
   const [loadingReq, setLoadingReq] = useState(true);
   const [reqError, setReqError] = useState(false);
-  // Ref stable vers l'action (identité recréée à chaque rendu) → pas de refetch en boucle.
+  // Ref stable vers l’action (identité recréée à chaque rendu) → pas de refetch en boucle.
   const fetchRequestsRef = useRef(fetchClubRequests);
   fetchRequestsRef.current = fetchClubRequests;
   const loadRequests = useCallback(async () => {
@@ -184,8 +184,8 @@ export default function Operateur() {
     setRequests(rows);
     setLoadingReq(false);
   }, []);
-  // Chargement initial : on n'appelle setState que DANS le callback async (après await),
-  // jamais de façon synchrone dans le corps de l'effet (cf. react-hooks/set-state-in-effect).
+  // Chargement initial : on n’appelle setState que DANS le callback async (après await),
+  // jamais de façon synchrone dans le corps de l’effet (cf. react-hooks/set-state-in-effect).
   useEffect(() => {
     let alive = true;
     fetchRequestsRef.current().then(({ ok, requests: rows }) => {
@@ -198,18 +198,18 @@ export default function Operateur() {
       alive = false;
     };
     // Dépendances vides VOULUES : on passe par fetchRequestsRef.current (identité stable). Mettre
-    // `fetchClubRequests` en dépendance relancerait le fetch à CHAQUE changement d'état global.
+    // `fetchClubRequests` en dépendance relancerait le fetch à CHAQUE changement d’état global.
   }, []);
 
   const markRequest = async (id: string, status: ServerClubRequest['status']) => {
     const prev = requests;
     setRequests((cur) => cur.map((r) => (r.id === id ? { ...r, status } : r)));
     const { ok } = await setClubRequestStatus(id, status);
-    if (!ok) setRequests(prev); // échec serveur → on annule l'affichage optimiste
+    if (!ok) setRequests(prev); // échec serveur → on annule l’affichage optimiste
   };
   const pendingRequests = requests.filter((r) => r.status === 'new' || r.status === 'contacted').length;
 
-  // Approbation : demande de confirmation (action forte : crée le club + donne l'accès).
+  // Approbation : demande de confirmation (action forte : crée le club + donne l’accès).
   const [approveTarget, setApproveTarget] = useState<ServerClubRequest | null>(null);
   const [approving, setApproving] = useState(false);
   const confirmApprove = async () => {
@@ -232,7 +232,7 @@ export default function Operateur() {
 
   // La commission se calcule UNIQUEMENT sur les parties JOUÉES de la semaine
   // (une résa à venir peut encore être annulée — le club contesterait).
-  // Prix d'une résa — MÊME règle partout (hebdo et cumulé) pour que le chiffre vitrine
+  // Prix d’une résa — MÊME règle partout (hebdo et cumulé) pour que le chiffre vitrine
   // ne sous-estime jamais la somme des semaines : prix figé, sinon tarif actuel du club.
   const priceOf = (r: (typeof state.reservations)[number]) =>
     r.price ?? findClub(r.clubId, state.customClubs, state.clubInfo)?.priceFrom ?? 0;
@@ -269,7 +269,7 @@ export default function Operateur() {
       .reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0),
   );
 
-  // Tournois JOUEURS publiés avec un frais fixe → à encaisser (Wave). Non réglés d'abord,
+  // Tournois JOUEURS publiés avec un frais fixe → à encaisser (Wave). Non réglés d’abord,
   // puis par date décroissante. On garde les réglés visibles (historique récent).
   const playerTournamentsToBill = state.myCompetitions
     .filter((c) => c.organizerType === 'joueur' && (c.commission ?? 0) > 0 && isTournamentPublic(c))
@@ -330,8 +330,8 @@ export default function Operateur() {
       `À régler par Wave 🙏\n\n` +
       `Détail :\n${lines}`;
     const phone = (findClub(row.clubId, state.customClubs, state.clubInfo) as { contactPhone?: string } | undefined)?.contactPhone ?? '';
-    // Sans numéro connu, WhatsApp s'ouvre quand même (message prêt) mais SANS destinataire :
-    // on le dit à l'opérateur pour qu'il choisisse le bon contact au lieu de croire à un envoi.
+    // Sans numéro connu, WhatsApp s’ouvre quand même (message prêt) mais SANS destinataire :
+    // on le dit à l’opérateur pour qu’il choisisse le bon contact au lieu de croire à un envoi.
     if (!phone) toast.show('Numéro du club inconnu — choisis le contact dans WhatsApp', { icon: 'information-circle' });
     openWhatsApp(phone, message);
     // Ne JAMAIS rétrograder un statut déjà « payé » : un renvoi du décompte (justificatif,
@@ -358,7 +358,7 @@ export default function Operateur() {
     void Share.share({ message });
   };
 
-  // Garde d'accès : l'Espace opérateur n'est rendu que si le RÔLE serveur === 'operator'.
+  // Garde d’accès : l’Espace opérateur n’est rendu que si le RÔLE serveur === 'operator'.
   // (La vraie barrière reste la Row Level Security côté Supabase.)
   if (!canAccessOperator(state.role)) return null;
 
@@ -371,9 +371,9 @@ export default function Operateur() {
         </Txt>
       </View>
 
-      {/* Actualité de l'accueil — éditorialisée par l'opérateur, visible par tous les joueurs */}
+      {/* Actualité de l’accueil — éditorialisée par l’opérateur, visible par tous les joueurs */}
       <View style={{ marginBottom: spacing.md }}>
-        <SectionHeader title="Actualité de l'accueil" />
+        <SectionHeader title="Actualité de l’accueil" />
         <NewsEditor news={state.operatorNews} onPublish={setOperatorNews} onRemove={removeOperatorNews} />
       </View>
 
@@ -522,7 +522,7 @@ export default function Operateur() {
                       label="Marquer payé"
                       icon="checkmark-circle"
                       onPress={() => {
-                        hapticSuccess(); // accusé discret d'une tâche financière hebdomadaire
+                        hapticSuccess(); // accusé discret d’une tâche financière hebdomadaire
                         setPaymentStatus(r.clubId, week, 'paid');
                       }}
                     />
@@ -584,7 +584,7 @@ export default function Operateur() {
         ) : requests.length === 0 ? (
           <Card>
             <Txt variant="muted">
-              Aucune demande pour l'instant. Quand un joueur inscrit son club (Profil → « Tu gères un club ? »), elle apparaît ici.
+              Aucune demande pour l’instant. Quand un joueur inscrit son club (Profil → « Tu gères un club ? »), elle apparaît ici.
             </Txt>
           </Card>
         ) : (
@@ -639,7 +639,7 @@ export default function Operateur() {
                       onPress={() => {
                         openWhatsApp(
                           r.contact_phone ?? '',
-                          `Bonjour 👋 PadelConnect à propos de l'inscription de « ${r.name} ». Es-tu dispo pour en parler ?`,
+                          `Bonjour 👋 PadelConnect à propos de l’inscription de « ${r.name} ». Es-tu dispo pour en parler ?`,
                         );
                         if (r.status === 'new') markRequest(r.id, 'contacted');
                       }}
@@ -673,13 +673,13 @@ export default function Operateur() {
         <SectionHeader title={`Clubs sur le serveur · ${serverClubs.length}`} />
         <Card>
           <Txt variant="small" color={colors.textMuted}>
-            Ajoute un club en « Bientôt » : il apparaît dans la liste des joueurs (non réservable) jusqu'à ce que tu l'actives.
+            Ajoute un club en « Bientôt » : il apparaît dans la liste des joueurs (non réservable) jusqu’à ce que tu l’actives.
           </Txt>
           <TextInput
             value={ncName}
             onChangeText={setNcName}
             placeholder="Nom du club"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             style={opStyles.clubInput}
           />
           <View style={{ flexDirection: 'row', gap: spacing.sm }}>
@@ -687,14 +687,14 @@ export default function Operateur() {
               value={ncArea}
               onChangeText={setNcArea}
               placeholder="Quartier"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               style={[opStyles.clubInput, { flex: 1 }]}
             />
             <TextInput
               value={ncPrice}
               onChangeText={setNcPrice}
               placeholder="Tarif dès (FCFA)"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               style={[opStyles.clubInput, { flex: 1 }]}
             />
@@ -744,13 +744,13 @@ export default function Operateur() {
         ))}
       </View>
 
-      {/* Clubs de base embarqués (9) : Actif ⇄ Bientôt, ou retrait de l'app (réversible). */}
+      {/* Clubs de base embarqués (9) : Actif ⇄ Bientôt, ou retrait de l’app (réversible). */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title={`Clubs de base · ${baseClubs.length}`} />
         <Card>
           <Txt variant="small" color={colors.textMuted}>
-            Mets un club en « Bientôt » s'il n'est pas encore prêt, ou retire-le de l'app : il disparaît alors pour tous les joueurs. Comme
-            ces 9 clubs sont intégrés à l'app, « Supprimer » = retrait réversible (tu peux les remettre ici).
+            Mets un club en « Bientôt » s’il n’est pas encore prêt, ou retire-le de l’app : il disparaît alors pour tous les joueurs. Comme
+            ces 9 clubs sont intégrés à l’app, « Supprimer » = retrait réversible (tu peux les remettre ici).
           </Txt>
         </Card>
         {baseClubs.map((c) => {
@@ -777,7 +777,7 @@ export default function Operateur() {
               {hidden ? (
                 <Button
                   size="sm"
-                  label="Remettre dans l'app"
+                  label="Remettre dans l’app"
                   icon="refresh"
                   variant="primary"
                   disabled={baseBusy === c.id}
@@ -812,19 +812,19 @@ export default function Operateur() {
         })}
       </View>
 
-      {/* Accès gérant : promouvoir un joueur (par son numéro) en gérant d'un club. */}
+      {/* Accès gérant : promouvoir un joueur (par son numéro) en gérant d’un club. */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Accès gérant" />
         <ManagerAccess clubs={manageableList} onGrant={operatorGrantClubAccess} onRevoke={operatorRevokeClubAccess} toast={toast} />
       </View>
 
-      {/* Santé de l'app — diagnostics self-hosted (erreurs + usage), lecture opérateur */}
+      {/* Santé de l’app — diagnostics self-hosted (erreurs + usage), lecture opérateur */}
       <View style={{ marginTop: spacing.xl }}>
-        <SectionHeader title="Santé de l'app" />
+        <SectionHeader title="Santé de l’app" />
         <DiagnosticsCard />
       </View>
 
-      {/* Signalements / messages d'aide envoyés par les joueurs (serveur). */}
+      {/* Signalements / messages d’aide envoyés par les joueurs (serveur). */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title={`Signalements · ${newSupport}`} />
         {support.length === 0 ? (
@@ -832,7 +832,7 @@ export default function Operateur() {
             <Txt variant="muted">
               {supportError
                 ? 'Impossible de charger les signalements — vérifie ta connexion, puis tire pour rafraîchir.'
-                : "Aucun message pour l'instant. Les signalements des joueurs (Profil → Aide & support) arrivent ici."}
+                : "Aucun message pour l’instant. Les signalements des joueurs (Profil → Aide & support) arrivent ici."}
             </Txt>
           </Card>
         ) : (
@@ -892,7 +892,7 @@ export default function Operateur() {
         {demoClubs.length === 0 ? (
           <Card>
             <Txt variant="muted">
-              Clubs créés en local depuis l'Espace Club (démo). Les vraies demandes d'inscription arrivent dans « Demandes reçues »
+              Clubs créés en local depuis l’Espace Club (démo). Les vraies demandes d’inscription arrivent dans « Demandes reçues »
               ci-dessus. Ici, « Activer » rend un club démo visible des joueurs.
             </Txt>
           </Card>
@@ -934,7 +934,7 @@ export default function Operateur() {
         <SectionHeader title="Boosts « Sponsorisé »" />
         <Card>
           <Txt variant="muted" style={{ marginBottom: spacing.sm }}>
-            Un club t'a réglé son boost par Wave ? Active-le ici : il passe en tête de liste avec un badge doré.
+            Un club t’a réglé son boost par Wave ? Active-le ici : il passe en tête de liste avec un badge doré.
           </Txt>
           {activeClubs(state.customClubs, state.clubInfo).map((c, i) => {
             const on = state.boostedClubIds.includes(c.id);
@@ -949,7 +949,7 @@ export default function Operateur() {
                     </Txt>
                     {on && exp ? (
                       <Txt variant="small" color={colors.green} style={{ fontWeight: '600' }}>
-                        Sponsorisé · jusqu'au {new Date(exp).toLocaleDateString('fr-FR')}
+                        Sponsorisé · jusqu’au {new Date(exp).toLocaleDateString('fr-FR')}
                       </Txt>
                     ) : (
                       <Txt variant="small" color={colors.textFaint}>
@@ -972,7 +972,7 @@ export default function Operateur() {
         </Card>
       </View>
 
-      {/* Confirmation d'approbation — action forte : crée le club + donne l'accès gérant. */}
+      {/* Confirmation d’approbation — action forte : crée le club + donne l’accès gérant. */}
       <BottomSheet
         visible={approveTarget !== null}
         title={approveTarget ? `Approuver « ${approveTarget.name} » ?` : 'Approuver ce club ?'}
@@ -982,11 +982,11 @@ export default function Operateur() {
         <View style={styles.approveBox}>
           <Ionicons name="sparkles" size={18} color={colors.signature} />
           <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-            Le demandeur obtiendra l'accès à{' '}
+            Le demandeur obtiendra l’accès à{' '}
             <Txt variant="small" style={{ fontWeight: '700' }}>
               son Espace Club
             </Txt>{' '}
-            dès sa prochaine ouverture de l'app. Aucune manipulation technique de ta part.
+            dès sa prochaine ouverture de l’app. Aucune manipulation technique de ta part.
           </Txt>
         </View>
         <View style={{ gap: spacing.sm, marginTop: spacing.lg }}>
@@ -1001,7 +1001,7 @@ export default function Operateur() {
         </View>
       </BottomSheet>
 
-      {/* Confirmation de suppression — serveur : définitif ; base : retrait réversible de l'app. */}
+      {/* Confirmation de suppression — serveur : définitif ; base : retrait réversible de l’app. */}
       <BottomSheet
         visible={deleteTarget !== null}
         title={deleteTarget ? `Supprimer « ${deleteTarget.name} » ?` : 'Supprimer ce club ?'}

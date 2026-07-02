@@ -13,7 +13,7 @@ export default function Root({ children }: PropsWithChildren) {
         <title>PadelConnect — Réserver un terrain de padel à Abidjan</title>
         <meta
           name="description"
-          content="PadelConnect — l'app qui réunit tous les clubs de padel d'Abidjan : réserve un terrain, trouve des partenaires, joue des tournois."
+          content="PadelConnect — l’app qui réunit tous les clubs de padel d’Abidjan : réserve un terrain, trouve des partenaires, joue des tournois."
         />
         <meta name="theme-color" content={colors.signature} />
         <ScrollViewStyleReset />

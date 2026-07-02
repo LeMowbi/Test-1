@@ -6,7 +6,7 @@ import { hapticLight } from '@/lib/haptics';
 import { colors, radius, spacing } from '@/theme';
 
 // Puce de sélection réutilisable (filtres, dates, créneaux, niveaux…).
-// Micro-interaction commune à ~tous les écrans : ressort d'appui (scale) + tap haptique léger
+// Micro-interaction commune à ~tous les écrans : ressort d’appui (scale) + tap haptique léger
 // à la sélection — cohérent avec le cœur favori de ClubCard, sans toucher chaque écran.
 export function Chip({
   label,

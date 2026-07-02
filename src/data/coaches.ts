@@ -1,4 +1,4 @@
-// Coachs partenaires. La réservation ne se fait PAS dans l'app : on affiche le numéro du coach
+// Coachs partenaires. La réservation ne se fait PAS dans l’app : on affiche le numéro du coach
 // et son club. Liste vide au lancement (aucun profil fictif) — à remplir avec de vrais coachs.
 
 import { getClub } from './clubs';

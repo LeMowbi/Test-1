@@ -19,7 +19,7 @@ import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { GENDERS, ageFrom, genderLabel, maskBirthDate, parseBirthDate, zodiacFor, type Gender } from '@/lib/zodiac';
 import { colors, gradients, radius, spacing } from '@/theme';
 
-// Un trophée évolue par paliers : chaque seuil franchi monte d'un rang.
+// Un trophée évolue par paliers : chaque seuil franchi monte d’un rang.
 type Trophy = { label: string; icon: IconName; value: number; steps: number[] };
 const TIER_NAMES = ['Bronze', 'Argent', 'Or', 'Platine'];
 
@@ -41,7 +41,7 @@ export default function ProfilScreen() {
   const { refreshControl } = usePullToRefresh();
   const { account, level, friends, officialResults } = state;
   // Les comptes créés par TÉLÉPHONE ont un e-mail technique « …@phone.padelconnect.app » : on
-  // le traite comme « aucun e-mail » pour proposer d'en ajouter un vrai.
+  // le traite comme « aucun e-mail » pour proposer d’en ajouter un vrai.
   const realEmail = account?.email && !account.email.endsWith('@phone.padelconnect.app') ? account.email : undefined;
 
   const [editing, setEditing] = useState(false);
@@ -50,7 +50,7 @@ export default function ProfilScreen() {
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [signOutSheet, setSignOutSheet] = useState(false);
-  // Ajout / changement d'e-mail (confirmation par lien).
+  // Ajout / changement d’e-mail (confirmation par lien).
   const [emailSheet, setEmailSheet] = useState(false);
   const [emailDraft, setEmailDraft] = useState('');
   const [emailBusy, setEmailBusy] = useState(false);
@@ -72,21 +72,21 @@ export default function ProfilScreen() {
     const res = await deleteAccount();
     setDeleting(false);
     if (res.ok) {
-      setDeleteSheet(false); // compte = null → _layout renvoie vers l'onboarding
+      setDeleteSheet(false); // compte = null → _layout renvoie vers l’onboarding
     } else setDeleteError(res.error ?? 'Suppression impossible — réessaie.');
   };
 
   if (!account) return null;
 
   // Visibilité des espaces pro = RÔLE vérifié côté serveur. Un joueur normal ne voit
-  // NI l'opérateur NI l'Espace Club. (Plus de geste secret ni de code PIN : c'est le
+  // NI l’opérateur NI l’Espace Club. (Plus de geste secret ni de code PIN : c’est le
   // compte lui-même, validé par le serveur, qui fait foi.)
   const showOperator = state.role === 'operator';
   const showClub = state.role === 'club' || state.role === 'operator';
-  // Espace Coach : visible dès qu'un club a déclaré ce compte comme coach (fiche serveur).
+  // Espace Coach : visible dès qu’un club a déclaré ce compte comme coach (fiche serveur).
   const showCoach = !!state.coachProfile;
   // Pastille gérant : réservations à venir de SON club en attente de confirmation (un compte
-  // opérateur voit trop de clubs pour qu'un total ait du sens — réservé au rôle club).
+  // opérateur voit trop de clubs pour qu’un total ait du sens — réservé au rôle club).
   const clubPending =
     state.role === 'club' && state.serverManagedClubId
       ? state.reservations.filter((r) => r.clubId === state.serverManagedClubId && !r.clubConfirmed && r.startsAt > Date.now()).length
@@ -127,7 +127,7 @@ export default function ProfilScreen() {
 
   const bd = account.birthDate ? parseBirthDate(account.birthDate) : null;
   const zod = bd ? zodiacFor(bd) : null;
-  // « Non défini » ne s'affiche pas — on ne montre le sexe que s'il est renseigné.
+  // « Non défini » ne s’affiche pas — on ne montre le sexe que s’il est renseigné.
   const g = account.gender && account.gender !== 'nd' ? genderLabel(account.gender) : null;
 
   // Jauge de niveau : progression dans la tranche entière en cours (bornes basse/haute).
@@ -170,7 +170,7 @@ export default function ProfilScreen() {
         </>
       )}
 
-      {/* Mon niveau — n'évolue que par les tournois officiels */}
+      {/* Mon niveau — n’évolue que par les tournois officiels */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Mon niveau" />
         <Card>
@@ -348,7 +348,7 @@ export default function ProfilScreen() {
               Rappels de match
             </Txt>
             <Txt variant="small" color={colors.textMuted}>
-              Deux rappels par match : avant la fin de l'annulation gratuite, puis ~2 h avant. Désactivable ici.
+              Deux rappels par match : avant la fin de l’annulation gratuite, puis ~2 h avant. Désactivable ici.
             </Txt>
           </View>
           <Switch
@@ -402,14 +402,14 @@ export default function ProfilScreen() {
 
       {/* Inscrire son club — ouvert à TOUT joueur (ne donne aucun accès gérant :
           la demande part à PadelConnect, qui recontacte puis active). On masque
-          l'entrée aux comptes qui gèrent déjà un club (club/opérateur). */}
+          l’entrée aux comptes qui gèrent déjà un club (club/opérateur). */}
       {!showClub ? (
         <View style={{ marginTop: spacing.xl }}>
           <Card onPress={() => router.push('/inscrire-club')} style={styles.cta}>
             <IconCircle icon="business" color={colors.amberDark} bg={colors.amberSoft} />
             <View style={{ flex: 1 }}>
               <Txt variant="h3">Inscrire mon club</Txt>
-              <Txt variant="muted">Ton club n'est pas dans la liste ? On te recontacte.</Txt>
+              <Txt variant="muted">Ton club n’est pas dans la liste ? On te recontacte.</Txt>
             </View>
             <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
           </Card>
@@ -459,11 +459,11 @@ export default function ProfilScreen() {
       <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
         <Button label="Mentions légales & CGU" icon="document-text-outline" variant="ghost" onPress={() => router.push('/legal')} />
         <Button label="Se déconnecter" icon="log-out-outline" variant="secondary" onPress={() => setSignOutSheet(true)} />
-        {/* Suppression de compte — exigence App Store / Google Play (accessible depuis l'app). */}
+        {/* Suppression de compte — exigence App Store / Google Play (accessible depuis l’app). */}
         <Button label="Supprimer mon compte" icon="trash-outline" variant="ghost" onPress={() => setDeleteSheet(true)} />
       </View>
 
-      {/* À propos — version de l'app (utile pour le support et les stores). */}
+      {/* À propos — version de l’app (utile pour le support et les stores). */}
       <Txt variant="small" color={colors.textFaint} style={{ textAlign: 'center', marginTop: spacing.lg }}>
         PadelConnect v{Constants.expoConfig?.version ?? '1.0.0'} · Abidjan 🇨🇮{'\n'}Réserve ton terrain de padel en 2 minutes.
       </Txt>
@@ -500,7 +500,7 @@ export default function ProfilScreen() {
             variant="danger"
             onPress={() => {
               setSignOutSheet(false);
-              signOut(); // _layout renvoie automatiquement vers l'onboarding (compte = null)
+              signOut(); // _layout renvoie automatiquement vers l’onboarding (compte = null)
             }}
             full
           />
@@ -535,11 +535,11 @@ export default function ProfilScreen() {
         </View>
       </BottomSheet>
 
-      {/* Ajouter / changer l'e-mail — un lien de confirmation est envoyé à la nouvelle adresse. */}
+      {/* Ajouter / changer l’e-mail — un lien de confirmation est envoyé à la nouvelle adresse. */}
       <BottomSheet
         visible={emailSheet}
         title={realEmail ? 'Changer mon e-mail' : 'Ajouter un e-mail'}
-        subtitle="On envoie un lien de confirmation à cette adresse. Le changement s'applique après le clic."
+        subtitle="On envoie un lien de confirmation à cette adresse. Le changement s’applique après le clic."
         onClose={() => {
           if (!emailBusy) setEmailSheet(false);
         }}
@@ -549,7 +549,7 @@ export default function ProfilScreen() {
             value={emailDraft}
             onChangeText={setEmailDraft}
             placeholder="ton.nom@email.com"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -591,8 +591,8 @@ function EditAccount({ onDone }: { onDone: () => void }) {
     if (uri) setPhotoUri(uri);
   };
   const save = async () => {
-    // Mêmes règles qu'à l'inscription : on refuse d'écraser prénom/nom/téléphone par du vide
-    // (le téléphone sert d'ailleurs à l'appariement des amis/participants aux 10 derniers chiffres).
+    // Mêmes règles qu’à l’inscription : on refuse d’écraser prénom/nom/téléphone par du vide
+    // (le téléphone sert d’ailleurs à l’appariement des amis/participants aux 10 derniers chiffres).
     if (firstName.trim().length < 2) {
       setError('Indique ton prénom (2 lettres minimum).');
       return;
@@ -614,7 +614,7 @@ function EditAccount({ onDone }: { onDone: () => void }) {
       birthDate: parseBirthDate(birth) ? birth.trim() : a.birthDate,
       gender,
     });
-    // On ne ment plus sur la photo : si son upload a échoué (réseau), l'utilisateur doit le
+    // On ne ment plus sur la photo : si son upload a échoué (réseau), l’utilisateur doit le
     // savoir au lieu de croire sa nouvelle photo enregistrée (les autres champs, eux, sont bien à jour).
     toast.show(
       photoSaved ? 'Profil mis à jour ✓' : 'Profil mis à jour, mais la photo non enregistrée — vérifie ta connexion',
@@ -638,21 +638,21 @@ function EditAccount({ onDone }: { onDone: () => void }) {
         value={firstName}
         onChangeText={setFirstName}
         placeholder="Prénom"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         style={styles.input}
       />
       <TextInput
         value={lastName}
         onChangeText={setLastName}
         placeholder="Nom"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         style={styles.input}
       />
       <TextInput
         value={phone}
         onChangeText={setPhone}
         placeholder="Téléphone"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         keyboardType="phone-pad"
         style={styles.input}
       />
@@ -660,7 +660,7 @@ function EditAccount({ onDone }: { onDone: () => void }) {
         value={birth}
         onChangeText={(t) => setBirth(maskBirthDate(t, birth))}
         placeholder="Date de naissance (JJ/MM/AAAA)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         keyboardType="phone-pad"
         maxLength={10}
         style={styles.input}

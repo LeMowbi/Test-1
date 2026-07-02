@@ -16,7 +16,7 @@ export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comp
   const toast = useToast();
   const [busyId, setBusyId] = useState<string | null>(null); // demande en cours de traitement (anti double-tap)
 
-  // Valider/refuser une demande : on ATTEND le serveur et on confirme (ou signale l'échec) —
+  // Valider/refuser une demande : on ATTEND le serveur et on confirme (ou signale l’échec) —
   // avant, un échec réseau était totalement silencieux et le gérant croyait avoir publié.
   const decide = async (id: string, approve: boolean) => {
     if (busyId) return;
@@ -51,7 +51,7 @@ export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comp
         <View style={{ marginBottom: spacing.xl }}>
           <SectionHeader title={`Demandes de tournoi · ${tournamentRequests.length}`} />
           <Txt variant="small" color={colors.textFaint} style={{ marginBottom: spacing.sm }}>
-            Un tournoi créé par un joueur n'est visible qu'après ta validation.
+            Un tournoi créé par un joueur n’est visible qu’après ta validation.
           </Txt>
           {tournamentRequests.map((c) => (
             <Card key={c.id} style={{ marginBottom: spacing.sm }}>
@@ -108,8 +108,8 @@ export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comp
             const result = state.compResults[c.id];
             return (
               <Card key={c.id} style={{ marginBottom: spacing.sm }}>
-                {/* Zone titre NON cliquable : le gérant ne quitte plus l'Espace Club par erreur.
-                    La fiche joueur s'ouvre uniquement via « Voir la fiche ». */}
+                {/* Zone titre NON cliquable : le gérant ne quitte plus l’Espace Club par erreur.
+                    La fiche joueur s’ouvre uniquement via « Voir la fiche ». */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                   <View style={{ flex: 1 }}>
                     <Txt variant="h3" style={{ fontSize: 15 }}>
@@ -148,8 +148,8 @@ export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comp
         )}
       </View>
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-        Un tournoi bloque les terrains et créneaux que tu as choisis (ou tout le club si tu n'en précises aucun). Une fois la date passée,
-        clôture-le en désignant l'équipe vainqueure : les joueurs inscrits sont mis à jour.
+        Un tournoi bloque les terrains et créneaux que tu as choisis (ou tout le club si tu n’en précises aucun). Une fois la date passée,
+        clôture-le en désignant l’équipe vainqueure : les joueurs inscrits sont mis à jour.
       </Txt>
     </>
   );

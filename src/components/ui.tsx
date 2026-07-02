@@ -224,7 +224,7 @@ export function Tag({ label, tone = 'neutral', icon }: { label: string; tone?: T
   return (
     <View style={[tag.base, { backgroundColor: t.bg }]}>
       {icon ? <Ionicons name={icon} size={12} color={t.fg} /> : null}
-      {/* Toujours sur une ligne, tronqué si le contenu est long (nom d'équipe, organisateur…) :
+      {/* Toujours sur une ligne, tronqué si le contenu est long (nom d’équipe, organisateur…) :
           le Tag ne déborde ni ne pousse les éléments voisins. */}
       <Text numberOfLines={1} style={[tag.text, { color: t.fg }]}>
         {label}
@@ -315,7 +315,7 @@ export function IconCircle({
   );
 }
 
-// Ton de l'illustration d'état vide : neutre par défaut, ou coloré pour inviter à l'action
+// Ton de l’illustration d’état vide : neutre par défaut, ou coloré pour inviter à l’action
 // (vert « social » pour les amis, violet « tournois »…) — cohérent avec les rôles de couleur du kit.
 const emptyTones: Record<'neutral' | 'signature' | 'amber' | 'purple', { fg: string; bg: string }> = {
   neutral: { fg: colors.textMuted, bg: colors.surfaceAlt },
@@ -360,8 +360,8 @@ export function EmptyState({
   );
 }
 
-// Chiffre qui « compte » de 0 à sa valeur à l'apparition (tableau de bord vivant). N'anime que
-// les valeurs NUMÉRIQUES ; les chaînes (montants formatés, « Illimité »…) s'affichent telles quelles.
+// Chiffre qui « compte » de 0 à sa valeur à l’apparition (tableau de bord vivant). N’anime que
+// les valeurs NUMÉRIQUES ; les chaînes (montants formatés, « Illimité »…) s’affichent telles quelles.
 function CountUp({ value, style }: { value: number; style: StyleProp<TextStyle> }) {
   const anim = React.useRef(new Animated.Value(0)).current;
   const [display, setDisplay] = React.useState(0);

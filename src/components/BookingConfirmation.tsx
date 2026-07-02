@@ -74,8 +74,8 @@ export function BookingConfirmation({
       Animated.spring(check, { toValue: 1, friction: 5, tension: 90, useNativeDriver: true }),
       Animated.timing(fade, { toValue: 1, duration: 450, easing: Easing.out(Easing.quad), useNativeDriver: true }),
     ]).start();
-    // Boucle infinie de l'anneau : on la garde en référence pour l'ARRÊTER au démontage
-    // (sinon l'animation continue de tourner en arrière-plan → fuite).
+    // Boucle infinie de l’anneau : on la garde en référence pour l’ARRÊTER au démontage
+    // (sinon l’animation continue de tourner en arrière-plan → fuite).
     const ringLoop = Animated.loop(
       Animated.timing(ring, { toValue: 1, duration: 1800, easing: Easing.out(Easing.quad), useNativeDriver: true }),
     );

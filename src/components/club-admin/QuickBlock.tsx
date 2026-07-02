@@ -6,7 +6,7 @@ import { Button, Card, Txt } from '@/components/ui';
 import { slotTimestamp } from '@/lib/days';
 import { colors, radius, spacing } from '@/theme';
 
-// Motifs de blocage d'un créneau hors app.
+// Motifs de blocage d’un créneau hors app.
 const BLOCK_REASONS = ['Résa téléphone/WhatsApp', 'Entretien', 'Privatisé', 'Autre'];
 
 // Mini-formulaire « Bloquer un créneau » : date → heure → terrain → motif.
@@ -233,7 +233,7 @@ export function QuickBlock({
         </Txt>
       ) : null}
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-        Un créneau bloqué n'est jamais facturé ni compté — c'est une simple indisponibilité.
+        Un créneau bloqué n’est jamais facturé ni compté — c’est une simple indisponibilité.
       </Txt>
     </Card>
   );

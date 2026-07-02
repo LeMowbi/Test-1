@@ -15,8 +15,8 @@ import { useEmailConfirmLink } from '@/lib/useEmailConfirmLink';
 import { AppProvider, useApp } from '@/store/AppContext';
 import { colors } from '@/theme';
 
-// On garde l'écran de démarrage natif affiché jusqu'à ce que les polices soient
-// prêtes : sinon, sur iPhone/Android, le splash se masque trop tôt et l'utilisateur
+// On garde l’écran de démarrage natif affiché jusqu’à ce que les polices soient
+// prêtes : sinon, sur iPhone/Android, le splash se masque trop tôt et l’utilisateur
 // voit un bref écran crème vide. (No-op sur le web.)
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -60,7 +60,7 @@ export default function RootLayout() {
         ) : (
           <View style={{ flex: 1, backgroundColor: colors.bg }} />
         )}
-        {/* Par-dessus l'app : la splash animée « P → PadelConnect », puis fondu de sortie. */}
+        {/* Par-dessus l’app : la splash animée « P → PadelConnect », puis fondu de sortie. */}
         {fontsLoaded && !splashDone ? <AnimatedSplash onDone={() => setSplashDone(true)} /> : null}
       </SafeAreaProvider>
     </GestureHandlerRootView>
@@ -73,10 +73,10 @@ function RootNav() {
   const router = useRouter();
   const toast = useToast();
 
-  // Sans compte → onboarding obligatoire ; avec compte → on quitte l'onboarding.
-  // reset-password est une route PUBLIQUE : l'utilisateur qui clique le lien « mot de passe
+  // Sans compte → onboarding obligatoire ; avec compte → on quitte l’onboarding.
+  // reset-password est une route PUBLIQUE : l’utilisateur qui clique le lien « mot de passe
   // oublié » est par définition déconnecté — sans cette exemption, le garde le renverrait vers
-  // l'onboarding avant qu'il puisse saisir son nouveau mot de passe.
+  // l’onboarding avant qu’il puisse saisir son nouveau mot de passe.
   useEffect(() => {
     if (!hydrated) return;
     const onboarding = segments[0] === 'onboarding';
@@ -85,9 +85,9 @@ function RootNav() {
     else if (state.account && onboarding) router.replace('/');
   }, [hydrated, state.account, segments, router]);
 
-  // Confirmation d'e-mail : le lien reçu par mail rouvre l'app → on échange le code contre
+  // Confirmation d’e-mail : le lien reçu par mail rouvre l’app → on échange le code contre
   // une session, on recharge le profil. Deux cas distincts : NOUVEL inscrit (bienvenue + accueil)
-  // ou utilisateur DÉJÀ connecté qui change d'adresse (message neutre, on ne le déplace pas).
+  // ou utilisateur DÉJÀ connecté qui change d’adresse (message neutre, on ne le déplace pas).
   const onConfirm = useCallback(
     async (r: 'confirmed' | 'error') => {
       if (r === 'error') {
@@ -108,7 +108,7 @@ function RootNav() {
   useEmailConfirmLink(onConfirm);
 
   // Tap sur une notification (rappel local ou push serveur) → écran concerné plutôt que
-  // de rouvrir l'app là où elle en était.
+  // de rouvrir l’app là où elle en était.
   const pushRoute = useCallback((route: string) => router.push(route as never), [router]);
   useNotificationTapRouter(pushRoute);
 

@@ -19,12 +19,12 @@ import { colors, font, gradients, radius, shadows, spacing } from '@/theme';
 
 type FieldKey = 'firstName' | 'lastName' | 'email' | 'phone' | 'password' | 'birth' | 'gender';
 
-// Validation e-mail volontairement simple (présence d'un @ et d'un point) — la vraie
-// vérification, c'est le clic sur le lien de confirmation reçu par mail.
+// Validation e-mail volontairement simple (présence d’un @ et d’un point) — la vraie
+// vérification, c’est le clic sur le lien de confirmation reçu par mail.
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
 // Inscription en 3 étapes (Stepper du kit). Chaque étape ne valide QUE ses propres champs
-// (cf. goNext) — la liste sert aussi de filet de sécurité pour retrouver l'étape d'un champ.
+// (cf. goNext) — la liste sert aussi de filet de sécurité pour retrouver l’étape d’un champ.
 const STEP_LABELS = ['Compte', 'Profil', 'Parrainage'];
 const STEP_FIELDS: FieldKey[][] = [['email', 'phone', 'password'], ['firstName', 'lastName', 'birth', 'gender'], []];
 const FIELD_ORDER: FieldKey[] = STEP_FIELDS.flat();
@@ -43,10 +43,10 @@ export default function Onboarding() {
   const [lvl, setLvl] = useState(3.0);
   const [referralCode, setReferralCode] = useState(''); // parrainage (facultatif)
   // Étape courante du formulaire (0 = Compte, 1 = Profil, 2 = Parrainage). État global au
-  // composant (pas par étape) : le pré-remplissage du parrainage marche quel que soit l'écran.
+  // composant (pas par étape) : le pré-remplissage du parrainage marche quel que soit l’écran.
   const [step, setStep] = useState(0);
-  // Code capté via un lien d'invitation (padelconnectci.com/invite/CODE) → pré-remplissage.
-  // setState APRÈS await (pas dans le corps de l'effet) pour respecter le React Compiler.
+  // Code capté via un lien d’invitation (padelconnectci.com/invite/CODE) → pré-remplissage.
+  // setState APRÈS await (pas dans le corps de l’effet) pour respecter le React Compiler.
   useEffect(() => {
     let alive = true;
     void getPendingReferral().then((code) => {
@@ -63,7 +63,7 @@ export default function Onboarding() {
   const [errors, setErrors] = useState<Partial<Record<FieldKey, string>>>({});
   const [busy, setBusy] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  // E-mail de confirmation envoyé → on bascule sur l'écran « Vérifie ta boîte mail ».
+  // E-mail de confirmation envoyé → on bascule sur l’écran « Vérifie ta boîte mail ».
   const [sentTo, setSentTo] = useState<string | null>(null);
   // Mode « Se connecter » (compte existant). Par e-mail (principal) ou téléphone (hérité).
   const [signInOpen, setSignInOpen] = useState(false);
@@ -74,15 +74,15 @@ export default function Onboarding() {
   const [siBusy, setSiBusy] = useState(false);
   const [siError, setSiError] = useState<string | null>(null);
   const [siInfo, setSiInfo] = useState<string | null>(null); // « lien envoyé » (mot de passe oublié)
-  const [resendMsg, setResendMsg] = useState<string | null>(null); // retour du renvoi d'e-mail
+  const [resendMsg, setResendMsg] = useState<string | null>(null); // retour du renvoi d’e-mail
   const scrollRef = useRef<ScrollView>(null);
   const positions = useRef<Partial<Record<FieldKey, number>>>({});
-  // Champ à cibler après un changement d'étape déclenché par create() (filet de sécurité) —
+  // Champ à cibler après un changement d’étape déclenché par create() (filet de sécurité) —
   // une ref (pas un state) : sa lecture/écriture ne doit pas re-déclencher de rendu.
   const pendingScroll = useRef<FieldKey | null>(null);
 
-  // Scroll différé vers le champ en erreur après un changement d'étape : il faut d'abord que
-  // le nouveau rendu pose les positions des champs de l'étape affichée (onLayout des <Field>).
+  // Scroll différé vers le champ en erreur après un changement d’étape : il faut d’abord que
+  // le nouveau rendu pose les positions des champs de l’étape affichée (onLayout des <Field>).
   useEffect(() => {
     const key = pendingScroll.current;
     if (!key) return;
@@ -114,9 +114,9 @@ export default function Onboarding() {
     return e;
   };
 
-  // Valide UNIQUEMENT les champs de l'étape affichée (réutilise validate(), qui calcule les
-  // règles pour tous les champs — on ne garde que celles de l'étape courante : les champs des
-  // autres étapes ne sont pas visibles ici, inutile de bloquer dessus). Si l'étape est valide,
+  // Valide UNIQUEMENT les champs de l’étape affichée (réutilise validate(), qui calcule les
+  // règles pour tous les champs — on ne garde que celles de l’étape courante : les champs des
+  // autres étapes ne sont pas visibles ici, inutile de bloquer dessus). Si l’étape est valide,
   // on avance ; à la dernière étape, on déclenche la création du compte.
   const goNext = async () => {
     const keys = STEP_FIELDS[step];
@@ -131,7 +131,7 @@ export default function Onboarding() {
     setAuthError(null);
     const first = keys.find((k) => e[k]);
     if (first) {
-      // Scroll automatique vers le premier champ en erreur DE L'ÉTAPE.
+      // Scroll automatique vers le premier champ en erreur DE L’ÉTAPE.
       scrollRef.current?.scrollTo({ y: Math.max(0, (positions.current[first] ?? 0) - 24), animated: true });
       return;
     }
@@ -147,9 +147,9 @@ export default function Onboarding() {
     const first = FIELD_ORDER.find((k) => e[k]);
     if (first) {
       // Filet de sécurité : chaque étape valide déjà ses propres champs avant de laisser passer
-      // à la suivante (goNext) — ce cas ne devrait donc jamais survenir. S'il survient malgré
-      // tout (champ redevenu invalide), on ramène l'utilisateur à l'étape concernée plutôt que
-      // d'échouer silencieusement.
+      // à la suivante (goNext) — ce cas ne devrait donc jamais survenir. S’il survient malgré
+      // tout (champ redevenu invalide), on ramène l’utilisateur à l’étape concernée plutôt que
+      // d’échouer silencieusement.
       const stepIdx = STEP_FIELDS.findIndex((keys) => keys.includes(first));
       if (stepIdx >= 0 && stepIdx !== step) {
         pendingScroll.current = first;
@@ -167,7 +167,7 @@ export default function Onboarding() {
       gender: gender!,
       level: lvl,
       referralCode: referralCode.trim() || undefined,
-      photoUri, // envoyée au stockage à la 1ʳᵉ session (mise de côté d'ici là)
+      photoUri, // envoyée au stockage à la 1ʳᵉ session (mise de côté d’ici là)
     });
     setBusy(false);
     if (res.needsConfirm)
@@ -198,7 +198,7 @@ export default function Onboarding() {
     } else setSiError(res.error ?? 'Connexion impossible.');
   };
 
-  // Mot de passe oublié (mode e-mail) : envoie le lien de réinitialisation à l'e-mail saisi.
+  // Mot de passe oublié (mode e-mail) : envoie le lien de réinitialisation à l’e-mail saisi.
   const forgotPassword = async () => {
     if (siBusy) return;
     if (!isEmail(siEmail)) {
@@ -214,7 +214,7 @@ export default function Onboarding() {
     else setSiError(res.error ?? 'Envoi impossible. Réessaie.');
   };
 
-  // Renvoyer l'e-mail de confirmation depuis l'écran « Vérifie ta boîte mail ».
+  // Renvoyer l’e-mail de confirmation depuis l’écran « Vérifie ta boîte mail ».
   const resend = async () => {
     if (!sentTo) return;
     setResendMsg(null);
@@ -224,13 +224,13 @@ export default function Onboarding() {
 
   const clearError = (k: FieldKey) => {
     setErrors((cur) => (cur[k] ? { ...cur, [k]: undefined } : cur));
-    // On efface aussi le bandeau d'erreur GLOBAL dès que l'utilisateur corrige un champ, sinon
+    // On efface aussi le bandeau d’erreur GLOBAL dès que l’utilisateur corrige un champ, sinon
     // il resterait affiché (« e-mail déjà utilisé »…) alors que la saisie a changé.
     setAuthError((cur) => (cur ? null : cur));
   };
 
-  // Écran « Vérifie ta boîte mail » — après l'envoi du lien de confirmation. Le clic sur
-  // le lien rouvre l'app et connecte automatiquement (cf. useEmailConfirmLink).
+  // Écran « Vérifie ta boîte mail » — après l’envoi du lien de confirmation. Le clic sur
+  // le lien rouvre l’app et connecte automatiquement (cf. useEmailConfirmLink).
   if (sentTo) {
     return (
       <View style={styles.root}>
@@ -250,7 +250,7 @@ export default function Onboarding() {
               {sentTo}
             </Txt>
           </Txt>
-          {/* Clin d'œil parrainage : confirme que le code saisi a bien accompagné l'inscription. */}
+          {/* Clin d’œil parrainage : confirme que le code saisi a bien accompagné l’inscription. */}
           {referralCode.trim().length > 0 ? (
             <Txt variant="small" color={colors.signature} style={{ textAlign: 'center', marginTop: spacing.sm }}>
               Tu rejoins PadelConnect grâce à un ami 🎾
@@ -264,7 +264,7 @@ export default function Onboarding() {
           </View>
           <View style={{ width: '100%', marginTop: spacing.xl, gap: spacing.sm }}>
             <Button
-              label="J'ai confirmé — me connecter"
+              label="J’ai confirmé — me connecter"
               icon="log-in"
               onPress={() => {
                 setSiMode('email');
@@ -273,8 +273,8 @@ export default function Onboarding() {
               }}
               full
             />
-            <Button label="Renvoyer l'e-mail" icon="refresh" variant="ghost" onPress={resend} full />
-            <Button label="Modifier l'adresse" variant="ghost" onPress={() => setSentTo(null)} full />
+            <Button label="Renvoyer l’e-mail" icon="refresh" variant="ghost" onPress={resend} full />
+            <Button label="Modifier l’adresse" variant="ghost" onPress={() => setSentTo(null)} full />
           </View>
           {resendMsg ? (
             <Txt variant="small" color={colors.signature} style={{ textAlign: 'center', marginTop: spacing.sm }}>
@@ -283,7 +283,7 @@ export default function Onboarding() {
           ) : null}
         </View>
 
-        {/* Connexion (réutilise la même feuille que l'écran d'inscription). */}
+        {/* Connexion (réutilise la même feuille que l’écran d’inscription). */}
         <SignInSheet
           visible={signInOpen}
           mode={siMode}
@@ -447,7 +447,7 @@ export default function Onboarding() {
                 }}
               />
 
-              {/* Petit clin d'œil astro dès que la date est valide ✨ */}
+              {/* Petit clin d’œil astro dès que la date est valide ✨ */}
               {zodiac && birthDate ? (
                 <View style={styles.zodiac}>
                   <Txt variant="h2">{zodiac.emoji}</Txt>
@@ -462,7 +462,7 @@ export default function Onboarding() {
                 </View>
               ) : birth.length === 10 ? (
                 <Txt variant="small" color={colors.danger} style={{ marginTop: spacing.sm }}>
-                  Cette date n'existe pas — vérifie le jour et le mois.
+                  Cette date n’existe pas — vérifie le jour et le mois.
                 </Txt>
               ) : null}
 
@@ -503,7 +503,7 @@ export default function Onboarding() {
                 <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
                   {levelLabel(lvl)} · évoluera selon tes tournois officiels
                 </Txt>
-                {/* Clin d'œil pour inciter à l'honnêteté (sinon le terrain s'en charge 😅). */}
+                {/* Clin d’œil pour inciter à l’honnêteté (sinon le terrain s’en charge 😅). */}
                 <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs, textAlign: 'center' }}>
                   Joue franc-jeu 😉 — un « 6 » qui perd 6-0, ça se voit en 2 échanges.
                 </Txt>
@@ -511,7 +511,7 @@ export default function Onboarding() {
             </>
           ) : (
             <>
-              {/* Parrainage (facultatif) : code d'un ami qui t'a invité. */}
+              {/* Parrainage (facultatif) : code d’un ami qui t’a invité. */}
               <Field
                 label="Code de parrainage (facultatif)"
                 value={referralCode}
@@ -520,7 +520,7 @@ export default function Onboarding() {
                 autoCapitalize="characters"
               />
               {/* Retour immédiat sur le code saisi/pré-rempli : sans lui, la saisie était muette
-                  (un code mal tapé passait inaperçu, un lien d'invitation semblait ignoré). */}
+                  (un code mal tapé passait inaperçu, un lien d’invitation semblait ignoré). */}
               {referralCode.trim().length > 0 ? (
                 /^[0-9A-F]{12}$/.test(referralCode.trim()) ? (
                   <View style={styles.referralHint}>
@@ -551,7 +551,7 @@ export default function Onboarding() {
           )}
 
           {/* Navigation entre étapes : « Retour » (sauf à la 1ʳᵉ) + CTA principal — valide
-              l'étape affichée puis avance (ou crée le compte à la dernière étape). */}
+              l’étape affichée puis avance (ou crée le compte à la dernière étape). */}
           <View style={styles.stepNav}>
             {step > 0 ? (
               <Button label="Retour" icon="arrow-back" variant="ghost" onPress={() => setStep((s) => s - 1)} disabled={busy} />
@@ -632,7 +632,7 @@ export default function Onboarding() {
   );
 }
 
-// Feuille de connexion — e-mail (principal) ou téléphone (comptes créés avant l'e-mail).
+// Feuille de connexion — e-mail (principal) ou téléphone (comptes créés avant l’e-mail).
 function SignInSheet({
   visible,
   mode,
@@ -687,7 +687,7 @@ function SignInSheet({
               clearError();
             }}
             placeholder="ton@email.com"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             keyboardType="email-address"
             autoCapitalize="none"
             autoCorrect={false}
@@ -702,7 +702,7 @@ function SignInSheet({
               clearError();
             }}
             placeholder="+225 07 00 00 00 00"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
             autoCorrect={false}
             textContentType="telephoneNumber"
@@ -739,7 +739,7 @@ function SignInSheet({
         ) : null}
         <Pressable
           onPress={() => {
-            clearError(); // efface l'erreur/l'info du mode quitté (sinon message obsolète affiché)
+            clearError(); // efface l’erreur/l’info du mode quitté (sinon message obsolète affiché)
             setMode(byEmail ? 'phone' : 'email');
           }}
           style={{ alignItems: 'center', paddingVertical: spacing.xs }}
@@ -754,7 +754,7 @@ function SignInSheet({
 }
 
 // Champ mot de passe avec œil pour révéler/masquer (évite les fautes de frappe invisibles).
-// Réutilisé par le formulaire d'inscription et la feuille de connexion.
+// Réutilisé par le formulaire d’inscription et la feuille de connexion.
 function PasswordInput({
   value,
   onChangeText,
@@ -775,7 +775,7 @@ function PasswordInput({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         secureTextEntry={hidden}
         autoCapitalize="none"
         autoCorrect={false}
@@ -832,7 +832,7 @@ function Field({
           value={value}
           onChangeText={onChangeText}
           placeholder={placeholder}
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.textMuted}
           keyboardType={keyboardType ?? 'default'}
           maxLength={maxLength}
           autoFocus={autoFocus}
@@ -935,6 +935,6 @@ const styles = StyleSheet.create({
     fontSize: font.size.md,
   },
   pwWrap: { position: 'relative', justifyContent: 'center' },
-  pwInput: { paddingRight: 48 }, // place pour l'œil, sans chevaucher le texte
+  pwInput: { paddingRight: 48 }, // place pour l’œil, sans chevaucher le texte
   pwEye: { position: 'absolute', right: spacing.md, height: '100%', justifyContent: 'center' },
 });

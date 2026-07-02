@@ -6,9 +6,9 @@ import { fcfa } from '@/lib/format';
 import { hapticSuccess } from '@/lib/haptics';
 import { colors, spacing } from '@/theme';
 
-// Frais à encaisser sur les tournois JOUEURS : l'opérateur voit chaque tournoi publié, son
-// montant et le contact de l'organisateur → il le relance par WhatsApp (règlement Wave) puis
-// marque « réglé ». Suivi local à l'opérateur (comme les règlements de commission des clubs).
+// Frais à encaisser sur les tournois JOUEURS : l’opérateur voit chaque tournoi publié, son
+// montant et le contact de l’organisateur → il le relance par WhatsApp (règlement Wave) puis
+// marque « réglé ». Suivi local à l’opérateur (comme les règlements de commission des clubs).
 export function TournamentFees({
   comps,
   payments,
@@ -22,8 +22,8 @@ export function TournamentFees({
     return (
       <Card>
         <Txt variant="small" color={colors.textMuted}>
-          Aucun tournoi joueur à encaisser. Dès qu'un joueur organise un tournoi, il apparaît ici avec son montant et le contact de
-          l'organisateur pour le règlement par Wave.
+          Aucun tournoi joueur à encaisser. Dès qu’un joueur organise un tournoi, il apparaît ici avec son montant et le contact de
+          l’organisateur pour le règlement par Wave.
         </Txt>
       </Card>
     );
@@ -36,7 +36,7 @@ export function TournamentFees({
           c.organizerPhone
             ? openWhatsApp(
                 c.organizerPhone,
-                `Bonjour ${c.organizer}, pour ton tournoi « ${c.title} » sur PadelConnect, les frais d'organisation sont de ${fcfa(c.commission ?? 0)} à régler par Wave. Merci !`,
+                `Bonjour ${c.organizer}, pour ton tournoi « ${c.title} » sur PadelConnect, les frais d’organisation sont de ${fcfa(c.commission ?? 0)} à régler par Wave. Merci !`,
               )
             : undefined;
         return (
@@ -64,7 +64,7 @@ export function TournamentFees({
                   label={paid ? 'Marquer non réglé' : 'Marquer réglé'}
                   variant={paid ? 'ghost' : 'primary'}
                   onPress={() => {
-                    if (!paid) hapticSuccess(); // accusé discret, comme « Marquer payé » d'un club
+                    if (!paid) hapticSuccess(); // accusé discret, comme « Marquer payé » d’un club
                     onSetPaid(c.id, !paid);
                   }}
                   full

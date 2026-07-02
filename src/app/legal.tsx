@@ -3,8 +3,8 @@ import { Card, Txt } from '@/components/ui';
 import { SUPPORT_EMAIL } from '@/lib/operator';
 import { colors, spacing } from '@/theme';
 
-// Mentions légales & CGU — rédigées pour refléter le fonctionnement RÉEL de l'app
-// (inscription par e-mail confirmé, paiement au club, suppression de compte dans l'app).
+// Mentions légales & CGU — rédigées pour refléter le fonctionnement RÉEL de l’app
+// (inscription par e-mail confirmé, paiement au club, suppression de compte dans l’app).
 export default function Legal() {
   return (
     <Screen back title="Mentions légales & CGU">

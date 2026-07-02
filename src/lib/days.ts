@@ -1,7 +1,7 @@
-// Jours sélectionnables. IMPORTANT : on sépare l'AFFICHAGE (label, qui change selon « aujourd'hui »)
-// de l'IDENTITÉ stable du jour (key = AAAA-MM-JJ). Toute la logique (disponibilités, anti
+// Jours sélectionnables. IMPORTANT : on sépare l’AFFICHAGE (label, qui change selon « aujourd’hui »)
+// de l’IDENTITÉ stable du jour (key = AAAA-MM-JJ). Toute la logique (disponibilités, anti
 // double-réservation, blocage compétition) se base sur `key` — jamais sur le libellé — pour
-// rester correcte d'un jour à l'autre.
+// rester correcte d’un jour à l’autre.
 
 const DAYS = ['Dimanche', 'Lundi', 'Mardi', 'Mercredi', 'Jeudi', 'Vendredi', 'Samedi'];
 
@@ -12,9 +12,9 @@ export const DAY_MS = 24 * HOUR_MS;
 
 export type DayOption = { label: string; value: number; key: string };
 
-// Clé du jour EN HEURE D'ABIDJAN (UTC+0), pas dans le fuseau de l'appareil — pour rester
-// cohérent avec slotTimestamp (heure des créneaux). Ainsi « aujourd'hui » est toujours le
-// bon jour calendaire d'Abidjan, même si le téléphone est réglé sur un autre fuseau.
+// Clé du jour EN HEURE D’ABIDJAN (UTC+0), pas dans le fuseau de l’appareil — pour rester
+// cohérent avec slotTimestamp (heure des créneaux). Ainsi « aujourd’hui » est toujours le
+// bon jour calendaire d’Abidjan, même si le téléphone est réglé sur un autre fuseau.
 export function dayKey(d: Date): string {
   const y = d.getUTCFullYear();
   const m = String(d.getUTCMonth() + 1).padStart(2, '0');
@@ -22,25 +22,25 @@ export function dayKey(d: Date): string {
   return `${y}-${m}-${day}`;
 }
 
-// `from` permet d'injecter une date de référence (tests déterministes) ; par défaut,
+// `from` permet d’injecter une date de référence (tests déterministes) ; par défaut,
 // maintenant. Génère n jours consécutifs SANS trou — les deux premiers portent un
-// libellé amical AVEC le numéro du jour (« Aujourd'hui 12 », « Demain 13 »), les suivants
-// leur nom de jour. Tout est calculé en heure d'Abidjan (midi UTC = repère stable d'affichage).
+// libellé amical AVEC le numéro du jour (« Aujourd’hui 12 », « Demain 13 »), les suivants
+// leur nom de jour. Tout est calculé en heure d’Abidjan (midi UTC = repère stable d’affichage).
 export function nextDays(n: number, from: Date = new Date()): DayOption[] {
   const base = Date.UTC(from.getUTCFullYear(), from.getUTCMonth(), from.getUTCDate(), 12, 0, 0);
   return Array.from({ length: n }, (_, i) => {
     const ts = base + i * DAY_MS;
     const d = new Date(ts);
     const label =
-      i === 0 ? `Aujourd'hui ${d.getUTCDate()}` : i === 1 ? `Demain ${d.getUTCDate()}` : `${DAYS[d.getUTCDay()]} ${d.getUTCDate()}`;
+      i === 0 ? `Aujourd’hui ${d.getUTCDate()}` : i === 1 ? `Demain ${d.getUTCDate()}` : `${DAYS[d.getUTCDay()]} ${d.getUTCDate()}`;
     return { label, value: ts, key: dayKey(d) };
   });
 }
 
-// Horodatage CANONIQUE d'un créneau, à partir de la clé du jour (AAAA-MM-JJ) + « HH:MM ».
+// Horodatage CANONIQUE d’un créneau, à partir de la clé du jour (AAAA-MM-JJ) + « HH:MM ».
 // Abidjan = UTC+0 : on interprète (jour + heure) comme une heure UTC FIXE, indépendante du
 // fuseau réglé sur le téléphone. Ainsi startsAt, les rappels, le passage en « jouée » et la
-// facturation hebdomadaire tombent juste même si l'horloge de l'appareil est à un autre fuseau.
+// facturation hebdomadaire tombent juste même si l’horloge de l’appareil est à un autre fuseau.
 export function slotTimestamp(dateKey: string, slot: string): number {
   const [y, m, d] = dateKey.split('-').map(Number);
   const [h, min] = slot.split(':').map(Number);
@@ -50,7 +50,7 @@ export function slotTimestamp(dateKey: string, slot: string): number {
 const MONTHS = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
 const DAYS_SHORT = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
 
-// Libellé ABSOLU d'un jour à partir de sa clé AAAA-MM-JJ : « Lun 8 juin ».
+// Libellé ABSOLU d’un jour à partir de sa clé AAAA-MM-JJ : « Lun 8 juin ».
 // (Jamais relatif — pour les documents de facturation.)
 export function dateKeyLabel(key: string): string {
   const [y, m, d] = key.split('-').map(Number);
@@ -60,7 +60,7 @@ export function dateKeyLabel(key: string): string {
 
 // ——— Semaine calendaire (lundi → dimanche) — base de la facturation hebdomadaire ———
 
-// Clé stable d'une semaine = la date de son LUNDI (AAAA-MM-JJ).
+// Clé stable d’une semaine = la date de son LUNDI (AAAA-MM-JJ).
 export function weekKeyOf(ts: number): string {
   const d = new Date(ts);
   const dow = (d.getUTCDay() + 6) % 7; // lundi = 0

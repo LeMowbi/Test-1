@@ -5,7 +5,7 @@ import { Button, Card, Divider, Txt } from '@/components/ui';
 import { opStyles } from '@/components/operator/styles';
 import { colors, spacing } from '@/theme';
 
-// Commission par club : l'opérateur fixe le % négocié avec chaque club (repli sur le défaut).
+// Commission par club : l’opérateur fixe le % négocié avec chaque club (repli sur le défaut).
 export function CommissionRates({
   clubs,
   rates,
@@ -26,8 +26,8 @@ export function CommissionRates({
   const save = async (clubId: string) => {
     const raw = draft[clubId];
     const pct = Number((raw ?? '').replace(',', '.'));
-    // L'opérateur fixe le taux LIBREMENT (il prévient lui-même le club avant) : on valide
-    // seulement que c'est un pourcentage plausible (0 à 100).
+    // L’opérateur fixe le taux LIBREMENT (il prévient lui-même le club avant) : on valide
+    // seulement que c’est un pourcentage plausible (0 à 100).
     if (busy || !Number.isFinite(pct) || pct < 0 || pct > 100) {
       toast.show('Entre un pourcentage entre 0 et 100', { icon: 'alert-circle' });
       return;
@@ -47,7 +47,7 @@ export function CommissionRates({
     <Card>
       <Txt variant="small" color={colors.textMuted}>
         Par défaut {Math.round(defaultRate * 100)} %. Tu peux fixer un taux différent pour chaque club selon ton accord (préviens le club
-        avant) — il s'applique aussitôt au décompte.
+        avant) — il s’applique aussitôt au décompte.
       </Txt>
       <Button
         size="sm"
@@ -77,7 +77,7 @@ export function CommissionRates({
                     value={draft[c.id] ?? ''}
                     onChangeText={(t) => setDraft((d) => ({ ...d, [c.id]: t }))}
                     placeholder={`${current}`}
-                    placeholderTextColor={colors.textFaint}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
                     style={[opStyles.clubInput, { width: 64, marginTop: 0, textAlign: 'center' }]}
                   />

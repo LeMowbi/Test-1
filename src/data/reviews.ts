@@ -1,5 +1,5 @@
-// Type d'un avis club. Les avis sont RÉELS et vérifiés côté serveur (cf. lib/reviewsServer.ts et
-// la fiche club) : aucun avis de démonstration n'est fabriqué côté app.
+// Type d’un avis club. Les avis sont RÉELS et vérifiés côté serveur (cf. lib/reviewsServer.ts et
+// la fiche club) : aucun avis de démonstration n’est fabriqué côté app.
 
 export type Review = {
   id: string;

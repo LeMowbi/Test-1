@@ -45,7 +45,7 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
       .filter((t) => t.start.trim() && t.end.trim() && Number(t.price) > 0)
       .map((t) => ({ start: t.start.trim(), end: t.end.trim(), price: Number(t.price), label: t.label.trim() || undefined }));
     // Validation À LA SOURCE : des plages doivent couvrir 07:00→24:00 sans trou ni
-    // chevauchement. Échec → on N'ENREGISTRE RIEN (l'état du club reste intact).
+    // chevauchement. Échec → on N’ENREGISTRE RIEN (l’état du club reste intact).
     const v = validateTiers(built);
     if (!v.ok) {
       setTierError(v.error);
@@ -71,21 +71,21 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
         value={name}
         onChangeText={setName}
         placeholder="Nom du club"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         style={styles.input}
       />
       <TextInput
         value={area}
         onChangeText={setArea}
         placeholder="Quartier / commune"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         style={styles.input}
       />
       <TextInput
         value={blurb}
         onChangeText={setBlurb}
         placeholder="Description (visible par les joueurs)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         multiline
         style={[styles.input, { minHeight: 64, textAlignVertical: 'top' }]}
       />
@@ -98,14 +98,14 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
         value={price}
         onChangeText={setPrice}
         placeholder="Tarif unique de la session 1h30 (FCFA)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         keyboardType="numeric"
         style={styles.input}
       />
 
       {/* Tarifs par plage horaire — définis librement (nom optionnel + heures creuses / prime time / soirée). */}
       <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.md }}>
-        TARIFS PAR PLAGE (OPTIONNEL — SINON LE TARIF UNIQUE S'APPLIQUE)
+        TARIFS PAR PLAGE (OPTIONNEL — SINON LE TARIF UNIQUE S’APPLIQUE)
       </Txt>
       {tiers.map((t, i) => (
         <View key={i} style={{ marginTop: spacing.sm }}>
@@ -113,7 +113,7 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
             value={t.label}
             onChangeText={(v) => setTier(i, { label: v })}
             placeholder="Nom de la plage (ex. Journée — optionnel)"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             style={[styles.input, { marginTop: 0 }]}
           />
           <View style={[styles.tierRow, { marginTop: spacing.xs }]}>
@@ -121,7 +121,7 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
               value={t.start}
               onChangeText={(v) => setTier(i, { start: v })}
               placeholder="07:00"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               style={[styles.input, styles.tierCell, { marginTop: 0 }]}
             />
             <Txt variant="muted">→</Txt>
@@ -129,14 +129,14 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
               value={t.end}
               onChangeText={(v) => setTier(i, { end: v })}
               placeholder="16:00"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               style={[styles.input, styles.tierCell, { marginTop: 0 }]}
             />
             <TextInput
               value={t.price}
               onChangeText={(v) => setTier(i, { price: v })}
               placeholder="FCFA"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               keyboardType="numeric"
               style={[styles.input, styles.tierPrice, { marginTop: 0 }]}
             />
@@ -160,7 +160,7 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
         value={phone}
         onChangeText={setPhone}
         placeholder="WhatsApp du club (optionnel — affiche « Contacter le club »)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         keyboardType="phone-pad"
         style={styles.input}
       />
@@ -176,7 +176,7 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
         />
       </View>
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-        Ces infos s'appliquent immédiatement sur ta page et dans les listes.
+        Ces infos s’appliquent immédiatement sur ta page et dans les listes.
       </Txt>
     </Card>
   );

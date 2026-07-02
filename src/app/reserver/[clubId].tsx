@@ -32,9 +32,9 @@ export default function ReserverScreen() {
   const club = findClub(params.clubId, state.customClubs, state.clubInfo);
 
   const dates = useMemo(() => nextDays(7), []);
-  // « Rejouer » passe l'heure habituelle SANS jour (?time=…) : on pré-sélectionne le premier
-  // jour où ce créneau est encore à venir (aujourd'hui, sinon demain) — sans ça, le choix du
-  // jour remettait le créneau à zéro et la pré-sélection promise n'était jamais tenue.
+  // « Rejouer » passe l’heure habituelle SANS jour (?time=…) : on pré-sélectionne le premier
+  // jour où ce créneau est encore à venir (aujourd’hui, sinon demain) — sans ça, le choix du
+  // jour remettait le créneau à zéro et la pré-sélection promise n’était jamais tenue.
   const presetTime = typeof params.time === 'string' && params.time ? params.time : undefined;
   const [day, setDay] = useState<DayOption | null>(
     dates.find((d) => d.key === params.dateKey) ??
@@ -42,16 +42,16 @@ export default function ReserverScreen() {
   );
   const [slot, setSlot] = useState<string | null>(presetTime ?? null);
   const [court, setCourt] = useState<string | null>(null);
-  // Participants : toi + jusqu'à 3 invités (amis ou nom libre).
+  // Participants : toi + jusqu’à 3 invités (amis ou nom libre).
   const [friendIds, setFriendIds] = useState<string[]>([]);
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [extraName, setExtraName] = useState('');
   const [done, setDone] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [celebrate, setCelebrate] = useState(false); // confettis à l'écran de succès (motif amis.tsx)
+  const [celebrate, setCelebrate] = useState(false); // confettis à l’écran de succès (motif amis.tsx)
 
   // Anneau qui se dilate autour du badge de succès (même anim que BookingConfirmation.tsx),
-  // démarré seulement une fois l'écran de succès affiché et arrêté à la sortie (règle React
+  // démarré seulement une fois l’écran de succès affiché et arrêté à la sortie (règle React
   // Compiler : hooks toujours appelés, avant tout `return` anticipé — donc déclarés ici).
   const ring = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -78,7 +78,7 @@ export default function ReserverScreen() {
         <EmptyState
           icon="time-outline"
           title="Bientôt sur PadelConnect"
-          text="Ce club arrive très vite. La réservation en ligne ouvrira dès qu'il aura finalisé son inscription."
+          text="Ce club arrive très vite. La réservation en ligne ouvrira dès qu’il aura finalisé son inscription."
         />
       </Screen>
     );
@@ -101,10 +101,10 @@ export default function ReserverScreen() {
   const free = day && slot ? freeCourts(club, day.key, slot, ctx) : [];
 
   // A-L2 : pré-sélectionner le 1er terrain libre dès que jour + créneau sont choisis.
-  // Valeur dérivée : si l'utilisateur n'a pas encore choisi manuellement (court === null)
-  // ET qu'un terrain libre existe, on propose le premier. L'utilisateur peut toujours
+  // Valeur dérivée : si l’utilisateur n’a pas encore choisi manuellement (court === null)
+  // ET qu’un terrain libre existe, on propose le premier. L’utilisateur peut toujours
   // cliquer sur un autre chip pour le remplacer (setCourt(c)). Pur UX, pas de setState
-  // dans le rendu ni d'effet — la dispo ne change pas.
+  // dans le rendu ni d’effet — la dispo ne change pas.
   const effectiveCourt = court ?? (day && slot && free.length > 0 ? free[0] : null);
 
   const participantCount = friendIds.length + extraNames.length;
@@ -125,8 +125,8 @@ export default function ReserverScreen() {
   const confirm = async () => {
     if (!day || !slot || !effectiveCourt || submitting) return;
     const startsAt = slotTimestamp(day.key, slot);
-    // Le créneau choisi est devenu passé pendant que l'écran restait ouvert : on prévient au lieu
-    // d'un bouton silencieusement inopérant, et on désélectionne pour forcer un nouveau choix.
+    // Le créneau choisi est devenu passé pendant que l’écran restait ouvert : on prévient au lieu
+    // d’un bouton silencieusement inopérant, et on désélectionne pour forcer un nouveau choix.
     if (startsAt <= Date.now()) {
       toast.show('Ce créneau vient de passer — choisis-en un autre.', { icon: 'alert-circle' });
       setSlot(null);
@@ -157,13 +157,13 @@ export default function ReserverScreen() {
     } else if (res.reason === 'limit') {
       // Limite anti-blocage (appliquée dans addReservation) : trop de créneaux à venir.
       hapticWarning();
-      toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d'abord 😊`, { icon: 'alert-circle' });
+      toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d’abord 😊`, { icon: 'alert-circle' });
     } else if (res.reason === 'network') {
-      // Échec réseau/serveur : le terrain n'est PAS pris — on invite à réessayer, sans toucher au choix.
+      // Échec réseau/serveur : le terrain n’est PAS pris — on invite à réessayer, sans toucher au choix.
       hapticWarning();
       toast.show('Connexion impossible — vérifie ton réseau et réessaie', { icon: 'cloud-offline-outline' });
     } else if (res.reason === 'past') {
-      // Le créneau est devenu passé pendant que l'écran restait ouvert.
+      // Le créneau est devenu passé pendant que l’écran restait ouvert.
       hapticWarning();
       setSlot(null);
       toast.show('Ce créneau vient de passer — choisis-en un autre.', { icon: 'alert-circle' });
@@ -271,7 +271,7 @@ export default function ReserverScreen() {
   }
 
   // Progression du parcours guidé (après le choix Par heure/Par club, fait en amont).
-  // A-L2 : le step 2 (terrain) est considéré complété dès qu'effectiveCourt est défini.
+  // A-L2 : le step 2 (terrain) est considéré complété dès qu’effectiveCourt est défini.
   const step = !day ? 0 : !slot ? 1 : !effectiveCourt ? 2 : 3;
 
   return (
@@ -314,7 +314,7 @@ export default function ReserverScreen() {
             <View style={styles.banner}>
               <Ionicons name="trophy" size={16} color={colors.coral} />
               <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
-                Un tournoi a lieu ce jour à {club.name} — le terrain n'est pas réservable.
+                Un tournoi a lieu ce jour à {club.name} — le terrain n’est pas réservable.
               </Txt>
             </View>
           </Reveal>
@@ -326,7 +326,7 @@ export default function ReserverScreen() {
           if (periodSlots.length === 0) return null;
           return (
             <View key={period.id}>
-              {/* Pas de prix dans l'en-tête de période : une période peut chevaucher plusieurs
+              {/* Pas de prix dans l’en-tête de période : une période peut chevaucher plusieurs
                   plages tarifaires (ex. Padelta) → le prix exact est porté par chaque créneau. */}
               <View style={styles.periodHeader}>
                 <Ionicons name={period.icon} size={15} color={period.color} />
@@ -407,7 +407,7 @@ export default function ReserverScreen() {
             <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
           ))}
         </View>
-        {/* Tout nouveau joueur (0 ami) : on l'amorce vers l'ajout d'amis au moment le plus
+        {/* Tout nouveau joueur (0 ami) : on l’amorce vers l’ajout d’amis au moment le plus
             pertinent — le padel se joue à 4 (même lien que la réservation rapide). */}
         {state.friends.length === 0 ? (
           <Pressable
@@ -428,7 +428,7 @@ export default function ReserverScreen() {
               value={extraName}
               onChangeText={setExtraName}
               placeholder="Ou un autre nom…"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               style={styles.extraInput}
               onSubmitEditing={addExtra}
             />
@@ -448,7 +448,7 @@ export default function ReserverScreen() {
 
         <View style={{ marginTop: spacing.lg }}>
           <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-            Session de 1h30, sans paiement en ligne. Le tarif se règle directement au club. Annulation jusqu'à 5h avant.
+            Session de 1h30, sans paiement en ligne. Le tarif se règle directement au club. Annulation jusqu’à 5h avant.
           </Txt>
         </View>
       </Reveal>

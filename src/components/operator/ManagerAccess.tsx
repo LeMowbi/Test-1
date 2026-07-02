@@ -7,7 +7,7 @@ import { Button, Card, IconCircle, Txt } from '@/components/ui';
 import { opStyles } from '@/components/operator/styles';
 import { colors } from '@/theme';
 
-// Accès gérant : l'opérateur saisit le numéro du joueur (qui a déjà créé un compte) et
+// Accès gérant : l’opérateur saisit le numéro du joueur (qui a déjà créé un compte) et
 // choisit le club. Le joueur devient gérant et voit son Espace Club au prochain retour.
 export function ManagerAccess({
   clubs,
@@ -64,7 +64,7 @@ export function ManagerAccess({
         value={phone}
         onChangeText={setPhone}
         placeholder="Numéro du gérant"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         keyboardType="phone-pad"
         style={opStyles.clubInput}
       />

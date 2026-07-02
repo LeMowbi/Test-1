@@ -16,16 +16,16 @@ export function BarChart({
 }) {
   const max = Math.max(1, ...data.map((d) => d.value));
 
-  // Une valeur animée par barre (0 → hauteur finale) — « pousse » à l'apparition, léger décalage
+  // Une valeur animée par barre (0 → hauteur finale) — « pousse » à l’apparition, léger décalage
   // en vague (i × 35 ms), même esprit que le CountUp des StatTile juste au-dessus. On grandit le
   // tableau de refs au besoin plutôt que de le recréer, pour rester stable si `data` change de
-  // longueur d'un rendu à l'autre.
+  // longueur d’un rendu à l’autre.
   const heightsRef = useRef<Animated.Value[]>([]);
   while (heightsRef.current.length < data.length) heightsRef.current.push(new Animated.Value(0));
   const heights = heightsRef.current;
 
   // Clé STABLE dérivée des valeurs : `data` est souvent un tableau recréé à chaque rendu du
-  // parent — sans ça, l'animation rejouait à chaque re-render de la section (sélection d'un
+  // parent — sans ça, l’animation rejouait à chaque re-render de la section (sélection d’un
   // jour, confirmation…) au lieu de ne rejouer que quand les CHIFFRES changent vraiment.
   const dataKey = data.map((d) => `${d.label}:${d.value}`).join('|');
   useEffect(() => {

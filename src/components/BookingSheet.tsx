@@ -43,7 +43,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
 
   const price = priceForSlot(club, time);
   const [court, setCourt] = useState<string | null>(free[0] ?? null);
-  // Participants : toi + jusqu'à 3 invités (amis ou nom libre).
+  // Participants : toi + jusqu’à 3 invités (amis ou nom libre).
   const [friendIds, setFriendIds] = useState<string[]>([]);
   const [extraNames, setExtraNames] = useState<string[]>([]);
   const [extraName, setExtraName] = useState('');
@@ -63,7 +63,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
 
   const confirm = async () => {
     if (!court || submitting) return;
-    // Garde-fou : un club « Bientôt » n'est pas réservable (en plus du filtrage des vues).
+    // Garde-fou : un club « Bientôt » n’est pas réservable (en plus du filtrage des vues).
     if (club.comingSoon) {
       toast.show('Ce club n’est pas encore réservable (Bientôt).', { icon: 'alert-circle' });
       return;
@@ -91,9 +91,9 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
     } else if (res.reason === 'limit') {
       // Même barrière anti-blocage que la fiche club (règle centralisée dans addReservation).
       hapticWarning();
-      toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d'abord 😊`, { icon: 'alert-circle' });
+      toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d’abord 😊`, { icon: 'alert-circle' });
     } else if (res.reason === 'network') {
-      // Échec réseau/serveur : le terrain n'est PAS pris — réessayer suffit, on garde le choix.
+      // Échec réseau/serveur : le terrain n’est PAS pris — réessayer suffit, on garde le choix.
       hapticWarning();
       toast.show('Connexion impossible — vérifie ton réseau et réessaie', { icon: 'cloud-offline-outline' });
     } else if (res.reason === 'past') {
@@ -201,7 +201,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                       <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
                     ))}
                   </View>
-                  {/* Tout nouveau joueur (0 ami) : on l'amorce vers l'ajout d'amis au moment le
+                  {/* Tout nouveau joueur (0 ami) : on l’amorce vers l’ajout d’amis au moment le
                       plus pertinent — le padel se joue à 4. */}
                   {state.friends.length === 0 ? (
                     <Pressable
@@ -225,7 +225,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                         value={extraName}
                         onChangeText={setExtraName}
                         placeholder="Ou un autre nom…"
-                        placeholderTextColor={colors.textFaint}
+                        placeholderTextColor={colors.textMuted}
                         style={styles.extraInput}
                         onSubmitEditing={addExtra}
                       />
@@ -255,7 +255,7 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
                       full
                     />
                     <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm, textAlign: 'center' }}>
-                      Session de 1h30 · sans paiement en ligne — réglé au club. Annulation jusqu'à 5h avant.
+                      Session de 1h30 · sans paiement en ligne — réglé au club. Annulation jusqu’à 5h avant.
                     </Txt>
                   </View>
                 </>

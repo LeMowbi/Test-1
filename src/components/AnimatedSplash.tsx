@@ -4,7 +4,7 @@ import { colors, font } from '@/theme';
 
 // Splash animée jouée une fois au lancement : le symbole « P » apparaît et grossit, puis le
 // mot « PadelConnect » se déploie à sa droite, courte pause, puis fondu de sortie qui révèle
-// l'app. Animations sur le natif (useNativeDriver) → fluides, sans bloquer le JS.
+// l’app. Animations sur le natif (useNativeDriver) → fluides, sans bloquer le JS.
 export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   const markScale = useRef(new Animated.Value(0.4)).current;
   const markOpacity = useRef(new Animated.Value(0)).current;
@@ -25,7 +25,7 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
         Animated.timing(wordShift, { toValue: 0, duration: 460, easing: Easing.out(Easing.back(1.4)), useNativeDriver: true }),
       ]),
       Animated.delay(520),
-      // 3) fondu de sortie → l'app apparaît derrière.
+      // 3) fondu de sortie → l’app apparaît derrière.
       Animated.timing(fade, { toValue: 0, duration: 420, easing: Easing.in(Easing.cubic), useNativeDriver: true }),
     ]);
     anim.start(({ finished }) => {
@@ -36,8 +36,8 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
 
   return (
     // pointerEvents="auto" (et non "none") : la splash est rendue PAR-DESSUS la Stack déjà
-    // interactive — il faut absorber les touches tant qu'elle est visible, sinon un tap pendant
-    // les ~1,2 s d'animation traverse la splash et atteint un bouton invisible en dessous.
+    // interactive — il faut absorber les touches tant qu’elle est visible, sinon un tap pendant
+    // les ~1,2 s d’animation traverse la splash et atteint un bouton invisible en dessous.
     <Animated.View style={[StyleSheet.absoluteFill, styles.container, { opacity: fade }]} pointerEvents="auto">
       <View style={styles.row}>
         <Animated.Image

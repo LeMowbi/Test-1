@@ -10,7 +10,7 @@ type ToastApi = { show: (message: string, opts?: { icon?: IconName }) => void };
 
 const ToastContext = createContext<ToastApi>({ show: () => {} });
 
-/** Petit message éphémère de confirmation (« c'est fait ✅ »), réutilisable partout. */
+/** Petit message éphémère de confirmation (« c’est fait ✅ »), réutilisable partout. */
 export function useToast(): ToastApi {
   return useContext(ToastContext);
 }
@@ -19,8 +19,8 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [message, setMessage] = useState<string | null>(null);
   const [icon, setIcon] = useState<IconName>('checkmark-circle');
   const opacity = useRef(new Animated.Value(0)).current;
-  // Glissement vertical (8→0 à l'entrée, 0→6 à la sortie) en parallèle du fondu : même langage
-  // que Reveal (fondu + translateY), pour un toast qui « monte » doucement au lieu d'apparaître sec.
+  // Glissement vertical (8→0 à l’entrée, 0→6 à la sortie) en parallèle du fondu : même langage
+  // que Reveal (fondu + translateY), pour un toast qui « monte » doucement au lieu d’apparaître sec.
   const slide = useRef(new Animated.Value(8)).current;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const insets = useSafeAreaInsets();

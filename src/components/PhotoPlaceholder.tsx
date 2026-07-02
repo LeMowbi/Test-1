@@ -4,7 +4,7 @@ import { Txt } from './ui';
 import { colors, radius, spacing } from '@/theme';
 
 // Visuel PROVISOIRE pour un club / coach (les photos réelles sont protégées).
-// Stylisé volontairement — ce n'est pas une fausse photo.
+// Stylisé volontairement — ce n’est pas une fausse photo.
 export function PhotoPlaceholder({
   accent,
   initials,

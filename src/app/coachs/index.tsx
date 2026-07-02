@@ -77,9 +77,9 @@ export default function CoachsScreen() {
         </Txt>
       </View>
 
-      {/* Le filtre de niveau ne porte que sur le seed `coaches` (les coachs de club n'ont pas de
+      {/* Le filtre de niveau ne porte que sur le seed `coaches` (les coachs de club n’ont pas de
           niveau numérique) : on le masque tant que ce seed est vide, pour ne pas laisser croire
-          qu'il filtre la liste « Coachs ajoutés par les clubs » ci-dessous. */}
+          qu’il filtre la liste « Coachs ajoutés par les clubs » ci-dessous. */}
       {coaches.length > 0 ? <SegmentedControl options={TABS} value={tab} onChange={setTab} /> : null}
 
       {list.length === 0 && clubCoaches.length === 0 ? (

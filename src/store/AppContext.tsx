@@ -1,4 +1,4 @@
-// État global de l'app (prototype) + persistance locale via AsyncStorage.
+// État global de l’app (prototype) + persistance locale via AsyncStorage.
 
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Linking from 'expo-linking';
@@ -105,12 +105,12 @@ export type Account = {
   phone: string;
   email?: string; // identifiant de connexion (inscription par e-mail) — facultatif pour les comptes téléphone
   photoUri?: string;
-  birthDate?: string; // JJ/MM/AAAA — sert à l'âge et au signe astro
+  birthDate?: string; // JJ/MM/AAAA — sert à l’âge et au signe astro
   gender?: 'homme' | 'femme' | 'nd';
 };
 export type Invited = { id: string; name: string; confirmed: boolean };
 
-// Demande d'inscription de club stockée côté serveur (table public.club_requests).
+// Demande d’inscription de club stockée côté serveur (table public.club_requests).
 export type ServerClubRequest = {
   id: string;
   name: string;
@@ -124,7 +124,7 @@ export type ServerClubRequest = {
   created_at: string;
 };
 
-// Message d'aide / signalement envoyé par un joueur (table public.support_messages).
+// Message d’aide / signalement envoyé par un joueur (table public.support_messages).
 export type ServerSupportMessage = {
   id: string;
   name: string | null;
@@ -140,7 +140,7 @@ export type Reservation = {
   clubId: string;
   clubName: string;
   court: string; // terrain précis réservé (ex. « Terrain 2 »)
-  date: string; // libellé d'affichage (ex. « Demain 13 »)
+  date: string; // libellé d’affichage (ex. « Demain 13 »)
   dateKey: string; // identité stable du jour (AAAA-MM-JJ) — base des calculs
   time: string;
   startsAt: number; // horodatage réel du créneau (rappel, anti double-réservation)
@@ -153,7 +153,7 @@ export type Reservation = {
   createdAt: number;
 };
 
-// Durée d'une session (1h30) — sert à savoir quand une réservation est « jouée ».
+// Durée d’une session (1h30) — sert à savoir quand une réservation est « jouée ».
 export const SESSION_MS = 90 * 60000;
 
 // Une réservation est « jouée » dès que son heure de fin est passée (automatique, jamais déclaré).
@@ -162,9 +162,9 @@ export function isPlayed(r: Reservation, now = Date.now()): boolean {
 }
 
 // Palmarès du joueur : une entrée par tournoi joué (vainqueur, dernière place, ou participant).
-// `levelAfter` n'est renseigné QUE pour les défis locaux (niveau calculé sur l'appareil au moment
+// `levelAfter` n’est renseigné QUE pour les défis locaux (niveau calculé sur l’appareil au moment
 // de la clôture). Pour les tournois SERVEUR, le niveau est attribué côté serveur et relu ensuite :
-// on n'affiche que le delta (+0.50 / −0.25) pour ne jamais montrer un « niveau après » périmé.
+// on n’affiche que le delta (+0.50 / −0.25) pour ne jamais montrer un « niveau après » périmé.
 export type OfficialResult = {
   id: string;
   compId?: string;
@@ -174,20 +174,20 @@ export type OfficialResult = {
   levelAfter?: number;
 };
 
-// Résultat d'un tournoi clôturé par son ORGANISATEUR (club ou créateur du défi).
+// Résultat d’un tournoi clôturé par son ORGANISATEUR (club ou créateur du défi).
 // `loser` = équipe classée dernière (désignation facultative → malus de niveau).
 // winner = 1ʳᵉ place. Pour un americano : second/third = podium (2ᵉ/3ᵉ). loser = dernière
 // place (formats à élimination). Tous optionnels sauf le vainqueur.
 export type CompResult = { winner: string; second?: string; third?: string; loser?: string; closedAt: number };
 
-// Actualité éditorialisée par l'opérateur, affichée en bandeau sur l'accueil joueur.
+// Actualité éditorialisée par l’opérateur, affichée en bandeau sur l’accueil joueur.
 export type OperatorNews = { id: string; title: string; subtitle?: string; link?: string };
 
-// Créneau fermé PAR LE CLUB (résa téléphone/WhatsApp, entretien…). Ce n'est PAS une
-// réservation PadelConnect : jamais compté dans l'historique, la commission ou les stats.
+// Créneau fermé PAR LE CLUB (résa téléphone/WhatsApp, entretien…). Ce n’est PAS une
+// réservation PadelConnect : jamais compté dans l’historique, la commission ou les stats.
 export type BlockedSlot = { clubId: string; dateKey: string; time: string; court: string; reason: string };
 
-// Infos d'un club modifiables par son gérant (s'appliquent par-dessus les données de base).
+// Infos d’un club modifiables par son gérant (s’appliquent par-dessus les données de base).
 export type ClubInfo = {
   name?: string;
   area?: string;
@@ -201,39 +201,39 @@ export type ClubInfo = {
 export type AppState = {
   account: Account | null;
   level: number; // 1.0 → 7.0
-  remindersOn: boolean; // préférence : rappels de match (sur l'app installée)
-  reserverView: 'Par heure' | 'Par club'; // dernière vue utilisée sur l'écran Réserver
+  remindersOn: boolean; // préférence : rappels de match (sur l’app installée)
+  reserverView: 'Par heure' | 'Par club'; // dernière vue utilisée sur l’écran Réserver
   userReviews: Review[];
   myCompetitions: Competition[];
   reservations: Reservation[];
   favoriteClubIds: string[];
   friends: Friend[];
-  friendRequests: IncomingFriendRequest[]; // demandes d'ami REÇUES en attente (Accepter / Refuser)
+  friendRequests: IncomingFriendRequest[]; // demandes d’ami REÇUES en attente (Accepter / Refuser)
   coachProfile: CoachProfile | null; // MA fiche coach (null = pas coach) → entrée « Espace Coach »
   myLessons: Lesson[]; // mes cours côté ÉLÈVE (demandes + acceptés/refusés)
-  clubRatings: Record<string, ClubRating>; // note moyenne + nb d'avis par club (cartes des listes)
+  clubRatings: Record<string, ClubRating>; // note moyenne + nb d’avis par club (cartes des listes)
   officialResults: OfficialResult[];
   compRegistrations: Record<string, { partner: string; at: number }>;
   compResults: Record<string, CompResult>; // tournoi clôturé → équipe vainqueure
   clubPhotos: Record<string, string[]>;
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
-  clubCovers: Record<string, string>; // photo « de profil » du club (celle de la carte, avant d'ouvrir la fiche)
+  clubCovers: Record<string, string>; // photo « de profil » du club (celle de la carte, avant d’ouvrir la fiche)
   clubCourtPhotos: Record<string, Record<string, string>>; // clubId → { nom du terrain: photo }
   clubInfo: Record<string, ClubInfo>; // surcharges gérant (nom, tarif, WhatsApp…)
   hiddenCoachIds: string[]; // coachs (de démo) retirés par leur club
   boostedClubIds: string[];
-  boostExpiry: Record<string, number>; // clubId → date d'expiration du boost (affichage)
+  boostExpiry: Record<string, number>; // clubId → date d’expiration du boost (affichage)
   operatorPayments: Record<string, 'sent' | 'paid'>; // « clubId:AAAA-MM » → statut de règlement
-  customClubs: CustomClub[]; // clubs inscrits via l'app (activation par l'opérateur)
-  clubStatus: Record<string, 'active' | 'coming_soon' | 'hidden'>; // statut piloté par l'opérateur (tout club)
+  customClubs: CustomClub[]; // clubs inscrits via l’app (activation par l’opérateur)
+  clubStatus: Record<string, 'active' | 'coming_soon' | 'hidden'>; // statut piloté par l’opérateur (tout club)
   clubCommission: Record<string, number>; // taux de commission propre à chaque club (vu opérateur)
-  tournamentFee: number; // frais fixe (FCFA) appliqué aux tournois JOUEURS — réglé par l'opérateur
+  tournamentFee: number; // frais fixe (FCFA) appliqué aux tournois JOUEURS — réglé par l’opérateur
   // RÔLE vérifié côté serveur (Supabase) — la VRAIE sécurité des espaces.
   //  - 'operator' : toi (PadelConnect). 'club' : un gérant. 'player' : par défaut.
   // Un joueur ne peut pas se promouvoir (protégé par un trigger côté serveur).
   role: 'player' | 'operator' | 'club';
-  serverManagedClubId: string | null; // pour un compte 'club' : l'id du club géré
+  serverManagedClubId: string | null; // pour un compte 'club' : l’id du club géré
   serverUserId: string | null; // id Supabase quand connecté → mode « réservations serveur »
   participantReservationIds: string[]; // résas où JE suis invité (hors invitations refusées)
   pendingInvitationIds: string[]; // sous-ensemble : invitations à confirmer (Accepter/Refuser)
@@ -243,8 +243,8 @@ export type AppState = {
   clubSlots: Record<string, string[]>; // horaires ouverts par club
   clubCourts: Record<string, string[]>; // terrains (courts) gérés par club
   blockedSlots: BlockedSlot[]; // créneaux fermés hors app par les clubs
-  operatorNews: OperatorNews | null; // actu d'accueil publiée par l'opérateur
-  dismissedNewsId: string | null; // id de l'actu fermée par le joueur (réapparaît si nouvelle)
+  operatorNews: OperatorNews | null; // actu d’accueil publiée par l’opérateur
+  dismissedNewsId: string | null; // id de l’actu fermée par le joueur (réapparaît si nouvelle)
 };
 
 // 3 chiffres, pas plus : parties jouées (auto), tournois joués, tournois gagnés.
@@ -252,14 +252,14 @@ export type Stats = { played: number; tournamentsPlayed: number; tournamentsWon:
 
 export const COMMISSION_RATE = 0.1; // commission opérateur (10 %)
 const STORAGE_KEY = 'padelco_state_v4'; // v4 : modèle sans matchs ni victoires/défaites
-// Photo choisie à l'inscription : mise de côté ici car il n'y a pas encore de session (e-mail à
-// confirmer). On l'envoie au stockage dès la 1ʳᵉ session, puis on efface cette clé.
+// Photo choisie à l’inscription : mise de côté ici car il n’y a pas encore de session (e-mail à
+// confirmer). On l’envoie au stockage dès la 1ʳᵉ session, puis on efface cette clé.
 const PENDING_AVATAR_KEY = 'padelco_pending_avatar_uri';
 export const MAX_CLUB_PHOTOS = 6; // plafond de photos par club (quota de stockage local)
 export const MAX_UPCOMING = 6; // réservations À VENIR max par joueur (anti-blocage des terrains)
 
-// Résultat d'addReservation : soit un succès, soit un échec avec sa raison (traduite en toast
-// par l'appelant). La règle vit ici → elle s'applique à TOUS les points d'entrée (fiche club
+// Résultat d’addReservation : soit un succès, soit un échec avec sa raison (traduite en toast
+// par l’appelant). La règle vit ici → elle s’applique à TOUS les points d’entrée (fiche club
 // ET fiche rapide), impossible à contourner.
 export type AddReservationResult = { ok: true } | { ok: false; reason: 'past' | 'conflict' | 'limit' | 'network' };
 
@@ -269,12 +269,12 @@ type AppContextType = {
   stats: Stats;
   myReservations: Reservation[]; // mes réservations seules (cf. memo) — pour tout écran perso
   setAccount: (a: Account) => void;
-  // photoSaved = false quand une NOUVELLE photo locale a échoué à l'upload (réseau) : l'appelant
-  // doit alors prévenir l'utilisateur au lieu d'afficher un toast de succès mensonger.
+  // photoSaved = false quand une NOUVELLE photo locale a échoué à l’upload (réseau) : l’appelant
+  // doit alors prévenir l’utilisateur au lieu d’afficher un toast de succès mensonger.
   updateAccount: (patch: Partial<Account>) => Promise<{ photoSaved: boolean }>;
   // Inscription serveur PRINCIPALE — e-mail (confirmé) + mot de passe, le téléphone est
   // conservé (sans SMS) pour que les clubs puissent joindre les joueurs. `needsConfirm`
-  // = true quand l'e-mail de confirmation vient d'être envoyé (pas encore de session).
+  // = true quand l’e-mail de confirmation vient d’être envoyé (pas encore de session).
   signUpWithEmail: (
     email: string,
     password: string,
@@ -290,15 +290,15 @@ type AppContextType = {
     },
   ) => Promise<{ ok: boolean; needsConfirm?: boolean; error?: string }>;
   signInWithEmail: (email: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  // Recharge la session (profil + données) — appelé après la confirmation d'e-mail (deep link).
+  // Recharge la session (profil + données) — appelé après la confirmation d’e-mail (deep link).
   refreshSession: () => Promise<void>;
-  // Ajouter / changer l'e-mail du compte (confirmation par lien envoyé à la nouvelle adresse).
+  // Ajouter / changer l’e-mail du compte (confirmation par lien envoyé à la nouvelle adresse).
   updateEmail: (email: string) => Promise<{ ok: boolean; error?: string }>;
-  // Connexion serveur héritée — téléphone + mot de passe (comptes créés avant l'e-mail).
+  // Connexion serveur héritée — téléphone + mot de passe (comptes créés avant l’e-mail).
   signInWithPhone: (phone: string, password: string) => Promise<{ ok: boolean; error?: string }>;
-  // Mot de passe oublié : envoi d'un lien de réinitialisation par e-mail.
+  // Mot de passe oublié : envoi d’un lien de réinitialisation par e-mail.
   resetPassword: (email: string) => Promise<{ ok: boolean; error?: string }>;
-  // Renvoyer l'e-mail de confirmation d'inscription.
+  // Renvoyer l’e-mail de confirmation d’inscription.
   resendConfirmation: (email: string) => Promise<{ ok: boolean; error?: string }>;
   // Suppression définitive du compte (exigence App Store / Google Play).
   deleteAccount: () => Promise<{ ok: boolean; error?: string }>;
@@ -310,7 +310,7 @@ type AppContextType = {
     loserName?: string,
     loserIsMe?: boolean,
     podium?: { second?: string; third?: string }, // americano : 2ᵉ/3ᵉ place
-  ) => Promise<boolean>; // false = échec serveur (réseau/droits) → l'UI ne doit pas se taire
+  ) => Promise<boolean>; // false = échec serveur (réseau/droits) → l’UI ne doit pas se taire
   setRemindersOn: (on: boolean) => void;
   setReserverView: (v: 'Par heure' | 'Par club') => void;
   addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => Promise<{ ok: boolean }>;
@@ -323,14 +323,14 @@ type AppContextType = {
   // Réservations : SERVEUR = source de vérité quand connecté (sinon miroir local, démo).
   addReservation: (r: Omit<Reservation, 'id' | 'createdAt' | 'bookedBy' | 'userId'>) => Promise<AddReservationResult>;
   cancelReservation: (id: string) => Promise<boolean>;
-  // Réservation partagée : l'invité accepte (accept=true) ou refuse son invitation.
+  // Réservation partagée : l’invité accepte (accept=true) ou refuse son invitation.
   respondInvitation: (reservationId: string, accept: boolean) => Promise<boolean>;
   confirmReservationByClub: (id: string) => Promise<boolean>;
-  // Envoie une DEMANDE d'ami par numéro (plus d'ajout instantané) : la personne doit accepter.
+  // Envoie une DEMANDE d’ami par numéro (plus d’ajout instantané) : la personne doit accepter.
   sendFriendRequest: (phone: string) => Promise<FriendRequestResult>;
   // Réponds à une demande REÇUE (accept=true → on devient amis ; false → refusée).
   respondFriendRequest: (requestId: string, accept: boolean) => Promise<boolean>;
-  removeFriend: (id: string) => Promise<boolean>; // false = échec serveur (réseau) → l'ami reste affiché
+  removeFriend: (id: string) => Promise<boolean>; // false = échec serveur (réseau) → l’ami reste affiché
   toggleFavorite: (clubId: string) => void;
   addClubPhoto: (clubId: string, uri: string) => Promise<void>;
   removeClubPhoto: (clubId: string, uri: string) => void;
@@ -342,7 +342,7 @@ type AppContextType = {
   setClubCover: (clubId: string, uri: string | null) => Promise<boolean>;
   // Une photo PAR TERRAIN (montre le terrain sur la fiche) — null = la retirer.
   setClubCourtPhoto: (clubId: string, court: string, uri: string | null) => Promise<boolean>;
-  // L'ÉLÈVE demande un cours à un coach. Le terrain n'est PAS réservé ici : il le sera quand
+  // L’ÉLÈVE demande un cours à un coach. Le terrain n’est PAS réservé ici : il le sera quand
   // le coach acceptera (puis le club confirmera la réservation — double validation).
   requestCoachLesson: (input: {
     coachId: string;
@@ -355,11 +355,11 @@ type AppContextType = {
     startsAt: number;
     price: number;
   }) => Promise<boolean>;
-  // L'élève annule sa demande de cours EN ATTENTE (un cours accepté = une réservation normale).
+  // L’élève annule sa demande de cours EN ATTENTE (un cours accepté = une réservation normale).
   cancelMyLesson: (id: string) => Promise<boolean>;
   // Le COACH règle sa fiche : spécialité, tarif indicatif (null = non affiché), disponibilités.
   saveCoachSettings: (specialty: string, price: number | null, slots: string[]) => Promise<boolean>;
-  // Recharge fiche coach + mes cours (pull-to-refresh de l'Espace Coach / « Mes réservations »).
+  // Recharge fiche coach + mes cours (pull-to-refresh de l’Espace Coach / « Mes réservations »).
   refreshLessons: () => Promise<void>;
   setClubInfo: (clubId: string, patch: ClubInfo) => void;
   setBoost: (clubId: string, days: number) => Promise<{ ok: boolean }>; // days > 0 active (expiration), 0 désactive — serveur
@@ -373,7 +373,7 @@ type AppContextType = {
     contactPhone?: string;
   }) => void;
   cancelOwnClubRequest: (id: string) => void; // annule une demande « en attente » créée sur cet appareil
-  // Demande d'inscription de club envoyée au SERVEUR (visible par l'opérateur).
+  // Demande d’inscription de club envoyée au SERVEUR (visible par l’opérateur).
   submitClubRequest: (input: {
     name: string;
     area: string;
@@ -383,20 +383,20 @@ type AppContextType = {
     contactPhone?: string;
     message?: string;
   }) => Promise<{ ok: boolean; error?: string }>;
-  // L'opérateur lit toutes les demandes (RLS) ; setStatus met à jour une demande.
-  // On renvoie un drapeau ok pour distinguer « vide » d'un échec réseau/RLS.
+  // L’opérateur lit toutes les demandes (RLS) ; setStatus met à jour une demande.
+  // On renvoie un drapeau ok pour distinguer « vide » d’un échec réseau/RLS.
   fetchClubRequests: () => Promise<{ ok: boolean; requests: ServerClubRequest[] }>;
   setClubRequestStatus: (id: string, status: ServerClubRequest['status']) => Promise<{ ok: boolean }>;
   // Approuve une demande côté SERVEUR : crée le club (visible par tous) + donne au
-  // demandeur l'accès à son Espace Club. Recharge ensuite la liste des clubs serveur.
+  // demandeur l’accès à son Espace Club. Recharge ensuite la liste des clubs serveur.
   approveClubRequest: (requestId: string) => Promise<{ ok: boolean; clubId?: string }>;
-  // Opérateur : statut d'un club serveur (Actif / Bientôt / masqué) et pré-chargement d'un club.
+  // Opérateur : statut d’un club serveur (Actif / Bientôt / masqué) et pré-chargement d’un club.
   operatorSetClubStatus: (clubId: string, status: 'active' | 'coming_soon' | 'hidden') => Promise<{ ok: boolean }>;
-  // Opérateur : statut piloté de N'IMPORTE QUEL club, y compris les 9 de base embarqués.
+  // Opérateur : statut piloté de N’IMPORTE QUEL club, y compris les 9 de base embarqués.
   operatorSetBaseStatus: (clubId: string, status: 'active' | 'coming_soon' | 'hidden') => Promise<{ ok: boolean }>;
   // Opérateur : supprime définitivement un club serveur (+ données liées).
   operatorDeleteClub: (clubId: string) => Promise<{ ok: boolean }>;
-  // Opérateur : accorde / retire l'accès « Espace Club » à un joueur via son numéro (tout club).
+  // Opérateur : accorde / retire l’accès « Espace Club » à un joueur via son numéro (tout club).
   operatorGrantClubAccess: (phone: string, clubId: string) => Promise<{ ok: boolean; name?: string }>;
   operatorRevokeClubAccess: (phone: string) => Promise<{ ok: boolean; name?: string }>;
   // Opérateur : commission propre à un club (taux 0–1, ex. 0.12 = 12 %).
@@ -410,11 +410,11 @@ type AppContextType = {
     courts: number;
     priceFrom: number;
   }) => Promise<{ ok: boolean; clubId?: string }>;
-  // Aide / signalements : le joueur envoie un message, l'opérateur les lit/traite.
+  // Aide / signalements : le joueur envoie un message, l’opérateur les lit/traite.
   submitSupportMessage: (message: string, contactPhone?: string) => Promise<{ ok: boolean; error?: string }>;
   fetchSupportMessages: () => Promise<{ ok: boolean; messages: ServerSupportMessage[] }>;
-  // Boucle de retour : le joueur relit SES messages d'aide et leur statut.
-  // null = échec réseau (l'écran garde la liste affichée) ≠ [] = aucun message (convention §8).
+  // Boucle de retour : le joueur relit SES messages d’aide et leur statut.
+  // null = échec réseau (l’écran garde la liste affichée) ≠ [] = aucun message (convention §8).
   fetchMySupportMessages: () => Promise<ServerSupportMessage[] | null>;
   setSupportMessageStatus: (id: string, status: ServerSupportMessage['status']) => Promise<{ ok: boolean }>;
   approveClub: (id: string) => void;
@@ -424,10 +424,10 @@ type AppContextType = {
   setClubCourts: (clubId: string, courts: string[]) => void;
   blockSlot: (b: BlockedSlot, startsAt: number) => boolean;
   unblockSlot: (clubId: string, dateKey: string, time: string, court: string) => void;
-  // ok = false quand l'écriture SERVEUR a échoué (réseau/session) : l'actu reste alors visible
-  // seulement sur le téléphone de l'opérateur — l'appelant doit le dire honnêtement.
+  // ok = false quand l’écriture SERVEUR a échoué (réseau/session) : l’actu reste alors visible
+  // seulement sur le téléphone de l’opérateur — l’appelant doit le dire honnêtement.
   setOperatorNews: (news: { title: string; subtitle?: string; link?: string }) => Promise<{ ok: boolean }>;
-  removeOperatorNews: () => void; // retire l'actu d'accueil publiée
+  removeOperatorNews: () => void; // retire l’actu d’accueil publiée
   dismissNews: (id: string) => void;
   resetAll: () => void;
 };
@@ -450,7 +450,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     (async () => {
       try {
         const raw = await AsyncStorage.getItem(STORAGE_KEY);
-        // On repart de l'état par défaut puis on superpose l'état persisté (champs connus).
+        // On repart de l’état par défaut puis on superpose l’état persisté (champs connus).
         if (raw) {
           const parsed = { ...initialState, ...JSON.parse(raw) } as AppState;
           setClubStatusMap(parsed.clubStatus ?? {}); // statut « Bientôt » dès le 1er rendu
@@ -465,31 +465,31 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   // Au démarrage, si une session serveur existe, on rafraîchit le profil ET le RÔLE
-  // depuis Supabase (ainsi, dès que l'opérateur promeut un compte côté serveur, le
+  // depuis Supabase (ainsi, dès que l’opérateur promeut un compte côté serveur, le
   // changement prend effet à la prochaine ouverture). Sans session → on ne touche à rien.
   // Préférence « rappels » lue par loadSession SANS la remettre dans ses dépendances
-  // (sinon un simple basculement de l'interrupteur relancerait toute la session).
+  // (sinon un simple basculement de l’interrupteur relancerait toute la session).
   const remindersOnRef = useRef(state.remindersOn);
   useEffect(() => {
     remindersOnRef.current = state.remindersOn;
   }, [state.remindersOn]);
 
-  // NOTE : le NIVEAU est écrit par le client UNE SEULE FOIS, à l'inscription (choix initial du
+  // NOTE : le NIVEAU est écrit par le client UNE SEULE FOIS, à l’inscription (choix initial du
   // joueur, borné [1.0, 7.0] côté serveur par handle_new_user — cf. supabase/36_audit_hardening.sql).
-  // Ensuite, il n'est PLUS JAMAIS modifié par le client : seul close_competition (tournois
-  // officiels) l'ajuste côté serveur, protégé en base par le trigger protect_level
+  // Ensuite, il n’est PLUS JAMAIS modifié par le client : seul close_competition (tournois
+  // officiels) l’ajuste côté serveur, protégé en base par le trigger protect_level
   // (34_level_integrity.sql) — anti-triche. Le client se contente de LIRE `level` (loadSession,
-  // reread après clôture) et de l'afficher.
+  // reread après clôture) et de l’afficher.
 
   // « Époque » de session : incrémentée à chaque déconnexion / réinitialisation. Toute
-  // requête en vol (loadSession, rafraîchissement au premier plan) capture l'époque au
-  // départ et n'applique son résultat QUE si l'époque n'a pas changé entre-temps — sinon
-  // une réponse tardive réécrirait les données d'un compte déjà déconnecté.
+  // requête en vol (loadSession, rafraîchissement au premier plan) capture l’époque au
+  // départ et n’applique son résultat QUE si l’époque n’a pas changé entre-temps — sinon
+  // une réponse tardive réécrirait les données d’un compte déjà déconnecté.
   const sessionEpochRef = useRef(0);
 
   // Charge (ou recharge) la session serveur : profil + rôle, réservations, occupation,
   // participations et clubs serveur. Réutilisé au démarrage ET après la confirmation
-  // d'e-mail (deep link) — d'où l'extraction en fonction stable.
+  // d’e-mail (deep link) — d’où l’extraction en fonction stable.
   const loadSession = useCallback(async () => {
     const epoch = sessionEpochRef.current;
     const stillCurrent = () => sessionEpochRef.current === epoch;
@@ -501,7 +501,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       if (!userId || !stillCurrent()) return;
       void registerPushToken(userId); // jeton de push → profil (pour les notifs serveur)
       // On connaît la session → mode « réservations serveur ». Si on CHANGE de compte
-      // (userId différent de celui en mémoire), on repart d'un périmètre personnel NEUF
+      // (userId différent de celui en mémoire), on repart d’un périmètre personnel NEUF
       // pour ne jamais montrer les données du compte précédent (amis, favoris, miroir…).
       setState((s) =>
         s.serverUserId === userId
@@ -521,7 +521,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               compResults: {},
               officialResults: [],
               // Fiche coach et cours = données du COMPTE : jamais héritées du précédent
-              // (sinon, si le fetch qui suit échoue, l'« Espace Coach » de l'ancien compte
+              // (sinon, si le fetch qui suit échoue, l'« Espace Coach » de l’ancien compte
               // resterait visible pour le nouveau).
               coachProfile: null,
               myLessons: [],
@@ -531,7 +531,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       const { data: prof, error } = await supabase.from('profiles').select('*').eq('id', userId).maybeSingle();
       if (!stillCurrent()) return;
       // Hors-ligne / erreur réseau : on GARDE le profil et le rôle persistés localement
-      // (pas de rétrogradation silencieuse d'un gérant/opérateur qui ouvre l'app sans réseau).
+      // (pas de rétrogradation silencieuse d’un gérant/opérateur qui ouvre l’app sans réseau).
       if (!error && prof) {
         const hydratedLevel = clampLevel(Number(prof.level ?? initialState.level));
         setState((s) => ({
@@ -540,8 +540,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             firstName: prof.first_name ?? s.account?.firstName ?? '',
             lastName: prof.last_name ?? s.account?.lastName ?? '',
             phone: prof.phone ?? s.account?.phone ?? '',
-            // L'e-mail d'AUTHENTIFICATION fait foi (il change après « changer d'e-mail », pas
-            // profiles.email qui n'est renseigné qu'à la création) → on lit session.user.email.
+            // L’e-mail d’AUTHENTIFICATION fait foi (il change après « changer d’e-mail », pas
+            // profiles.email qui n’est renseigné qu’à la création) → on lit session.user.email.
             email: session?.user?.email ?? prof.email ?? s.account?.email,
             photoUri: prof.photo_uri ?? s.account?.photoUri,
             birthDate: prof.birth_date ?? s.account?.birthDate,
@@ -551,8 +551,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           serverManagedClubId: prof.managed_club_id ?? null,
           level: hydratedLevel,
         }));
-        // Photo choisie à l'inscription (mise de côté avant confirmation e-mail) : si le serveur
-        // n'a pas encore d'avatar, on l'envoie maintenant que la session existe, puis on efface.
+        // Photo choisie à l’inscription (mise de côté avant confirmation e-mail) : si le serveur
+        // n’a pas encore d’avatar, on l’envoie maintenant que la session existe, puis on efface.
         if (!prof.photo_uri) {
           void AsyncStorage.getItem(PENDING_AVATAR_KEY).then((pending) => {
             if (!pending || !stillCurrent()) return;
@@ -569,7 +569,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       }
       // Réservations : le serveur est la source de vérité → on remplace le miroir local
       // par les résas pertinentes (les miennes ; club/opérateur : celles de leur périmètre,
-      // via RLS), l'occupation de TOUS (disponibilité), et les clubs ajoutés côté serveur.
+      // via RLS), l’occupation de TOUS (disponibilité), et les clubs ajoutés côté serveur.
       const [
         reservationsRes,
         occ,
@@ -613,34 +613,34 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchMyLessons(userId),
         fetchClubRatings(),
       ]);
-      if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
+      if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n’écrit rien
       // null = échec réseau → on garde les invitations existantes (≠ tableau vide = « aucune »).
       const split = parts ? splitParticipations(parts) : null;
       // Pour la resynchro des rappels ci-dessous uniquement : si le fetch a échoué, on ne re-planifie
       // que MES résas (les invitations déjà connues gardent leurs rappels déjà posés).
       const activeParts = split ? split.active : [];
-      // null = échec réseau pour ce fetch → on garde l'existant (≠ tableau/objet vide = succès).
+      // null = échec réseau pour ce fetch → on garde l’existant (≠ tableau/objet vide = succès).
       if (clubStatus) setClubStatusMap(clubStatus); // registre lu dans data/clubs (badge « Bientôt »)
       setState((s) => ({
         ...s,
-        // En cas d'échec réseau on garde le miroir persisté (offline-friendly).
+        // En cas d’échec réseau on garde le miroir persisté (offline-friendly).
         reservations: reservationsRes.ok ? reservationsRes.reservations : s.reservations,
         occupancy: occ ?? s.occupancy,
         participantReservationIds: split ? split.active : s.participantReservationIds,
         pendingInvitationIds: split ? split.pending : s.pendingInvitationIds,
         // Amis synchronisés (le serveur fait foi). null = échec réseau → on garde le miroir.
         friends: friends ?? s.friends,
-        // Demandes d'ami reçues en attente (Accepter / Refuser). null = échec réseau → on garde.
+        // Demandes d’ami reçues en attente (Accepter / Refuser). null = échec réseau → on garde.
         friendRequests: friendReqs ?? s.friendRequests,
         // null = échec réseau → on garde les clubs serveur déjà chargés (sinon ils disparaîtraient).
         customClubs: serverClubs ? mergeServerClubs(s.customClubs, serverClubs) : s.customClubs,
         clubStatus: clubStatus ?? s.clubStatus,
         clubCommission: commissions ?? s.clubCommission, // vide pour les non-opérateurs (RLS)
-        // Boosts serveur (visibles par tous) : actifs = ceux dont l'expiration est future.
+        // Boosts serveur (visibles par tous) : actifs = ceux dont l’expiration est future.
         boostExpiry: boosts ?? s.boostExpiry,
         boostedClubIds: boosts ? Object.keys(boosts).filter((id) => boosts[id] > Date.now()) : s.boostedClubIds,
         // Pages club éditées par les gérants (serveur) → visibles par tous. On fusionne au-dessus
-        // des éventuelles surcharges locales (le serveur fait foi pour les clubs qu'il connaît).
+        // des éventuelles surcharges locales (le serveur fait foi pour les clubs qu’il connaît).
         // null = échec réseau → on garde les surcharges déjà connues (convention §8).
         clubInfo: overrides ? { ...s.clubInfo, ...overrides } : s.clubInfo,
         // Config club partagée (horaires, terrains, offres, coachs, photos).
@@ -652,8 +652,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         blockedSlots: blocked ?? s.blockedSlots,
         // Règlements opérateur (persistants). Vide pour les non-opérateurs (RLS).
         operatorPayments: opPayments ?? s.operatorPayments,
-        // Actu d'accueil publiée par l'opérateur (visible par TOUS). undefined = échec réseau →
-        // on garde l'existant ; null = aucune actu publiée → bandeau retiré.
+        // Actu d’accueil publiée par l’opérateur (visible par TOUS). undefined = échec réseau →
+        // on garde l’existant ; null = aucune actu publiée → bandeau retiré.
         operatorNews: news === undefined ? s.operatorNews : news,
         // Ma fiche coach : undefined = échec réseau → on garde ; null = pas (ou plus) coach.
         coachProfile: coachProfile === undefined ? s.coachProfile : coachProfile,
@@ -663,9 +663,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         clubRatings: ratings ?? s.clubRatings,
       }));
       // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses). isOwner
-      // distingue MES résas (je peux annuler) d'une invitation d'ami (rappels adaptés, cf.
+      // distingue MES résas (je peux annuler) d’une invitation d’ami (rappels adaptés, cf.
       // scheduleMatchReminder) — sinon un invité recevait « annulation gratuite » / « confirme ton
-      // équipe » alors qu'il n'a ni bouton Annuler ni équipe à confirmer.
+      // équipe » alors qu’il n’a ni bouton Annuler ni équipe à confirmer.
       if (reservationsRes.ok) {
         const mine = reservationsRes.reservations
           .filter((r) => (!r.userId || r.userId === userId || activeParts.includes(r.id)) && r.startsAt > Date.now())
@@ -673,33 +673,33 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         void syncMatchReminders(mine, remindersOnRef.current);
       }
     } catch {
-      // getSession a échoué (réseau) : on reste sur l'état local hydraté, sans crash.
+      // getSession a échoué (réseau) : on reste sur l’état local hydraté, sans crash.
     }
   }, []);
 
   // Recharge les tournois serveur + mes inscriptions et les fusionne (foreground et après
-  // une création/inscription/clôture). null = échec réseau → on garde l'existant.
+  // une création/inscription/clôture). null = échec réseau → on garde l’existant.
   const refreshCompetitions = useCallback(async (userId: string) => {
     const epoch = sessionEpochRef.current;
     const [serverComps, compRegs] = await Promise.all([fetchCompetitions(userId), fetchMyCompRegistrations()]);
     if (!serverComps && !compRegs) return;
-    if (sessionEpochRef.current !== epoch) return; // déconnexion pendant la requête → pas d'écriture tardive
+    if (sessionEpochRef.current !== epoch) return; // déconnexion pendant la requête → pas d’écriture tardive
     setState((s) => ({ ...s, ...competitionSlices(s, serverComps, compRegs) }));
   }, []);
 
   useEffect(() => {
     if (!hydrated) return;
     // IIFE asynchrone : les setState de loadSession surviennent APRÈS un await (jamais de
-    // façon synchrone dans le corps de l'effet) → pas de cascade de rendus.
+    // façon synchrone dans le corps de l’effet) → pas de cascade de rendus.
     void (async () => {
       await loadSession();
     })();
   }, [hydrated, loadSession]);
 
-  // Session révoquée À L'EXTÉRIEUR de l'app (jeton de rafraîchissement expiré/invalide,
+  // Session révoquée À L’EXTÉRIEUR de l’app (jeton de rafraîchissement expiré/invalide,
   // compte supprimé côté serveur, mot de passe changé ailleurs) : Supabase émet SIGNED_OUT.
-  // On remet alors l'app en état déconnecté pour ne pas laisser un compte « fantôme » affiché
-  // avec des données qui ne se rechargeront plus. Notre propre signOut a déjà nettoyé l'état :
+  // On remet alors l’app en état déconnecté pour ne pas laisser un compte « fantôme » affiché
+  // avec des données qui ne se rechargeront plus. Notre propre signOut a déjà nettoyé l’état :
   // le garde `s.serverUserId` rend ce reset idempotent (aucune action si déjà déconnecté).
   useEffect(() => {
     const { data } = supabase.auth.onAuthStateChange((event) => {
@@ -711,14 +711,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // Retour au premier plan : on rafraîchit l'occupation (et mes résas) pour que la
-  // disponibilité affichée ne reste pas figée si d'autres joueurs ont réservé entre-temps.
+  // Retour au premier plan : on rafraîchit l’occupation (et mes résas) pour que la
+  // disponibilité affichée ne reste pas figée si d’autres joueurs ont réservé entre-temps.
   useEffect(() => {
     if (!state.serverUserId) return;
     const userId = state.serverUserId;
     const sub = RNAppState.addEventListener('change', (st) => {
       if (st !== 'active') return;
-      // On capture l'époque au déclenchement : si une déconnexion survient pendant les
+      // On capture l’époque au déclenchement : si une déconnexion survient pendant les
       // requêtes, leurs résultats tardifs ne réécriront pas les données du compte sortant.
       const epoch = sessionEpochRef.current;
       const ok = () => sessionEpochRef.current === epoch;
@@ -733,14 +733,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       // Amis ajoutés/retirés sur un autre appareil : on relit pour garder la liste à jour.
       void fetchFriends().then((friends) => friends && ok() && setState((s) => ({ ...s, friends })));
-      // Nouvelles demandes d'ami reçues (retour au premier plan) → badge/section à jour.
+      // Nouvelles demandes d’ami reçues (retour au premier plan) → badge/section à jour.
       void fetchFriendRequests().then((reqs) => reqs && ok() && setState((s) => ({ ...s, friendRequests: reqs })));
       // Fiche coach (le club a pu me promouvoir/retirer) + mes cours (le coach a pu répondre).
       void fetchMyCoachProfile().then((cp) => cp !== undefined && ok() && setState((s) => ({ ...s, coachProfile: cp })));
       void fetchMyLessons(userId).then((ls) => ls && ok() && setState((s) => ({ ...s, myLessons: ls })));
       // Notes moyennes des clubs : de nouveaux avis ont pu être déposés entre-temps.
       void fetchClubRatings().then((rt) => rt && ok() && setState((s) => ({ ...s, clubRatings: rt })));
-      // Actu d'accueil de l'opérateur : publiée/retirée sur un autre appareil → bandeau à jour.
+      // Actu d’accueil de l’opérateur : publiée/retirée sur un autre appareil → bandeau à jour.
       void fetchOperatorNews().then((n) => n !== undefined && ok() && setState((s) => ({ ...s, operatorNews: n })));
       // Créneaux fermés par un club (sur un autre appareil) → dispo à jour partout.
       void fetchBlockedSlots().then((blocked) => blocked && ok() && setState((s) => ({ ...s, blockedSlots: blocked })));
@@ -749,7 +749,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       void fetchServerClubs().then(
         (serverClubs) => serverClubs && ok() && setState((s) => ({ ...s, customClubs: mergeServerClubs(s.customClubs, serverClubs) })),
       );
-      // Statut piloté par l'opérateur (badges « Bientôt »/masquage de tout club) : on relit
+      // Statut piloté par l’opérateur (badges « Bientôt »/masquage de tout club) : on relit
       // pour refléter une bascule décidée sur un autre appareil sans réinstaller.
       void fetchClubStatus().then((clubStatus) => {
         if (!clubStatus || !ok()) return;
@@ -773,8 +773,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       // Tournois créés/validés/clôturés sur un autre appareil : on relit pour rester à jour.
       if (ok()) void refreshCompetitions(userId);
-      // Rafraîchit le RÔLE/profil : si l'opérateur vient d'accorder l'accès gérant (#39), le
-      // gérant voit son Espace Club apparaître au retour dans l'app, sans réinstaller.
+      // Rafraîchit le RÔLE/profil : si l’opérateur vient d’accorder l’accès gérant (#39), le
+      // gérant voit son Espace Club apparaître au retour dans l’app, sans réinstaller.
       void supabase
         .from('profiles')
         .select('role, managed_club_id, level')
@@ -793,9 +793,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => sub.remove();
   }, [state.serverUserId, refreshCompetitions]);
 
-  // Expiration AUTOMATIQUE des boosts « Sponsorisé » : à l'ouverture et à chaque retour au
+  // Expiration AUTOMATIQUE des boosts « Sponsorisé » : à l’ouverture et à chaque retour au
   // premier plan, on retire ceux dont la date est dépassée — aucun badge doré ne traîne
-  // après son terme, sans intervention de l'opérateur.
+  // après son terme, sans intervention de l’opérateur.
   useEffect(() => {
     if (!hydrated) return;
     const sweep = () =>
@@ -807,7 +807,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         expired.forEach((id) => delete boostExpiry[id]);
         return { ...s, boostedClubIds: s.boostedClubIds.filter((id) => !expired.includes(id)), boostExpiry };
       });
-    // Premier balayage DIFFÉRÉ (pas de setState synchrone dans le corps de l'effet — règle
+    // Premier balayage DIFFÉRÉ (pas de setState synchrone dans le corps de l’effet — règle
     // React Compiler), puis à chaque retour au premier plan.
     const t = setTimeout(sweep, 0);
     const sub = RNAppState.addEventListener('change', (st) => st === 'active' && sweep());
@@ -822,12 +822,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const persist = async () => {
       try {
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-        // Sauvegarde complète OK → on lève l'éventuel drapeau « stockage plein ».
+        // Sauvegarde complète OK → on lève l’éventuel drapeau « stockage plein ».
         setState((s) => (s.storageFull ? { ...s, storageFull: false } : s));
       } catch {
         // Quota dépassé (photos volumineuses en data-uri) : plutôt que de TOUT perdre
         // silencieusement (offres, coachs…), on persiste sans les photos ET on prévient
-        // l'utilisateur via le drapeau storageFull (bandeau dans l'Espace Club).
+        // l’utilisateur via le drapeau storageFull (bandeau dans l’Espace Club).
         try {
           const slim = {
             ...state,
@@ -836,17 +836,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           };
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(slim));
         } catch {
-          // stockage indisponible — l'app continue en mémoire
+          // stockage indisponible — l’app continue en mémoire
         }
         setState((s) => (s.storageFull ? s : { ...s, storageFull: true }));
       }
     };
-    // Debounce : une rafale de petites mutations (saisie d'un champ, bascule d'un favori) ne
-    // déclenche qu'UNE sérialisation après un court silence, au lieu d'un JSON.stringify + write
+    // Debounce : une rafale de petites mutations (saisie d’un champ, bascule d’un favori) ne
+    // déclenche qu’UNE sérialisation après un court silence, au lieu d’un JSON.stringify + write
     // à chaque frappe. Compromis accepté : une mutation dans les 500 ms précédant une fermeture
     // brutale peut ne pas être persistée (miroir best-effort, le serveur reste la source de vérité).
     // MAIS certaines préférences (rappels, favoris, actu fermée…) ne vivent QUE localement — pas
-    // de filet serveur pour elles — d'où le flush immédiat au passage en arrière-plan ci-dessous.
+    // de filet serveur pour elles — d’où le flush immédiat au passage en arrière-plan ci-dessous.
     let t: ReturnType<typeof setTimeout> | null = setTimeout(persist, 500);
     const sub = RNAppState.addEventListener('change', (st) => {
       if (st === 'active' || !t) return;
@@ -863,9 +863,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   // MES réservations — source unique pour tout calcul PERSONNEL. En mode serveur, un compte
   // club/opérateur reçoit aussi les résas de son périmètre (RLS) ; on filtre donc sur mon
   // user_id pour ne jamais afficher/compter celles des autres comme les miennes.
-  // En mode serveur : mes résas = celles que J'AI créées + celles où un ami m'a invité
+  // En mode serveur : mes résas = celles que J’AI créées + celles où un ami m’a invité
   // (participantReservationIds) — ces dernières apparaissent chez moi sans recompter la
-  // commission (une résa = un terrain = une commission, comptée chez l'auteur).
+  // commission (une résa = un terrain = une commission, comptée chez l’auteur).
   const myReservations = useMemo(
     () =>
       state.serverUserId
@@ -886,29 +886,29 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       updateAccount: async (patch) => {
         setState((s) => ({ ...s, account: s.account ? { ...s.account, ...patch } : s.account }));
         // Persistance SERVEUR des champs texte modifiés (si connecté) : sans ça, ils étaient
-        // écrasés par l'ancienne valeur serveur au prochain chargement.
+        // écrasés par l’ancienne valeur serveur au prochain chargement.
         const userId = state.serverUserId;
         if (!userId) return { photoSaved: true };
         const row: Record<string, string | null> = {};
         // Filet de sécurité : ne jamais écraser prénom/nom/téléphone par une chaîne vide côté
-        // serveur (l'écran d'édition valide déjà, mais on protège aussi ce point d'entrée).
+        // serveur (l’écran d’édition valide déjà, mais on protège aussi ce point d’entrée).
         if (patch.firstName !== undefined && patch.firstName.trim()) row.first_name = patch.firstName.trim();
         if (patch.lastName !== undefined && patch.lastName.trim()) row.last_name = patch.lastName.trim();
         if (patch.phone !== undefined && patch.phone.trim()) row.phone = patch.phone.trim();
         if (patch.birthDate !== undefined) row.birth_date = patch.birthDate?.trim() || null;
         if (patch.gender !== undefined) row.gender = patch.gender ?? null;
         if (Object.keys(row).length > 0) void supabase.from('profiles').update(row).eq('id', userId);
-        // PHOTO : on l'envoie au stockage (survit à une réinstallation, synchro multi-appareils).
-        // On ATTEND le résultat (≠ fire-and-forget) pour que l'appelant sache honnêtement si la
-        // photo a bien été enregistrée, au lieu d'un toast de succès mensonger en cas d'échec réseau.
+        // PHOTO : on l’envoie au stockage (survit à une réinstallation, synchro multi-appareils).
+        // On ATTEND le résultat (≠ fire-and-forget) pour que l’appelant sache honnêtement si la
+        // photo a bien été enregistrée, au lieu d’un toast de succès mensonger en cas d’échec réseau.
         if ('photoUri' in patch) {
           const uri = patch.photoUri;
           if (uri && !uri.startsWith('http')) {
-            // Nouvelle photo locale → upload, puis on remplace l'URI locale par l'URL publique.
+            // Nouvelle photo locale → upload, puis on remplace l’URI locale par l’URL publique.
             const prevPhoto = state.account?.photoUri; // photo AVANT ce changement (snapshot)
             const url = await uploadAvatar(userId, uri);
             if (!url) {
-              // Échec d'upload : on NE conserve PAS l'URI locale file:// (illisible après une
+              // Échec d’upload : on NE conserve PAS l’URI locale file:// (illisible après une
               // réinstallation ou sur un autre appareil) → on revient à la photo précédente.
               setState((s) => ({ ...s, account: s.account ? { ...s.account, photoUri: prevPhoto } : s.account }));
               return { photoSaved: false };
@@ -927,9 +927,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       // ── Inscription par E-MAIL (parcours principal) ────────────────────────
       // E-mail réel + mot de passe ; le téléphone est conservé (sans SMS). Avec la
-      // confirmation d'e-mail activée côté Supabase, le compte est créé mais SANS session :
+      // confirmation d’e-mail activée côté Supabase, le compte est créé mais SANS session :
       // le profil est rempli automatiquement côté serveur (trigger handle_new_user) à
-      // partir des `data` ci-dessous, et la session s'ouvre quand l'utilisateur clique le
+      // partir des `data` ci-dessous, et la session s’ouvre quand l’utilisateur clique le
       // lien de confirmation (deep link → refreshSession).
       signUpWithEmail: async (email, password, phone, profile) => {
         const cleanEmail = email.trim().toLowerCase();
@@ -950,15 +950,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           },
         });
         if (error) return { ok: false, error: frAuthError(error.message) };
-        // E-mail DÉJÀ utilisé : Supabase ne renvoie pas d'erreur (anti-énumération) mais
-        // un user « factice » sans identités. On le détecte pour éviter d'afficher un faux
+        // E-mail DÉJÀ utilisé : Supabase ne renvoie pas d’erreur (anti-énumération) mais
+        // un user « factice » sans identités. On le détecte pour éviter d’afficher un faux
         // « vérifiez vos e-mails » et on oriente vers la connexion.
         if (data.user && data.user.identities?.length === 0) {
           return { ok: false, error: 'Cet e-mail a déjà un compte. Connecte-toi plutôt.' };
         }
-        // Photo choisie à l'inscription : on la met de côté (pas encore de session pour l'envoyer
-        // au stockage). loadSession l'enverra à la 1ʳᵉ ouverture de session, puis effacera la clé.
-        // On efface D'ABORD systématiquement une éventuelle clé laissée par une inscription
+        // Photo choisie à l’inscription : on la met de côté (pas encore de session pour l’envoyer
+        // au stockage). loadSession l’enverra à la 1ʳᵉ ouverture de session, puis effacera la clé.
+        // On efface D’ABORD systématiquement une éventuelle clé laissée par une inscription
         // PRÉCÉDENTE jamais confirmée sur cet appareil (sinon sa photo « fuiterait » vers ce
         // nouveau compte à la prochaine connexion) — on ne la repose que si CETTE inscription a
         // vraiment une photo à envoyer.
@@ -968,7 +968,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           await AsyncStorage.setItem(PENDING_AVATAR_KEY, pendingPhoto);
         }
         track('signup_completed', { needsConfirm: !data.session });
-        // Confirmation requise → pas encore de session : on invite à valider l'e-mail.
+        // Confirmation requise → pas encore de session : on invite à valider l’e-mail.
         if (!data.session) return { ok: true, needsConfirm: true };
         // Confirmation désactivée (selon config) → session immédiate : on charge tout.
         await loadSession();
@@ -982,8 +982,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       refreshSession: loadSession,
-      // Ajouter / changer l'e-mail du compte : Supabase envoie un lien de confirmation à la
-      // NOUVELLE adresse ; le changement ne s'applique qu'après le clic sur ce lien.
+      // Ajouter / changer l’e-mail du compte : Supabase envoie un lien de confirmation à la
+      // NOUVELLE adresse ; le changement ne s’applique qu’après le clic sur ce lien.
       updateEmail: async (email) => {
         const clean = email.trim().toLowerCase();
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(clean)) return { ok: false, error: 'Adresse e-mail invalide.' };
@@ -991,7 +991,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) return { ok: false, error: frAuthError(error.message) };
         return { ok: true };
       },
-      // Connexion serveur héritée — comptes créés AVANT l'e-mail, via le téléphone (e-mail
+      // Connexion serveur héritée — comptes créés AVANT l’e-mail, via le téléphone (e-mail
       // interne sans SMS). On se connecte puis on délègue à loadSession : une SEULE source
       // de vérité pour le chargement profil + résas + occupation (pas de doublon à maintenir).
       signInWithPhone: async (phone, password) => {
@@ -1002,8 +1002,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       signOut: () => {
-        // On efface d'ABORD le jeton push du profil sortant (session/RLS encore valides), sinon
-        // l'ancien compte continuerait de recevoir sur ce téléphone les notifs d'un autre compte.
+        // On efface d’ABORD le jeton push du profil sortant (session/RLS encore valides), sinon
+        // l’ancien compte continuerait de recevoir sur ce téléphone les notifs d’un autre compte.
         const outgoing = state.serverUserId;
         if (outgoing)
           void supabase
@@ -1019,9 +1019,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         void AsyncStorage.removeItem(PENDING_AVATAR_KEY);
         setState(loggedOutState);
       },
-      // Réinitialisation du mot de passe : envoie un lien par e-mail qui rouvre l'app sur l'écran
-      // DÉDIÉ « reset-password » (≠ auth-callback de la confirmation d'inscription) où l'utilisateur
-      // saisit un NOUVEAU mot de passe. Pas d'erreur révélée si l'e-mail n'existe pas (anti-énumération).
+      // Réinitialisation du mot de passe : envoie un lien par e-mail qui rouvre l’app sur l’écran
+      // DÉDIÉ « reset-password » (≠ auth-callback de la confirmation d’inscription) où l’utilisateur
+      // saisit un NOUVEAU mot de passe. Pas d’erreur révélée si l’e-mail n’existe pas (anti-énumération).
       resetPassword: async (email) => {
         const { error } = await supabase.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
           redirectTo: Linking.createURL('reset-password'),
@@ -1029,7 +1029,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (error) return { ok: false, error: frAuthError(error.message) };
         return { ok: true };
       },
-      // Renvoie l'e-mail de confirmation d'inscription (si l'utilisateur ne l'a pas reçu / l'a perdu).
+      // Renvoie l’e-mail de confirmation d’inscription (si l’utilisateur ne l’a pas reçu / l’a perdu).
       resendConfirmation: async (email) => {
         const { error } = await supabase.auth.resend({
           type: 'signup',
@@ -1040,8 +1040,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       // Suppression DÉFINITIVE du compte (exigence App Store / Google Play). Le serveur efface
-      // la ligne auth.users → cascade sur profil/résas/parrainages ; puis on revient à l'écran
-      // d'accueil dans un état neuf. Irréversible : l'écran appelant confirme avant d'appeler.
+      // la ligne auth.users → cascade sur profil/résas/parrainages ; puis on revient à l’écran
+      // d’accueil dans un état neuf. Irréversible : l’écran appelant confirme avant d’appeler.
       deleteAccount: async () => {
         const { error } = await supabase.rpc('delete_account');
         if (error) return { ok: false, error: 'Suppression impossible — réessaie dans un instant.' };
@@ -1052,7 +1052,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState(loggedOutState);
         return { ok: true };
       },
-      // Clôture par l'ORGANISATEUR (ou le club hôte) : fige le vainqueur + podium. Le NIVEAU des
+      // Clôture par l’ORGANISATEUR (ou le club hôte) : fige le vainqueur + podium. Le NIVEAU des
       // joueurs inscrits est attribué UNE SEULE FOIS côté serveur (close_competition, tournois
       // officiels) → jamais recalculé côté client (pas de double attribution à la réinstallation).
       closeCompetition: async (comp, winnerName, winnerIsMe, loserName, loserIsMe, podium) => {
@@ -1068,8 +1068,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (!ok) return false; // le serveur a refusé (droits)
           if (state.serverUserId) {
             // Rejoue clôture + palmarès depuis le serveur, puis relit MON niveau (attribué côté
-            // serveur si j'ai gagné/perdu) pour l'afficher immédiatement. Lecture ATTENDUE (pas un
-            // .then() détaché) et gardée par l'époque de session (pas d'écriture tardive).
+            // serveur si j’ai gagné/perdu) pour l’afficher immédiatement. Lecture ATTENDUE (pas un
+            // .then() détaché) et gardée par l’époque de session (pas d’écriture tardive).
             const uid = state.serverUserId;
             await refreshCompetitions(uid);
             const { data } = await supabase.from('profiles').select('level').eq('id', uid).maybeSingle();
@@ -1119,8 +1119,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       setRemindersOn: (on) => {
         setState((s) => ({ ...s, remindersOn: on }));
         // (Dé)programme les rappels locaux pour MES résas à venir (pas celles des autres,
-        // qu'un compte club/opérateur reçoit via RLS) selon l'interrupteur. isOwner distingue
-        // mes réservations d'une invitation d'ami (rappels adaptés, cf. scheduleMatchReminder).
+        // qu’un compte club/opérateur reçoit via RLS) selon l’interrupteur. isOwner distingue
+        // mes réservations d’une invitation d’ami (rappels adaptés, cf. scheduleMatchReminder).
         const upcoming = myReservations
           .filter((r) => r.startsAt > Date.now())
           .map((r) => ({ ...r, isOwner: !r.userId || r.userId === state.serverUserId }));
@@ -1156,8 +1156,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({ ...s, myCompetitions: [{ ...c, id: uid(), createdByMe: true, server: false }, ...s.myCompetitions] }));
         return { ok: true };
       },
-      // Le club hôte (ou l'opérateur) valide un tournoi créé par un joueur (« en attente » → visible).
-      // Renvoie false si le serveur a refusé (réseau/droits) → l'UI affiche l'échec au lieu de se taire.
+      // Le club hôte (ou l’opérateur) valide un tournoi créé par un joueur (« en attente » → visible).
+      // Renvoie false si le serveur a refusé (réseau/droits) → l’UI affiche l’échec au lieu de se taire.
       approveCompetition: async (id) => {
         const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
         if (serverComp) {
@@ -1202,7 +1202,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ? s
             : { ...s, compRegistrations: { ...s.compRegistrations, [id]: { partner: partner.trim() || 'Partenaire', at: Date.now() } } },
         );
-        if (serverComp && state.serverUserId) void refreshCompetitions(state.serverUserId); // maj du compteur d'inscrits
+        if (serverComp && state.serverUserId) void refreshCompetitions(state.serverUserId); // maj du compteur d’inscrits
         return true;
       },
       unregisterCompetition: async (id) => {
@@ -1227,17 +1227,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       addReservation: async (r) => {
-        // Garde-fou : on ne réserve jamais un créneau dont l'heure de début est passée.
+        // Garde-fou : on ne réserve jamais un créneau dont l’heure de début est passée.
         if (r.startsAt <= Date.now()) return { ok: false, reason: 'past' };
         // Limite anti-blocage : un joueur ne peut pas accaparer trop de créneaux à venir. La règle
-        // vit ICI (et non dans un seul écran) → elle s'applique à la fiche club ET à la fiche rapide.
+        // vit ICI (et non dans un seul écran) → elle s’applique à la fiche club ET à la fiche rapide.
         const myUpcoming = state.reservations.filter(
           (x) => (!x.userId || x.userId === state.serverUserId) && x.startsAt > Date.now(),
         ).length;
         if (myUpcoming >= MAX_UPCOMING) return { ok: false, reason: 'limit' };
         // Anti double-réservation locale (réponse immédiate). La barrière FORTE reste la
         // contrainte unique serveur : si un autre joueur a pris le terrain entre-temps,
-        // l'insert échoue (conflict) et on renvoie une erreur.
+        // l’insert échoue (conflict) et on renvoie une erreur.
         const sameSlot = (x: { clubId: string; dateKey: string; time: string; court: string }) =>
           x.clubId === r.clubId && x.dateKey === r.dateKey && x.time === r.time && x.court === r.court;
         if (state.reservations.some(sameSlot) || state.occupancy.some(sameSlot)) return { ok: false, reason: 'conflict' };
@@ -1245,18 +1245,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ? { name: `${state.account.firstName} ${state.account.lastName}`.trim(), phone: state.account.phone }
           : undefined;
 
-        // Mode SERVEUR (connecté) : on écrit sur Supabase d'abord (source de vérité).
+        // Mode SERVEUR (connecté) : on écrit sur Supabase d’abord (source de vérité).
         if (state.serverUserId) {
           const res = await insertReservation(r, state.serverUserId, bookedBy);
           if (!res.ok || !res.reservation) {
-            // Conflit (un autre joueur a pris le terrain) : on resynchronise l'occupation
+            // Conflit (un autre joueur a pris le terrain) : on resynchronise l’occupation
             // pour que la disponibilité affichée se corrige immédiatement (anti dead-loop).
             if (res.conflict) {
               const fresh = await fetchOccupancy();
               if (fresh) setState((s) => ({ ...s, occupancy: fresh }));
               return { ok: false, reason: 'conflict' };
             }
-            // Échec réseau/serveur (≠ conflit) : le terrain n'est PAS pris — le message doit
+            // Échec réseau/serveur (≠ conflit) : le terrain n’est PAS pris — le message doit
             // inviter à réessayer, pas à changer de terrain.
             return { ok: false, reason: 'network' };
           }
@@ -1277,7 +1277,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           return { ok: true };
         }
 
-        // Mode LOCAL (démo, hors session) : comportement d'origine.
+        // Mode LOCAL (démo, hors session) : comportement d’origine.
         const localId = uid();
         setState((s) => {
           if (s.reservations.some(sameSlot)) return s;
@@ -1288,11 +1288,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       cancelReservation: async (id) => {
         const res = state.reservations.find((r) => r.id === id);
-        // Serveur d'abord (si connecté et résa serveur) : on n'efface le miroir qu'au succès.
-        // La fonction serveur refuse l'annulation à moins de 5h (règle non contournable).
+        // Serveur d’abord (si connecté et résa serveur) : on n’efface le miroir qu’au succès.
+        // La fonction serveur refuse l’annulation à moins de 5h (règle non contournable).
         if (state.serverUserId && res) {
           const ok = await cancelReservationRow(id);
-          if (!ok) return false; // refus serveur (délai 5h) ou réseau → on ne ment pas à l'UI
+          if (!ok) return false; // refus serveur (délai 5h) ou réseau → on ne ment pas à l’UI
         }
         void cancelMatchReminder(id); // on retire son rappel local
 
@@ -1307,9 +1307,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
         return true;
       },
-      // Le club (ou l'opérateur) marque une réservation « pas venu » : la fonction serveur la
+      // Le club (ou l’opérateur) marque une réservation « pas venu » : la fonction serveur la
       // passe en 'no_show' (créneau libéré, absence comptée). On retire la résa du miroir local
-      // et l'occupation correspondante, comme pour une annulation. false si refusé.
+      // et l’occupation correspondante, comme pour une annulation. false si refusé.
       markNoShow: async (id) => {
         const res = state.reservations.find((r) => r.id === id);
         const ok = await markNoShowRow(id, true);
@@ -1325,9 +1325,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }));
         return true;
       },
-      // Réservation partagée : l'invité accepte ou refuse. Mise à jour optimiste (on retire
-      // l'invitation des « à confirmer » ; si refus, on retire aussi la résa de ma liste), puis
-      // on confirme côté serveur — en cas d'échec on rejoue l'état précédent.
+      // Réservation partagée : l’invité accepte ou refuse. Mise à jour optimiste (on retire
+      // l’invitation des « à confirmer » ; si refus, on retire aussi la résa de ma liste), puis
+      // on confirme côté serveur — en cas d’échec on rejoue l’état précédent.
       respondInvitation: async (reservationId, accept) => {
         const epoch = sessionEpochRef.current;
         const prevPending = state.pendingInvitationIds;
@@ -1340,7 +1340,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : s.participantReservationIds.filter((id) => id !== reservationId),
         }));
         const ok = await respondInvitationRpc(reservationId, accept);
-        // Garde d'époque : une déconnexion pendant l'appel a déjà vidé ces tranches — la
+        // Garde d’époque : une déconnexion pendant l’appel a déjà vidé ces tranches — la
         // restauration tardive réinjecterait les données du compte sorti.
         if (!ok && sessionEpochRef.current === epoch) {
           setState((s) => ({ ...s, pendingInvitationIds: prevPending, participantReservationIds: prevParts }));
@@ -1353,7 +1353,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const next = !res?.clubConfirmed;
         if (state.serverUserId && res) {
           const ok = await setClubConfirmedRow(id, next);
-          if (!ok) return false; // RLS/réseau a refusé → on ne bascule pas l'affichage
+          if (!ok) return false; // RLS/réseau a refusé → on ne bascule pas l’affichage
         }
         if (sessionEpochRef.current !== epoch) return false; // déconnexion entre-temps
         setState((s) => ({
@@ -1363,17 +1363,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return true;
       },
       sendFriendRequest: async (phone) => {
-        // Hors session : impossible d'envoyer une vraie demande.
+        // Hors session : impossible d’envoyer une vraie demande.
         if (!state.serverUserId) return { status: 'error' };
         const res = await sendFriendRequestOnServer(phone);
-        // Cas 'accepted' (la personne m'avait déjà invité) : le lien mutuel est créé côté serveur,
-        // on l'ajoute tout de suite au miroir local (anti-doublon par id / numéro).
+        // Cas 'accepted' (la personne m’avait déjà invité) : le lien mutuel est créé côté serveur,
+        // on l’ajoute tout de suite au miroir local (anti-doublon par id / numéro).
         if (res.status === 'accepted' && res.friend) {
           const friend = res.friend;
           setState((s) => {
-            // On retire aussi la demande ENTRANTE correspondante : le serveur venait de l'accepter
-            // automatiquement (envoi croisé) — sans ça, la carte « Demande d'ami » restait affichée
-            // avec des boutons Accepter/Refuser qui n'avaient plus rien à confirmer côté serveur.
+            // On retire aussi la demande ENTRANTE correspondante : le serveur venait de l’accepter
+            // automatiquement (envoi croisé) — sans ça, la carte « Demande d’ami » restait affichée
+            // avec des boutons Accepter/Refuser qui n’avaient plus rien à confirmer côté serveur.
             const friendRequests = s.friendRequests.filter((r) => r.fromId !== friend.id);
             if (s.friends.some((f) => f.id === friend.id)) return { ...s, friendRequests };
             const digits = phone.replace(/\D/g, '').slice(-10);
@@ -1389,8 +1389,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const epoch = sessionEpochRef.current;
         const ok = await respondFriendRequestOnServer(requestId, accept);
         if (!ok || sessionEpochRef.current !== epoch) return ok; // déconnexion pendant la requête
-        // On retire la demande de la liste « reçues » et, si acceptée, on recharge la liste d'amis
-        // (le lien mutuel vient d'être créé côté serveur → id stable, nom, niveau à jour).
+        // On retire la demande de la liste « reçues » et, si acceptée, on recharge la liste d’amis
+        // (le lien mutuel vient d’être créé côté serveur → id stable, nom, niveau à jour).
         setState((s) => ({ ...s, friendRequests: s.friendRequests.filter((r) => r.requestId !== requestId) }));
         if (accept)
           void fetchFriends().then((friends) => friends && sessionEpochRef.current === epoch && setState((s) => ({ ...s, friends })));
@@ -1398,7 +1398,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       removeFriend: async (id) => {
         // Aligné sur respondFriendRequest : on attend la confirmation SERVEUR avant de retirer
-        // l'ami de l'affichage (sinon, hors-ligne, il réapparaît au prochain fetchFriends réussi).
+        // l’ami de l’affichage (sinon, hors-ligne, il réapparaît au prochain fetchFriends réussi).
         if (!state.serverUserId) {
           setState((s) => ({ ...s, friends: s.friends.filter((f) => f.id !== id) }));
           return true;
@@ -1416,7 +1416,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ? s.favoriteClubIds.filter((x) => x !== clubId)
             : [...s.favoriteClubIds, clubId],
         })),
-      // Photo de club : un fichier local est d'abord ENVOYÉ au Storage (URL publique) pour que
+      // Photo de club : un fichier local est d’abord ENVOYÉ au Storage (URL publique) pour que
       // les joueurs la voient sur tous les appareils ; une URL https est gardée telle quelle.
       // Puis on enregistre la liste des photos côté serveur (config club).
       addClubPhoto: async (clubId, uri) => {
@@ -1427,10 +1427,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const isLocalUri = !/^https?:\/\//.test(uri);
         if (state.serverUserId && isLocalUri) {
           const uploaded = await uploadClubPhoto(clubId, uri);
-          // Échec d'upload sur un club serveur : on N'ENREGISTRE PAS une URI locale (file:// ou
+          // Échec d’upload sur un club serveur : on N’ENREGISTRE PAS une URI locale (file:// ou
           // data-URI) — elle serait illisible pour les autres appareils/joueurs. On prévient.
           if (!uploaded) {
-            Alert.alert('Photo non envoyée', "L'envoi de la photo a échoué. Vérifie ta connexion et réessaie.");
+            Alert.alert('Photo non envoyée', "L’envoi de la photo a échoué. Vérifie ta connexion et réessaie.");
             return;
           }
           finalUrl = uploaded;
@@ -1494,12 +1494,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let finalUrl = uri;
         if (uri && state.serverUserId && !/^https?:\/\//.test(uri)) {
           finalUrl = await uploadClubPhoto(clubId, uri);
-          if (!finalUrl) return false; // échec d'upload : on n'enregistre JAMAIS une URI locale
+          if (!finalUrl) return false; // échec d’upload : on n’enregistre JAMAIS une URI locale
         }
         if (state.serverUserId) {
           const ok = await upsertClubConfig(clubId, { coverUrl: finalUrl ?? '' });
           if (!ok) return false;
-          // L'ancienne cover uploadée ne sert plus à rien → suppression best-effort du fichier.
+          // L’ancienne cover uploadée ne sert plus à rien → suppression best-effort du fichier.
           if (previous && previous !== finalUrl) void removeClubPhotoFile(previous);
         }
         setState((s) => {
@@ -1518,7 +1518,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         let finalUrl = uri;
         if (uri && state.serverUserId && !/^https?:\/\//.test(uri)) {
           finalUrl = await uploadClubPhoto(clubId, uri);
-          if (!finalUrl) return false; // échec d'upload : on n'enregistre JAMAIS une URI locale
+          if (!finalUrl) return false; // échec d’upload : on n’enregistre JAMAIS une URI locale
         }
         const next = { ...current };
         if (finalUrl) next[court] = finalUrl;
@@ -1531,7 +1531,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => ({ ...s, clubCourtPhotos: { ...s.clubCourtPhotos, [clubId]: next } }));
         return true;
       },
-      // Demande de cours (élève). Fonctionnalité 100 % serveur : hors session → false (l'UI
+      // Demande de cours (élève). Fonctionnalité 100 % serveur : hors session → false (l’UI
       // invite à se connecter). Le miroir « mes cours » est rechargé au succès.
       requestCoachLesson: async (input) => {
         if (!state.serverUserId) return false;
@@ -1573,12 +1573,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         setState((s) => {
           const merged = { ...s.clubInfo[clubId], ...patch };
           // Le gérant connecté pousse sa page au serveur (visible par tous). Le serveur refuse
-          // si ce n'est pas son club (gérant d'un autre club / joueur) — la modif reste alors locale.
+          // si ce n’est pas son club (gérant d’un autre club / joueur) — la modif reste alors locale.
           if (s.serverUserId) void upsertClubOverride(clubId, merged);
           return { ...s, clubInfo: { ...s.clubInfo, [clubId]: merged } };
         }),
-      // Boost piloté côté SERVEUR → visible par tous les joueurs. On écrit d'abord au serveur
-      // (réservé à l'opérateur), puis on met à jour le miroir local au succès.
+      // Boost piloté côté SERVEUR → visible par tous les joueurs. On écrit d’abord au serveur
+      // (réservé à l’opérateur), puis on met à jour le miroir local au succès.
       setBoost: async (clubId, days) => {
         const epoch = sessionEpochRef.current;
         const expiry = days > 0 ? Date.now() + days * 86400000 : null;
@@ -1647,15 +1647,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // Le gérant bascule directement sur SON club pour préparer sa page.
           return { ...s, customClubs: [...s.customClubs, club], managedClubId: club.id };
         }),
-      // Le gérant annule SA demande tant qu'elle est « en attente » (pas encore activée).
+      // Le gérant annule SA demande tant qu’elle est « en attente » (pas encore activée).
       cancelOwnClubRequest: (id) =>
         setState((s) => ({
           ...s,
           customClubs: s.customClubs.filter((c) => !(c.id === id && c.status === 'pending')),
         })),
-      // ── Demandes d'inscription club (serveur) ──────────────────────────────
+      // ── Demandes d’inscription club (serveur) ──────────────────────────────
       // Un joueur envoie « inscris mon club » → ligne dans club_requests (RLS :
-      // l'auteur peut créer, seul l'opérateur lit/traite). L'opérateur les voit
+      // l’auteur peut créer, seul l’opérateur lit/traite). L’opérateur les voit
       // dans son espace et change leur statut (nouveau → contacté → approuvé…).
       submitClubRequest: async (input) => {
         const {
@@ -1682,8 +1682,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       fetchClubRequests: async () => {
         const { data, error } = await supabase.from('club_requests').select('*').order('created_at', { ascending: false });
-        // On distingue « rien à traiter » d'un échec (réseau / RLS) : l'opérateur ne doit
-        // pas croire qu'il n'y a aucune demande alors que le chargement a juste échoué.
+        // On distingue « rien à traiter » d’un échec (réseau / RLS) : l’opérateur ne doit
+        // pas croire qu’il n’y a aucune demande alors que le chargement a juste échoué.
         if (error) return { ok: false, requests: [] };
         return { ok: true, requests: (data ?? []) as ServerClubRequest[] };
       },
@@ -1691,7 +1691,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const { error } = await supabase.from('club_requests').update({ status }).eq('id', id);
         return { ok: !error };
       },
-      // Approbation serveur : crée le club + donne l'accès gérant au demandeur, puis
+      // Approbation serveur : crée le club + donne l’accès gérant au demandeur, puis
       // recharge la liste des clubs serveur pour que le nouveau club apparaisse aussitôt.
       approveClubRequest: async (requestId) => {
         const res = await approveClubRequestRpc(requestId);
@@ -1701,7 +1701,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         return res;
       },
-      // Opérateur : change le statut d'un club serveur (Actif ⇄ Bientôt ⇄ masqué) puis
+      // Opérateur : change le statut d’un club serveur (Actif ⇄ Bientôt ⇄ masqué) puis
       // recharge la liste pour refléter le changement immédiatement.
       operatorSetClubStatus: async (clubId, status) => {
         const ok = await setClubStatusRpc(clubId, status);
@@ -1711,9 +1711,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         return { ok };
       },
-      // Opérateur : bascule le statut de N'IMPORTE QUEL club (y compris les 9 de base
+      // Opérateur : bascule le statut de N’IMPORTE QUEL club (y compris les 9 de base
       // embarqués). On relit la table club_status, met à jour le registre lu par data/clubs
-      // (badges « Bientôt »/masquage appliqués partout) et l'état pour re-rendre.
+      // (badges « Bientôt »/masquage appliqués partout) et l’état pour re-rendre.
       operatorSetBaseStatus: async (clubId, status) => {
         const ok = await setBaseClubStatusRpc(clubId, status);
         if (ok) {
@@ -1725,16 +1725,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         return { ok };
       },
-      // Opérateur : donne l'accès « Espace Club » à un joueur (par numéro) pour un club donné.
-      // Le gérant le voit apparaître au prochain retour dans l'app (rafraîchissement du rôle).
+      // Opérateur : donne l’accès « Espace Club » à un joueur (par numéro) pour un club donné.
+      // Le gérant le voit apparaître au prochain retour dans l’app (rafraîchissement du rôle).
       operatorGrantClubAccess: async (phone, clubId) => grantClubAccessByPhoneRpc(phone, clubId),
       operatorRevokeClubAccess: async (phone) => revokeClubAccessByPhoneRpc(phone),
-      // Opérateur : fixe la commission propre à un club (taux 0–1). Met à jour l'état local
+      // Opérateur : fixe la commission propre à un club (taux 0–1). Met à jour l’état local
       // pour que le décompte se recalcule aussitôt avec le bon pourcentage.
       operatorSetClubCommission: async (clubId, rate) => {
         const epoch = sessionEpochRef.current;
         const ok = await setClubCommissionRpc(clubId, rate);
-        // Garde d'époque : clubCommission est purgée à la déconnexion — pas d'écriture tardive.
+        // Garde d’époque : clubCommission est purgée à la déconnexion — pas d’écriture tardive.
         if (ok && sessionEpochRef.current === epoch) setState((s) => ({ ...s, clubCommission: { ...s.clubCommission, [clubId]: rate } }));
         return { ok };
       },
@@ -1800,7 +1800,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
-        if (error) return null; // échec réseau ≠ « aucun message » — l'écran garde l'existant
+        if (error) return null; // échec réseau ≠ « aucun message » — l’écran garde l’existant
         return (data ?? []) as ServerSupportMessage[];
       },
       setSupportMessageStatus: async (id, status) => {
@@ -1817,7 +1817,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         })),
       setManagedClub: (id) => setState((s) => ({ ...s, managedClubId: id })),
       // Horaires/terrains : le gérant connecté pousse au serveur (visible par TOUS les joueurs,
-      // change la disponibilité réelle). Le serveur refuse si ce n'est pas son club → reste local.
+      // change la disponibilité réelle). Le serveur refuse si ce n’est pas son club → reste local.
       setClubSlots: (clubId, slots) =>
         setState((s) => {
           const next = [...slots].sort();
@@ -1839,7 +1839,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (state.blockedSlots.some(sameSlot)) return false;
         // Ceinture-bretelles : jamais de blocage manuel par-dessus un terrain déjà retenu par un
         // tournoi publié (même protection que la grille/le détail de créneau côté UI) — même si
-        // un appelant oubliait de vérifier avant d'appeler blockSlot.
+        // un appelant oubliait de vérifier avant d’appeler blockSlot.
         const comps = [
           ...state.myCompetitions.filter((c) => c.clubId === b.clubId),
           ...seedCompetitions.filter((c) => c.clubId === b.clubId),
@@ -1861,14 +1861,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           ),
         }));
       },
-      // L'opérateur publie/met à jour l'actu d'accueil. On ne régénère l'id (ce qui la
-      // fait RÉAPPARAÎTRE chez les joueurs qui l'avaient fermée) QUE si le contenu change.
-      // ok = false si la publication SERVEUR échoue : l'appelant doit le dire honnêtement (au lieu
-      // d'un « Publiée ✓ » mensonger si l'actu n'a en fait été enregistrée que localement).
+      // L’opérateur publie/met à jour l’actu d’accueil. On ne régénère l’id (ce qui la
+      // fait RÉAPPARAÎTRE chez les joueurs qui l’avaient fermée) QUE si le contenu change.
+      // ok = false si la publication SERVEUR échoue : l’appelant doit le dire honnêtement (au lieu
+      // d’un « Publiée ✓ » mensonger si l’actu n’a en fait été enregistrée que localement).
       setOperatorNews: async (news) => {
         const title = news.title.trim();
         const subtitle = news.subtitle?.trim() || undefined;
-        // Lien : on n'accepte qu'une URL ; on préfixe https:// si l'opérateur l'a oublié.
+        // Lien : on n’accepte qu’une URL ; on préfixe https:// si l’opérateur l’a oublié.
         let link = news.link?.trim() || undefined;
         if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
         if (link && !/^https?:\/\/.+\..+/i.test(link)) link = undefined;
@@ -1887,7 +1887,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       dismissNews: (id) => setState((s) => ({ ...s, dismissedNewsId: id })),
       resetAll: () => {
         // Réinitialisation TOTALE : on coupe la session serveur, on efface les rappels et
-        // la clé persistée, puis on revient à l'état seed complet (≈ première ouverture).
+        // la clé persistée, puis on revient à l’état seed complet (≈ première ouverture).
         sessionEpochRef.current += 1; // invalide toute requête en vol
         supabase.auth.signOut().catch(() => {});
         void syncMatchReminders([], false);

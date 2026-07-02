@@ -42,7 +42,7 @@ export default function ReserverScreen() {
   const todayOver = useMemo(() => !grid.some((t) => slotTimestamp(days[0].key, t) > Date.now()), [grid, days]);
   const [day, setDay] = useState(todayOver ? days[1] : days[0]);
   const [slot, setSlot] = useState<string | null>(null); // créneau choisi (vue « Par heure » guidée)
-  // La dernière vue utilisée est mémorisée (l'écran rouvre comme tu l'avais laissé).
+  // La dernière vue utilisée est mémorisée (l’écran rouvre comme tu l’avais laissé).
   const view = state.reserverView;
   const setView = setReserverView;
   const [sheet, setSheet] = useState<{ club: Club; time: string } | null>(null);
@@ -74,8 +74,8 @@ export default function ReserverScreen() {
     .filter((r) => r.ts > Date.now()); // on masque les heures déjà passées
   const selectedRow = rows.find((r) => r.time === slot) ?? null;
 
-  // Priorité d'affichage des clubs : Padelta (règle porteur) → mes FAVORIS (l'habitué
-  // re-réserve en un geste) → le reste en ordre alphabétique (ordre d'activeClubs).
+  // Priorité d’affichage des clubs : Padelta (règle porteur) → mes FAVORIS (l’habitué
+  // re-réserve en un geste) → le reste en ordre alphabétique (ordre d’activeClubs).
   const favIds = state.favoriteClubIds;
   const clubRank = (c: Club) => (isFeaturedClub(c.id) ? 0 : favIds.includes(c.id) ? 1 : 2);
 
@@ -89,7 +89,7 @@ export default function ReserverScreen() {
         .map((time) => ({ time, ts: slotTimestamp(day.key, time) }))
         .filter((s) => s.ts > Date.now() && freeCourts(club, day.key, s.time, ctx).length > 0),
     }))
-    // Tri STABLE par priorité : à rang égal, l'ordre alphabétique de visibleClubs est conservé.
+    // Tri STABLE par priorité : à rang égal, l’ordre alphabétique de visibleClubs est conservé.
     .sort((a, b) => clubRank(a.club) - clubRank(b.club));
 
   const open = (club: Club, time: string) => {
@@ -120,7 +120,7 @@ export default function ReserverScreen() {
                 style={[styles.dayPill, active && styles.dayPillActive]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                accessibilityLabel={`${i === 0 ? "Aujourd'hui" : DOW[dd.getUTCDay()]} ${dd.getUTCDate()}`}
+                accessibilityLabel={`${i === 0 ? "Aujourd’hui" : DOW[dd.getUTCDay()]} ${dd.getUTCDate()}`}
               >
                 <Txt variant="small" color={active ? colors.onSignature : colors.textFaint} style={{ fontSize: 10, fontWeight: '700' }}>
                   {i === 0 ? 'AUJ.' : DOW[dd.getUTCDay()]}
@@ -137,7 +137,7 @@ export default function ReserverScreen() {
           <View style={styles.autoHint}>
             <Ionicons name="moon-outline" size={13} color={colors.textMuted} />
             <Txt variant="small" color={colors.textMuted}>
-              Plus de créneaux aujourd'hui — voici demain.
+              Plus de créneaux aujourd’hui — voici demain.
             </Txt>
           </View>
         ) : null}
@@ -163,7 +163,7 @@ export default function ReserverScreen() {
             </View>
           ) : (
             <>
-              {/* Grille de créneaux (maquette) : on choisit d'abord l'heure */}
+              {/* Grille de créneaux (maquette) : on choisit d’abord l’heure */}
               <Txt variant="label" color={colors.textFaint} style={{ marginBottom: spacing.sm }}>
                 Choisis un créneau · 1h30
               </Txt>

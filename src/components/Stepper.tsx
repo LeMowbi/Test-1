@@ -3,8 +3,8 @@ import { Animated, View, StyleSheet } from 'react-native';
 import { Txt } from './ui';
 import { colors, radius, spacing } from '@/theme';
 
-// Un segment : fond « à venir » (surfaceAlt) recouvert d'un calque signature dont l'opacité
-// s'anime de 0 → 1 quand l'étape est franchie → le remplissage se fait en douceur (pas un saut).
+// Un segment : fond « à venir » (surfaceAlt) recouvert d’un calque signature dont l’opacité
+// s’anime de 0 → 1 quand l’étape est franchie → le remplissage se fait en douceur (pas un saut).
 function Segment({ filled }: { filled: boolean }) {
   const fill = useRef(new Animated.Value(filled ? 1 : 0)).current;
   useEffect(() => {

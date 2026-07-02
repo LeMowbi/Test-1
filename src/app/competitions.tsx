@@ -21,16 +21,16 @@ export default function CompetitionsScreen() {
   const [tab, setTab] = useState<(typeof TABS)[number]>('Tous');
 
   const list = [...state.myCompetitions, ...seedCompetitions]
-    // Un tournoi « en attente » n'est visible que par son créateur (sinon masqué jusqu'à validation du club).
+    // Un tournoi « en attente » n’est visible que par son créateur (sinon masqué jusqu’à validation du club).
     .filter((c) => isTournamentPublic(c) || c.createdByMe)
     .filter((c) => {
       if (tab === 'Par les clubs') return c.organizerType === 'club';
       if (tab === 'Par les joueurs') return c.organizerType === 'joueur';
       return true;
     });
-  // À venir d'abord ; les tournois passés restent accessibles (déclaration du résultat).
+  // À venir d’abord ; les tournois passés restent accessibles (déclaration du résultat).
   const today = dayKey(new Date());
-  // Un tournoi multi-jours reste « à venir » tant que sa date de FIN n'est pas passée.
+  // Un tournoi multi-jours reste « à venir » tant que sa date de FIN n’est pas passée.
   const upcoming = list.filter((c) => (c.endDateKey ?? c.dateKey) >= today);
   const past = list.filter((c) => (c.endDateKey ?? c.dateKey) < today);
 

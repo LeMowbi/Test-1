@@ -5,8 +5,8 @@ import { colors } from '@/theme';
 
 // Pull-to-refresh standard (glisser vers le bas) : recharge la session serveur — mes
 // réservations, la disponibilité, les clubs et leur config. Factorisé pour que chaque écran
-// scrollable l'ajoute en une ligne : `const { refreshControl } = usePullToRefresh();`.
-// `extra` permet de recharger en plus une donnée propre à l'écran (ex. les avis d'un club).
+// scrollable l’ajoute en une ligne : `const { refreshControl } = usePullToRefresh();`.
+// `extra` permet de recharger en plus une donnée propre à l’écran (ex. les avis d’un club).
 export function usePullToRefresh(extra?: () => Promise<void> | void) {
   const { refreshSession } = useApp();
   const [refreshing, setRefreshing] = useState(false);

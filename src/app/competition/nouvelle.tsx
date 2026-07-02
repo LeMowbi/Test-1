@@ -38,7 +38,7 @@ function Field({
         value={value}
         onChangeText={onChangeText}
         placeholder={placeholder}
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         style={[styles.input, error ? { borderColor: colors.danger } : null]}
       />
       {error ? (
@@ -55,9 +55,9 @@ export default function NouvelleCompetition() {
   const params = useLocalSearchParams<{ as?: string; clubId?: string }>();
   const { state, addCompetition } = useApp();
   const toast = useToast();
-  // « asClub » (tournoi OFFICIEL, publié direct) n'est autorisé qu'aux comptes club/opérateur :
-  // on le verrouille sur le RÔLE, pas seulement sur le paramètre d'URL — sinon un joueur
-  // pourrait forger « ?as=club » et créer un tournoi officiel (puis s'attribuer du niveau).
+  // « asClub » (tournoi OFFICIEL, publié direct) n’est autorisé qu’aux comptes club/opérateur :
+  // on le verrouille sur le RÔLE, pas seulement sur le paramètre d’URL — sinon un joueur
+  // pourrait forger « ?as=club » et créer un tournoi officiel (puis s’attribuer du niveau).
   const asClub = params.as === 'club' && (state.role === 'club' || state.role === 'operator');
   const club = asClub ? findClub(params.clubId, state.customClubs, state.clubInfo) : undefined;
   // Tournoi créé par un JOUEUR : il choisit le club hôte, qui devra valider.
@@ -68,8 +68,8 @@ export default function NouvelleCompetition() {
     [state.customClubs, state.clubInfo, state.clubStatus],
   );
 
-  // Tournois : planification jusqu'à ~6 semaines à l'avance (un tournoi s'organise bien plus
-  // tôt qu'une simple réservation, limitée à la semaine).
+  // Tournois : planification jusqu’à ~6 semaines à l’avance (un tournoi s’organise bien plus
+  // tôt qu’une simple réservation, limitée à la semaine).
   const dates = useMemo(() => nextDays(42), []);
   const [title, setTitle] = useState('');
   const [reward, setReward] = useState('');
@@ -89,7 +89,7 @@ export default function NouvelleCompetition() {
   const datePos = useRef(0);
 
   // Club hôte résolu (club si compte club, sinon le club choisi par le joueur) → ses terrains
-  // et créneaux réels, pour que l'organisateur réserve des terrains/heures PRÉCIS (pas tout).
+  // et créneaux réels, pour que l’organisateur réserve des terrains/heures PRÉCIS (pas tout).
   const host = asClub ? club : findClub(hostId ?? undefined, state.customClubs, state.clubInfo);
   const hostCourts = host ? courtsFor(host, state.clubCourts) : [];
   const hostSlots = host ? openSlotsFor(host, state.clubSlots) : [];
@@ -168,7 +168,7 @@ export default function NouvelleCompetition() {
         error={errors.title}
       />
       <Field label="Récompense (optionnel)" value={reward} onChangeText={setReward} placeholder="Ex. Cagnotte 30 000 FCFA" />
-      <Field label="Frais d'inscription (optionnel)" value={fee} onChangeText={setFee} placeholder="Vide = Gratuit" />
+      <Field label="Frais d’inscription (optionnel)" value={fee} onChangeText={setFee} placeholder="Vide = Gratuit" />
 
       <View onLayout={(ev) => (datePos.current = ev.nativeEvent.layout.y)}>
         <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
@@ -232,7 +232,7 @@ export default function NouvelleCompetition() {
       </View>
 
       <Txt variant="label" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-        Nombre d'équipes (places limitées)
+        Nombre d’équipes (places limitées)
       </Txt>
       <View style={styles.wrap}>
         {SLOTS.map((s) => (
@@ -240,7 +240,7 @@ export default function NouvelleCompetition() {
         ))}
       </View>
       <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-        Chaque équipe compte 2 joueurs. L'inscription se ferme une fois toutes les places prises.
+        Chaque équipe compte 2 joueurs. L’inscription se ferme une fois toutes les places prises.
       </Txt>
 
       {/* Club hôte — uniquement pour un tournoi créé par un joueur (modération) */}
@@ -300,10 +300,10 @@ export default function NouvelleCompetition() {
         </>
       ) : null}
 
-      {/* Frais fixe PadelConnect (tournois joueurs) — transparence à l'organisateur. */}
+      {/* Frais fixe PadelConnect (tournois joueurs) — transparence à l’organisateur. */}
       {isPlayerTournament && state.tournamentFee > 0 ? (
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-          Frais d'organisation PadelConnect : {fcfa(state.tournamentFee)} (réglés au club, reversés à PadelConnect).
+          Frais d’organisation PadelConnect : {fcfa(state.tournamentFee)} (réglés au club, reversés à PadelConnect).
         </Txt>
       ) : null}
 

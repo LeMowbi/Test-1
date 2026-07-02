@@ -44,7 +44,7 @@ export function SectionMonClub({ club }: { club: Club }) {
   const [courtName, setCourtName] = useState('');
 
   // Mêmes valeurs par défaut que côté joueur (créneaux standards, « Terrain 1…N ») tant que le
-  // gérant n'a rien personnalisé → cohérence avec le planning et ce que les joueurs voient.
+  // gérant n’a rien personnalisé → cohérence avec le planning et ce que les joueurs voient.
   const openSlots = openSlotsFor(club, state.clubSlots);
   const courts = courtsFor(club, state.clubCourts);
   const photos = state.clubPhotos[club.id] ?? [];
@@ -65,7 +65,7 @@ export function SectionMonClub({ club }: { club: Club }) {
     if (!connected) return;
     let alive = true;
     void fetchClubCoaches(clubId).then((cs) => {
-      if (alive && cs) setBookableCoaches(cs); // null = échec réseau → on garde l'existant
+      if (alive && cs) setBookableCoaches(cs); // null = échec réseau → on garde l’existant
     });
     return () => {
       alive = false;
@@ -98,7 +98,7 @@ export function SectionMonClub({ club }: { club: Club }) {
     const ok = await clubRemoveCoach(c.userId);
     if (ok) {
       setBookableCoaches((cur) => cur.filter((x) => x.userId !== c.userId));
-      toast.show(`${c.name} n'est plus coach du club`);
+      toast.show(`${c.name} n’est plus coach du club`);
     } else {
       toast.show('Retrait impossible — réessaie', { icon: 'alert-circle' });
     }
@@ -164,7 +164,7 @@ export function SectionMonClub({ club }: { club: Club }) {
     }
     const uri = await pickImage();
     if (!uri) return;
-    // La photo est envoyée au serveur (visible par tous) : court délai → on signale l'envoi.
+    // La photo est envoyée au serveur (visible par tous) : court délai → on signale l’envoi.
     setUploadingPhoto(true);
     await addClubPhoto(club.id, uri);
     setUploadingPhoto(false);
@@ -193,8 +193,8 @@ export function SectionMonClub({ club }: { club: Club }) {
     setCoachPhone('');
   };
 
-  // Checklist d'accueil : guide un club fraîchement rattaché vers une page complète.
-  // Chaque ligne reflète l'état RÉEL ; la carte disparaît quand tout est fait.
+  // Checklist d’accueil : guide un club fraîchement rattaché vers une page complète.
+  // Chaque ligne reflète l’état RÉEL ; la carte disparaît quand tout est fait.
   const checklist = [
     { done: !!cover || photos.length > 0, label: 'Ajoute tes photos (profil + galerie)' },
     { done: !!state.clubSlots[club.id], label: 'Vérifie tes horaires ouverts à la réservation' },
@@ -263,7 +263,7 @@ export function SectionMonClub({ club }: { club: Club }) {
             Photo de profil
           </Txt>
           <Txt variant="muted" style={{ marginTop: 2 }}>
-            C'est elle que les joueurs voient sur ta carte, avant d'ouvrir ta fiche.
+            C’est elle que les joueurs voient sur ta carte, avant d’ouvrir ta fiche.
           </Txt>
           <View style={styles.coverRow}>
             <ClubPhoto uri={cover} accent={club.accent} initials={initials(club.name)} height={90} width={120} rounded={radius.md} />
@@ -295,13 +295,13 @@ export function SectionMonClub({ club }: { club: Club }) {
             Galerie
           </Txt>
           <Txt variant="muted" style={{ marginTop: 2 }}>
-            Ajoute les vraies photos de ton club (visibles par les joueurs). Jusqu'à {MAX_CLUB_PHOTOS} photos.
+            Ajoute les vraies photos de ton club (visibles par les joueurs). Jusqu’à {MAX_CLUB_PHOTOS} photos.
           </Txt>
           {state.storageFull ? (
             <View style={styles.storageWarn}>
               <Ionicons name="warning-outline" size={16} color={colors.danger} />
               <Txt variant="small" color={colors.danger} style={{ flex: 1 }}>
-                Stockage plein — certaines photos n'ont pas pu être enregistrées. Retire-en quelques-unes.
+                Stockage plein — certaines photos n’ont pas pu être enregistrées. Retire-en quelques-unes.
               </Txt>
             </View>
           ) : null}
@@ -333,8 +333,8 @@ export function SectionMonClub({ club }: { club: Club }) {
             <TextInput
               value={url}
               onChangeText={setUrl}
-              placeholder="…ou coller un lien d'image (https://)"
-              placeholderTextColor={colors.textFaint}
+              placeholder="…ou coller un lien d’image (https://)"
+              placeholderTextColor={colors.textMuted}
               autoCapitalize="none"
               style={styles.input}
             />
@@ -348,7 +348,7 @@ export function SectionMonClub({ club }: { club: Club }) {
         <SectionHeader title="Offres, actus & événements" />
         <Card>
           <Txt variant="muted">
-            Publie ce que tu veux : promotions, infos du club, soirées, animations… Les événements s'affichent dans la section « Événements
+            Publie ce que tu veux : promotions, infos du club, soirées, animations… Les événements s’affichent dans la section « Événements
             & tournois » de ta page.
           </Txt>
           <View style={[styles.wrap, { marginTop: spacing.md }]}>
@@ -360,14 +360,14 @@ export function SectionMonClub({ club }: { club: Club }) {
             value={offerTitle}
             onChangeText={setOfferTitle}
             placeholder={offerKind === 'evenement' ? 'Titre (ex. Soirée Americano vendredi 20h)' : 'Titre (ex. -20% le mardi)'}
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             style={styles.input}
           />
           <TextInput
             value={offerDetail}
             onChangeText={setOfferDetail}
             placeholder="Détail (optionnel)"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             style={styles.input}
           />
           <View style={{ marginTop: spacing.sm }}>
@@ -402,13 +402,13 @@ export function SectionMonClub({ club }: { club: Club }) {
       </View>
 
       {/* Coachs RÉSERVABLES : un compte joueur promu coach reçoit son « Espace Coach » et les
-          joueurs lui demandent un cours dans l'app (terrain réservé à son acceptation). */}
+          joueurs lui demandent un cours dans l’app (terrain réservé à son acceptation). */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Coachs réservables" />
         <Card>
           <Txt variant="muted">
-            Le coach crée d'abord un compte PadelConnect normal, puis tu le déclares ici avec son numéro. Il choisit ensuite ses créneaux
-            dans son Espace Coach, et les joueurs réservent leurs cours dans l'app.
+            Le coach crée d’abord un compte PadelConnect normal, puis tu le déclares ici avec son numéro. Il choisit ensuite ses créneaux
+            dans son Espace Coach, et les joueurs réservent leurs cours dans l’app.
           </Txt>
           {!connected ? (
             <Txt variant="small" color={colors.amberDark} style={{ marginTop: spacing.sm }}>
@@ -420,7 +420,7 @@ export function SectionMonClub({ club }: { club: Club }) {
                 value={promotePhone}
                 onChangeText={setPromotePhone}
                 placeholder="Numéro du coach (+225…)"
-                placeholderTextColor={colors.textFaint}
+                placeholderTextColor={colors.textMuted}
                 keyboardType="phone-pad"
                 style={styles.input}
                 accessibilityLabel="Numéro de téléphone du coach"
@@ -429,7 +429,7 @@ export function SectionMonClub({ club }: { club: Club }) {
                 value={promoteSpec}
                 onChangeText={setPromoteSpec}
                 placeholder="Spécialité (ex. Initiation, Compétition — optionnel)"
-                placeholderTextColor={colors.textFaint}
+                placeholderTextColor={colors.textMuted}
                 style={styles.input}
                 accessibilityLabel="Spécialité du coach"
               />
@@ -486,21 +486,21 @@ export function SectionMonClub({ club }: { club: Club }) {
             value={coachName}
             onChangeText={setCoachName}
             placeholder="Nom du coach"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             style={styles.input}
           />
           <TextInput
             value={coachSpec}
             onChangeText={setCoachSpec}
             placeholder="Spécialité (ex. Initiation, Compétition)"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             style={styles.input}
           />
           <TextInput
             value={coachPhone}
             onChangeText={setCoachPhone}
             placeholder="Téléphone (+225…)"
-            placeholderTextColor={colors.textFaint}
+            placeholderTextColor={colors.textMuted}
             keyboardType="phone-pad"
             style={styles.input}
           />
@@ -585,7 +585,7 @@ export function SectionMonClub({ club }: { club: Club }) {
               value={courtName}
               onChangeText={setCourtName}
               placeholder="Nom du terrain (ex. Terrain 4, Central…)"
-              placeholderTextColor={colors.textFaint}
+              placeholderTextColor={colors.textMuted}
               style={styles.input}
             />
             <Button size="sm" label="Ajouter" icon="add" onPress={addCourt} />
@@ -597,7 +597,7 @@ export function SectionMonClub({ club }: { club: Club }) {
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Disponibilités" />
         <Card>
-          <Txt variant="muted">Touche un horaire pour l'ouvrir ou le fermer à la réservation.</Txt>
+          <Txt variant="muted">Touche un horaire pour l’ouvrir ou le fermer à la réservation.</Txt>
           <View style={styles.wrap}>
             {ALL_TIMES.map((t) => (
               <Chip key={t} label={t} active={openSlots.includes(t)} onPress={() => toggleSlot(t)} />

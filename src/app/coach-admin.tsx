@@ -16,17 +16,17 @@ import { colors, radius, spacing } from '@/theme';
 
 // ESPACE COACH — réservé aux comptes promus coach par leur club (table coaches, serveur).
 // Le coach y reçoit les demandes de cours (Accepter / Refuser), voit ses cours à venir et
-// règle sa fiche (spécialité, tarif indicatif, disponibilités). RÈGLE CLEF : le terrain n'est
-// réservé QUE lorsqu'il accepte — l'acceptation crée la réservation, que le club confirme
-// ensuite comme n'importe laquelle (double validation coach + club).
+// règle sa fiche (spécialité, tarif indicatif, disponibilités). RÈGLE CLEF : le terrain n’est
+// réservé QUE lorsqu’il accepte — l’acceptation crée la réservation, que le club confirme
+// ensuite comme n’importe laquelle (double validation coach + club).
 export default function CoachAdmin() {
   const { state, saveCoachSettings, refreshSession } = useApp();
   const toast = useToast();
 
-  // Les cours côté coach : chargés à l'ouverture, au retour au premier plan (une demande a pu
-  // arriver par push pendant que l'écran restait ouvert) et au pull-to-refresh.
-  // lessons = null tant que rien n'est chargé ; convention §8 : un échec réseau garde l'existant
-  // (failed ne sert qu'au bloc « Réessayer » du tout premier chargement).
+  // Les cours côté coach : chargés à l’ouverture, au retour au premier plan (une demande a pu
+  // arriver par push pendant que l’écran restait ouvert) et au pull-to-refresh.
+  // lessons = null tant que rien n’est chargé ; convention §8 : un échec réseau garde l’existant
+  // (failed ne sert qu’au bloc « Réessayer » du tout premier chargement).
   const [loaded, setLoaded] = useState<{ lessons: Lesson[] | null; failed: boolean }>({ lessons: null, failed: false });
   const [busyId, setBusyId] = useState<string | null>(null);
 
@@ -62,7 +62,7 @@ export default function CoachAdmin() {
   const club = findClub(profile?.clubId, state.customClubs, state.clubInfo);
 
   // Espace réservé aux coachs : sans session ou sans fiche coach active, on bloque proprement
-  // (l'entrée n'apparaît de toute façon que dans le profil d'un compte coach).
+  // (l’entrée n’apparaît de toute façon que dans le profil d’un compte coach).
   if (!userId || !profile) {
     return (
       <Screen back title="Espace Coach">
@@ -109,8 +109,8 @@ export default function CoachAdmin() {
   const all = lessons ?? [];
   const pending = all.filter((l) => l.status === 'pending' && l.startsAt > now).sort((a, b) => a.startsAt - b.startsAt);
   const upcoming = all.filter((l) => l.status === 'accepted' && l.startsAt + SESSION_MS > now).sort((a, b) => a.startsAt - b.startsAt);
-  // Historique compact : cours donnés, demandes passées/refusées ET cours annulés par l'élève
-  // après acceptation (reservationId présent) — une demande retirée avant réponse n'y figure pas.
+  // Historique compact : cours donnés, demandes passées/refusées ET cours annulés par l’élève
+  // après acceptation (reservationId présent) — une demande retirée avant réponse n’y figure pas.
   const history = all
     .filter((l) => !pending.includes(l) && !upcoming.includes(l) && (l.status !== 'cancelled' || !!l.reservationId))
     .sort((a, b) => b.startsAt - a.startsAt)
@@ -146,7 +146,7 @@ export default function CoachAdmin() {
           pending.map((l) => (
             <Card key={l.id} style={{ marginTop: spacing.sm }}>
               <LessonRow lesson={l} />
-              <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs }}>
+              <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
                 Le terrain ({l.court}) ne sera réservé que si tu acceptes.
               </Txt>
               <View style={styles.actionsRow}>
@@ -252,7 +252,7 @@ export default function CoachAdmin() {
   );
 }
 
-// Ligne récap d'un cours (élève, jour/heure, terrain, prix du terrain).
+// Ligne récap d’un cours (élève, jour/heure, terrain, prix du terrain).
 function LessonRow({ lesson: l }: { lesson: Lesson }) {
   return (
     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
@@ -264,7 +264,7 @@ function LessonRow({ lesson: l }: { lesson: Lesson }) {
         <Txt variant="muted">
           {l.dateLabel} à {l.time} · {l.court}
         </Txt>
-        {l.price ? <Txt variant="small" color={colors.textFaint}>{`Terrain : ${fcfa(l.price)} (réglé au club)`}</Txt> : null}
+        {l.price ? <Txt variant="small" color={colors.textMuted}>{`Terrain : ${fcfa(l.price)} (réglé au club)`}</Txt> : null}
       </View>
     </View>
   );
@@ -301,7 +301,7 @@ function CoachSettings({
         value={specialty}
         onChangeText={setSpecialty}
         placeholder="Spécialité (ex. Initiation, Compétition)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         style={styles.input}
         accessibilityLabel="Spécialité"
       />
@@ -309,7 +309,7 @@ function CoachSettings({
         value={price}
         onChangeText={setPrice}
         placeholder="Tarif indicatif du cours (FCFA, optionnel)"
-        placeholderTextColor={colors.textFaint}
+        placeholderTextColor={colors.textMuted}
         keyboardType="numeric"
         style={styles.input}
         accessibilityLabel="Tarif indicatif du cours"

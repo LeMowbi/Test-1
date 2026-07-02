@@ -27,7 +27,7 @@ import { openMaps } from '@/lib/maps';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { colors, radius, spacing } from '@/theme';
 
-// Date d'un avis serveur (ISO) → libellé court FR ; repli silencieux si la date est invalide.
+// Date d’un avis serveur (ISO) → libellé court FR ; repli silencieux si la date est invalide.
 function reviewDate(iso: string): string {
   const t = new Date(iso).getTime();
   return Number.isFinite(t) ? new Date(t).toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' }) : '';
@@ -35,7 +35,7 @@ function reviewDate(iso: string): string {
 
 // Barre de répartition des notes (5→1 étoiles) : se remplit de 0 % à `pct` au premier montage
 // du bloc « Avis vérifiés » (pas à chaque re-render de `reviews` — effet à dépendances vides,
-// volontairement, pour ne pas rejouer l'anim à chaque nouvel avis publié).
+// volontairement, pour ne pas rejouer l’anim à chaque nouvel avis publié).
 function RatingBar({ pct, delay }: { pct: number; delay: number }) {
   const width = useRef(new Animated.Value(0)).current;
   useEffect(() => {
@@ -57,27 +57,27 @@ export default function ClubDetail() {
   const [text, setText] = useState('');
   const [sent, setSent] = useState(false);
   const [noteError, setNoteError] = useState(false);
-  // tone distingue succès (coche verte) et échec (icône d'alerte rouge) — même overlay pour les deux.
+  // tone distingue succès (coche verte) et échec (icône d’alerte rouge) — même overlay pour les deux.
   const [toast, setToast] = useState<{ text: string; tone: 'success' | 'error' } | null>(null);
   const [viewer, setViewer] = useState<number | null>(null); // photo ouverte en plein écran
   const [tierTab, setTierTab] = useState(0); // onglet de tarifs actif (plages nommées)
-  const [showAllReviews, setShowAllReviews] = useState(false); // liste d'avis repliée par défaut
+  const [showAllReviews, setShowAllReviews] = useState(false); // liste d’avis repliée par défaut
   const [serverReviews, setServerReviews] = useState<ServerReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true); // 1er chargement → squelette (≠ « 0 avis »)
   const [reviewsError, setReviewsError] = useState(false); // échec réseau au 1er chargement (≠ « aucun avis »)
   const [replyTarget, setReplyTarget] = useState<string | null>(null); // avis auquel le gérant répond
   const [replyDraft, setReplyDraft] = useState('');
-  const [submitting, setSubmitting] = useState(false); // garde anti double-tap : publier l'avis
+  const [submitting, setSubmitting] = useState(false); // garde anti double-tap : publier l’avis
   const [replying, setReplying] = useState(false); // garde anti double-tap : publier la réponse
   const [removing, setRemoving] = useState(false); // garde anti double-tap : supprimer mon avis
   const [serverCoaches, setServerCoaches] = useState<ServerCoach[]>([]); // coachs réservables (serveur)
   const { width: winW } = useWindowDimensions();
 
-  // Avis VÉRIFIÉS du serveur : chargés à l'ouverture (effet) et rechargés après chaque action
+  // Avis VÉRIFIÉS du serveur : chargés à l’ouverture (effet) et rechargés après chaque action
   // via loadReviews (fonction simple, utilisée seulement dans des handlers → pas de mémo).
   const clubId = club?.id;
   const loadReviews = () => {
-    // Échec réseau → fetchClubReviews renvoie null : on garde les avis déjà affichés (pas d'écrasement).
+    // Échec réseau → fetchClubReviews renvoie null : on garde les avis déjà affichés (pas d’écrasement).
     if (clubId)
       void fetchClubReviews(clubId).then((r) => {
         if (r) {
@@ -88,7 +88,7 @@ export default function ClubDetail() {
     // Coachs réservables (comptes promus par le club) — même convention (null = on garde).
     if (clubId) void fetchClubCoaches(clubId).then((cs) => cs && setServerCoaches(cs));
   };
-  // Réessayer après un échec réseau au 1er chargement (bouton dédié, avec squelette pendant l'attente).
+  // Réessayer après un échec réseau au 1er chargement (bouton dédié, avec squelette pendant l’attente).
   const retryReviews = () => {
     if (!clubId) return;
     setReviewsLoading(true);
@@ -113,7 +113,7 @@ export default function ClubDetail() {
         else setReviewsError(true); // 1er chargement en échec → distinct de « club sans avis »
         setReviewsLoading(false);
       });
-    // Coachs réservables du club (serveur) : chargés à l'ouverture, comme les avis.
+    // Coachs réservables du club (serveur) : chargés à l’ouverture, comme les avis.
     if (clubId) void fetchClubCoaches(clubId).then((cs) => alive && cs && setServerCoaches(cs));
     return () => {
       alive = false;
@@ -145,7 +145,7 @@ export default function ClubDetail() {
   );
   // Événements du club : publications « événement » + tournois créés par le club (officiels ou non).
   const events = posts.filter((o) => o.kind === 'evenement');
-  // Tournois publics du club (les tournois joueur « en attente » de validation n'apparaissent pas).
+  // Tournois publics du club (les tournois joueur « en attente » de validation n’apparaissent pas).
   const clubComps = [...state.myCompetitions, ...seedCompetitions].filter((c) => c.clubId === club.id && isTournamentPublic(c));
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
   const clubCoaches = [
@@ -154,14 +154,14 @@ export default function ClubDetail() {
       .map((c) => ({ id: c.id, name: c.name, sub: c.level, phone: c.phone })),
     ...(state.clubCoaches[club.id] ?? []).map((c) => ({ id: c.id, name: c.name, sub: c.specialty, phone: c.phone })),
   ];
-  // Source de vérité : les avis VÉRIFIÉS du serveur (un joueur ne peut noter qu'après avoir joué).
+  // Source de vérité : les avis VÉRIFIÉS du serveur (un joueur ne peut noter qu’après avoir joué).
   const reviews = serverReviews;
-  // Liste repliée : on n'affiche que les premiers avis, avec un bouton « Voir tout ».
+  // Liste repliée : on n’affiche que les premiers avis, avec un bouton « Voir tout ».
   const REVIEWS_PREVIEW = 3;
   const reviewsShown = showAllReviews ? reviews : reviews.slice(0, REVIEWS_PREVIEW);
   const ratingCount = reviews.length;
   const avgRating = ratingCount ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / ratingCount) * 10) / 10 : 0;
-  // « Nouveau » = vraiment 0 avis. En cas d'échec réseau, on ne sait pas encore → repli neutre.
+  // « Nouveau » = vraiment 0 avis. En cas d’échec réseau, on ne sait pas encore → repli neutre.
   const showAsNew = ratingCount === 0 && !reviewsError;
   // Mon avis (modifiable / supprimable) et mon rôle de gérant de CE club (pour répondre).
   const myReview = state.serverUserId ? reviews.find((r) => r.userId === state.serverUserId) : undefined;
@@ -172,7 +172,7 @@ export default function ClubDetail() {
   const tierGroups = groupTiersByLabel(tiers);
   const activeTier = tierGroups.length ? tierGroups[Math.min(tierTab, tierGroups.length - 1)] : null;
 
-  // Avis VÉRIFIÉ : on ne peut noter un club qu'après Y AVOIR SOI-MÊME joué (une de MES
+  // Avis VÉRIFIÉ : on ne peut noter un club qu’après Y AVOIR SOI-MÊME joué (une de MES
   // résas passées à ce club). Sinon, le formulaire laisse place à une invitation à jouer.
   const hasPlayedHere = myReservations.some((r) => r.clubId === club.id && isPlayed(r));
 
@@ -203,7 +203,7 @@ export default function ClubDetail() {
   };
 
   // Modifier mon avis : on repré-remplit le formulaire avec ma note/mon texte, hors champ de vision
-  // (le formulaire est en haut de la section, le bouton « Modifier » en bas) → toast d'orientation.
+  // (le formulaire est en haut de la section, le bouton « Modifier » en bas) → toast d’orientation.
   const editMyReview = () => {
     if (!myReview) return;
     setRating(myReview.rating);
@@ -227,7 +227,7 @@ export default function ClubDetail() {
   };
   // Gérant : publier / retirer une réponse à un avis.
   const sendReply = async (reviewId: string) => {
-    if (replying || !replyDraft.trim()) return; // garde anti double-tap + pas d'envoi d'une réponse vide
+    if (replying || !replyDraft.trim()) return; // garde anti double-tap + pas d’envoi d’une réponse vide
     setReplying(true);
     const ok = await replyToReview(reviewId, replyDraft);
     setReplying(false);
@@ -251,7 +251,7 @@ export default function ClubDetail() {
       overlay={
         <>
           {/* CTA collant : prix « dès » à gauche, Réserver (pill) à droite. Un club « Bientôt »
-              n'est pas encore réservable → bouton désactivé + libellé explicite. */}
+              n’est pas encore réservable → bouton désactivé + libellé explicite. */}
           <StickyBar
             label={club.comingSoon ? 'Bientôt sur PadelConnect' : `dès ${fcfa(minPrice(club))}`}
             hint={club.comingSoon ? 'réservation à venir' : 'la session · 1h30'}
@@ -273,7 +273,7 @@ export default function ClubDetail() {
     >
       {/* Photo héros — touche pour ouvrir en plein écran */}
       <View>
-        <Pressable onPress={() => setViewer(0)}>
+        <Pressable onPress={() => setViewer(0)} accessibilityRole="button" accessibilityLabel="Voir la photo en plein écran">
           <ClubPhoto
             uri={gallery[0]}
             accent={club.accent}
@@ -284,7 +284,13 @@ export default function ClubDetail() {
             subtitle={`${club.area} · ${club.city}`}
           />
         </Pressable>
-        <Pressable onPress={() => toggleFavorite(club.id)} hitSlop={8} style={styles.favBtn}>
+        <Pressable
+          onPress={() => toggleFavorite(club.id)}
+          hitSlop={8}
+          style={styles.favBtn}
+          accessibilityRole="button"
+          accessibilityLabel={fav ? `Retirer ${club.name} des favoris` : `Ajouter ${club.name} aux favoris`}
+        >
           <Ionicons name={fav ? 'heart' : 'heart-outline'} size={22} color={fav ? colors.danger : colors.white} />
         </Pressable>
         <Pressable
@@ -297,6 +303,8 @@ export default function ClubDetail() {
           }}
           hitSlop={8}
           style={styles.shareBtn}
+          accessibilityRole="button"
+          accessibilityLabel="Partager ce club"
         >
           <Ionicons name="share-social-outline" size={20} color={colors.white} />
         </Pressable>
@@ -306,7 +314,7 @@ export default function ClubDetail() {
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginTop: spacing.sm }}>
           {gallery.slice(1).map((uri, i) => (
             <Reveal key={`${uri}-${i}`} delay={Math.min(i * 40, 200)}>
-              <Pressable onPress={() => setViewer(i + 1)}>
+              <Pressable onPress={() => setViewer(i + 1)} accessibilityRole="button" accessibilityLabel={`Voir la photo ${i + 2}`}>
                 <ClubPhoto uri={uri} accent={club.accent} height={72} width={104} rounded={radius.md} />
               </Pressable>
             </Reveal>
@@ -414,7 +422,7 @@ export default function ClubDetail() {
             value={activeTier.label}
             onChange={(label) => setTierTab(tierGroups.findIndex((g) => g.label === label))}
           />
-          {/* key = onglet actif → re-montage → fondu doux à chaque changement d'onglet tarifaire. */}
+          {/* key = onglet actif → re-montage → fondu doux à chaque changement d’onglet tarifaire. */}
           <Reveal key={activeTier.label}>
             <Card>
               {activeTier.items.map((t, i) => (
@@ -472,7 +480,7 @@ export default function ClubDetail() {
         Tarif à confirmer auprès du club.
       </Txt>
 
-      {/* Offres & actus (gérées par le club) — la carte n'apparaît que s'il y a du VRAI contenu. */}
+      {/* Offres & actus (gérées par le club) — la carte n’apparaît que s’il y a du VRAI contenu. */}
       {offers.length > 0 ? (
         <Card style={{ marginTop: spacing.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
@@ -530,7 +538,7 @@ export default function ClubDetail() {
       ) : null}
 
       {/* Coachs du club — les coachs SERVEUR (comptes promus par le club) sont réservables
-          dans l'app ; les fiches saisies à la main restent joignables par téléphone/WhatsApp. */}
+          dans l’app ; les fiches saisies à la main restent joignables par téléphone/WhatsApp. */}
       {serverCoaches.length > 0 || clubCoaches.length > 0 ? (
         <Card style={{ marginTop: spacing.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
@@ -540,7 +548,7 @@ export default function ClubDetail() {
           <Txt variant="small" color={colors.textFaint}>
             {serverCoaches.length > 0
               ? 'Réserve ton cours dans l’app : le coach accepte, le terrain est réservé, le club confirme.'
-              : "La réservation d'un cours se fait directement avec le coach."}
+              : "La réservation d’un cours se fait directement avec le coach."}
           </Txt>
           {serverCoaches.map((c, i) => (
             <View key={c.userId}>
@@ -581,7 +589,7 @@ export default function ClubDetail() {
               {c.phone ? <ContactButtons phone={c.phone} style={{ marginTop: spacing.sm }} /> : null}
             </View>
           ))}
-          {/* D1 : accès à l'annuaire global des coachs (la tuile du hub a été retirée). */}
+          {/* D1 : accès à l’annuaire global des coachs (la tuile du hub a été retirée). */}
           <Pressable
             onPress={() => router.push('/coachs')}
             hitSlop={6}
@@ -675,14 +683,14 @@ export default function ClubDetail() {
               ) : null}
               <TextInput
                 placeholder="Partage ton expérience (facultatif)…"
-                placeholderTextColor={colors.textFaint}
+                placeholderTextColor={colors.textMuted}
                 value={text}
                 onChangeText={setText}
                 multiline
                 style={styles.input}
               />
               <Button
-                label={submitting ? 'Envoi…' : myReview ? 'Mettre à jour mon avis' : "Publier l'avis"}
+                label={submitting ? 'Envoi…' : myReview ? 'Mettre à jour mon avis' : "Publier l’avis"}
                 icon="send"
                 onPress={submit}
                 disabled={submitting}
@@ -692,20 +700,21 @@ export default function ClubDetail() {
         </Card>
 
         {reviewsLoading && reviews.length === 0 ? (
-          // 1er chargement : squelettes plutôt qu'un vide (on ne sait pas encore s'il y a des avis).
+          // 1er chargement : squelettes plutôt qu’un vide (on ne sait pas encore s’il y a des avis).
           <Card style={{ marginTop: spacing.md, gap: spacing.md }}>
             <SkeletonLines lines={2} />
             <SkeletonLines lines={2} />
           </Card>
         ) : reviewsError && reviews.length === 0 ? (
-          // Échec réseau au 1er chargement : à ne pas confondre avec un club réellement sans avis.
+          // Échec réseau au 1er chargement : à ne pas confondre avec un club réellement sans
+          // avis. Même motif « hors-ligne + Réessayer » que l’Espace Coach / la demande de cours.
           <Card style={{ marginTop: spacing.md, alignItems: 'center' }}>
-            <Ionicons name="cloud-offline-outline" size={22} color={colors.textFaint} />
+            <Ionicons name="cloud-offline-outline" size={24} color={colors.textFaint} />
             <Txt variant="muted" style={{ marginTop: spacing.xs, textAlign: 'center' }}>
               Impossible de charger les avis.
             </Txt>
             <View style={{ marginTop: spacing.xs }}>
-              <Button size="sm" label="Réessayer" variant="ghost" icon="refresh" onPress={retryReviews} />
+              <Button size="sm" label="Réessayer" variant="secondary" icon="refresh" onPress={retryReviews} />
             </View>
           </Card>
         ) : reviews.length === 0 ? (
@@ -759,7 +768,7 @@ export default function ClubDetail() {
                   </View>
                 ) : null}
 
-                {/* Gérant du club : répondre à l'avis (#85) */}
+                {/* Gérant du club : répondre à l’avis (#85) */}
                 {isManager && state.serverUserId !== r.userId ? (
                   replyTarget === r.id ? (
                     <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
@@ -767,7 +776,7 @@ export default function ClubDetail() {
                         value={replyDraft}
                         onChangeText={setReplyDraft}
                         placeholder="Ta réponse en tant que club…"
-                        placeholderTextColor={colors.textFaint}
+                        placeholderTextColor={colors.textMuted}
                         multiline
                         style={styles.input}
                       />
@@ -821,11 +830,11 @@ export default function ClubDetail() {
         )}
       </View>
 
-      {/* Lien discret tout en bas : question d'info seulement (la réservation passe par l'app).
-          Masqué si le club n'a pas renseigné de numéro WhatsApp. */}
+      {/* Lien discret tout en bas : question d’info seulement (la réservation passe par l’app).
+          Masqué si le club n’a pas renseigné de numéro WhatsApp. */}
       {club.contactPhone ? (
         <Pressable
-          onPress={() => openWhatsApp(club.contactPhone!, `Bonjour, j'ai une question à propos de ${club.name}`)}
+          onPress={() => openWhatsApp(club.contactPhone!, `Bonjour, j’ai une question à propos de ${club.name}`)}
           style={{ alignItems: 'center', paddingVertical: spacing.xl, marginTop: spacing.sm }}
           hitSlop={6}
         >
@@ -853,7 +862,13 @@ export default function ClubDetail() {
                 </View>
               ))}
             </ScrollView>
-            <Pressable onPress={() => setViewer(null)} hitSlop={10} style={styles.viewerClose}>
+            <Pressable
+              onPress={() => setViewer(null)}
+              hitSlop={10}
+              style={styles.viewerClose}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer la visionneuse"
+            >
               <Ionicons name="close" size={24} color={colors.white} />
             </Pressable>
             <View style={styles.viewerHint}>

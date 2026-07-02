@@ -14,9 +14,9 @@ import { colors, radius, spacing } from '@/theme';
 const CLUB_TYPES: Club['type'][] = ['Couvert', 'Extérieur', 'Mixte'];
 
 // Écran ouvert à TOUT joueur (depuis le profil) : « Tu gères un club ? Inscris-le ».
-// La demande part sur le SERVEUR (table club_requests) → elle apparaît dans l'espace
+// La demande part sur le SERVEUR (table club_requests) → elle apparaît dans l’espace
 // opérateur, qui peut alors rappeler le gérant. Réponse à la 3ᵉ demande de sécurité :
-// un canal clair pour qu'un club rejoigne PadelConnect, sans donner d'accès « club ».
+// un canal clair pour qu’un club rejoigne PadelConnect, sans donner d’accès « club ».
 export default function InscrireClub() {
   const router = useRouter();
   const { state, submitClubRequest } = useApp();
@@ -37,7 +37,7 @@ export default function InscrireClub() {
   const submit = async () => {
     if (!ready || sending) return;
     setSending(true);
-    // Le FCFA n'a pas de décimales : on retire tout séparateur (espace, virgule…) avant de
+    // Le FCFA n’a pas de décimales : on retire tout séparateur (espace, virgule…) avant de
     // convertir, sinon un tarif saisi « 15 000 » ou « 15,000 » donnait NaN et disparaissait.
     const priceNum = Number(price.replace(/\D/g, ''));
     const res = await submitClubRequest({
@@ -105,7 +105,7 @@ export default function InscrireClub() {
           value={name}
           onChangeText={setName}
           placeholder="Nom du club"
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.textMuted}
           accessibilityLabel="Nom du club"
           style={styles.input}
         />
@@ -113,7 +113,7 @@ export default function InscrireClub() {
           value={area}
           onChangeText={setArea}
           placeholder="Quartier / commune (ex. Cocody)"
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.textMuted}
           accessibilityLabel="Quartier ou commune"
           style={styles.input}
         />
@@ -130,10 +130,10 @@ export default function InscrireClub() {
         <TextInput
           value={price}
           onChangeText={setPrice}
-          placeholder="Tarif indicatif d'une session 1h30 (FCFA — optionnel)"
-          placeholderTextColor={colors.textFaint}
+          placeholder="Tarif indicatif d’une session 1h30 (FCFA — optionnel)"
+          placeholderTextColor={colors.textMuted}
           keyboardType="numeric"
-          accessibilityLabel="Tarif indicatif d'une session"
+          accessibilityLabel="Tarif indicatif d’une session"
           style={styles.input}
         />
       </Card>
@@ -146,7 +146,7 @@ export default function InscrireClub() {
           value={phone}
           onChangeText={setPhone}
           placeholder="Ton numéro (WhatsApp de préférence)"
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.textMuted}
           keyboardType="phone-pad"
           accessibilityLabel="Numéro de téléphone"
           style={styles.input}
@@ -155,9 +155,9 @@ export default function InscrireClub() {
           value={message}
           onChangeText={setMessage}
           placeholder="Un mot pour nous (optionnel)"
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.textMuted}
           multiline
-          accessibilityLabel="Message pour l'équipe"
+          accessibilityLabel="Message pour l’équipe"
           style={[styles.input, { height: 88, textAlignVertical: 'top' }]}
         />
       </Card>
@@ -167,8 +167,8 @@ export default function InscrireClub() {
         <View style={styles.privacy}>
           <Ionicons name="lock-closed-outline" size={13} color={colors.textFaint} />
           <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
-            Tes infos servent uniquement à te recontacter. Inscrire un club ne donne pas accès à l'Espace Club tant que PadelConnect ne l'a
-            pas activé. Besoin de nous joindre entre-temps ? Passe par l'écran Aide & support.
+            Tes infos servent uniquement à te recontacter. Inscrire un club ne donne pas accès à l’Espace Club tant que PadelConnect ne l’a
+            pas activé. Besoin de nous joindre entre-temps ? Passe par l’écran Aide & support.
           </Txt>
         </View>
       </View>

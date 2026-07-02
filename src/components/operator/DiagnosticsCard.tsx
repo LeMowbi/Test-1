@@ -5,9 +5,9 @@ import { Card, StatTile, Txt } from '@/components/ui';
 import { fetchDiagSummary, fetchRecentErrors, type DiagSummary, type RecentError } from '@/lib/diagnostics';
 import { colors, spacing } from '@/theme';
 
-// Carte « Santé de l'app » : lit les diagnostics self-hosted (app_errors / app_events, 33)
-// via les RPC réservés à l'opérateur (39) — le porteur, sans terminal, surveille l'état de
-// santé DANS l'app au lieu d'ouvrir le Dashboard Supabase. Lecture seule, anonyme.
+// Carte « Santé de l’app » : lit les diagnostics self-hosted (app_errors / app_events, 33)
+// via les RPC réservés à l’opérateur (39) — le porteur, sans terminal, surveille l’état de
+// santé DANS l’app au lieu d’ouvrir le Dashboard Supabase. Lecture seule, anonyme.
 export function DiagnosticsCard() {
   // undefined = chargement ; null = indisponible (hors-ligne / RPC 39 pas encore collé).
   const [summary, setSummary] = useState<DiagSummary | null | undefined>(undefined);
@@ -34,7 +34,7 @@ export function DiagnosticsCard() {
       <Card style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
         <Ionicons name="cloud-offline-outline" size={18} color={colors.textFaint} />
         <Txt variant="muted" style={{ flex: 1 }}>
-          Diagnostics indisponibles — vérifie ta connexion (ou colle la migration 39 si ce n'est pas encore fait).
+          Diagnostics indisponibles — vérifie ta connexion (ou colle la migration 39 si ce n’est pas encore fait).
         </Txt>
       </Card>
     );

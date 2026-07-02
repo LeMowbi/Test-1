@@ -9,8 +9,8 @@ import { SUPPORT_EMAIL } from '@/lib/operator';
 import { useApp, type ServerSupportMessage } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
-// Aide & Support : signaler un problème (→ serveur, vu par l'opérateur), référencer son
-// club, et nous écrire par e-mail. On n'expose aucun numéro : PadelConnect recontacte.
+// Aide & Support : signaler un problème (→ serveur, vu par l’opérateur), référencer son
+// club, et nous écrire par e-mail. On n’expose aucun numéro : PadelConnect recontacte.
 export default function Support() {
   const router = useRouter();
   const { submitSupportMessage, fetchMySupportMessages } = useApp();
@@ -19,10 +19,10 @@ export default function Support() {
   const [message, setMessage] = useState('');
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
-  // Boucle de retour : l'historique de MES messages avec leur statut (Reçu / Traité).
+  // Boucle de retour : l’historique de MES messages avec leur statut (Reçu / Traité).
   const [mine, setMine] = useState<ServerSupportMessage[]>([]);
   const loadMine = useCallback(() => {
-    // null = échec réseau → on garde l'historique affiché (convention §8, pas d'écrasement).
+    // null = échec réseau → on garde l’historique affiché (convention §8, pas d’écrasement).
     void fetchMySupportMessages().then((rows) => rows && setMine(rows));
   }, [fetchMySupportMessages]);
   useEffect(() => {
@@ -38,7 +38,7 @@ export default function Support() {
       setSent(true);
       setMessage('');
       toast.show('Message envoyé à PadelConnect ✅');
-      loadMine(); // rafraîchit l'historique avec le nouveau message
+      loadMine(); // rafraîchit l’historique avec le nouveau message
     } else {
       toast.show(res.error ?? 'Envoi impossible', { icon: 'alert-circle' });
     }
@@ -70,7 +70,7 @@ export default function Support() {
             if (sent) setSent(false);
           }}
           placeholder="Explique ton problème (bug, réservation, club, paiement…)"
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.textMuted}
           multiline
           accessibilityLabel="Décris ton problème"
           style={styles.input}
@@ -88,8 +88,8 @@ export default function Support() {
       <Card onPress={() => router.push('/inscrire-club')} style={[styles.row, { marginTop: spacing.md }]}>
         <IconCircle icon="business" color={colors.amberDark} bg={colors.amberSoft} />
         <View style={{ flex: 1 }}>
-          <Txt variant="h3">Ton club n'est pas dans la liste ?</Txt>
-          <Txt variant="muted">Inscris-le — on te recontacte pour l'activer.</Txt>
+          <Txt variant="h3">Ton club n’est pas dans la liste ?</Txt>
+          <Txt variant="muted">Inscris-le — on te recontacte pour l’activer.</Txt>
         </View>
         <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
       </Card>
@@ -104,7 +104,7 @@ export default function Support() {
         <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
       </Card>
 
-      {/* Mes messages — boucle de retour : le joueur suit l'état de ses signalements. */}
+      {/* Mes messages — boucle de retour : le joueur suit l’état de ses signalements. */}
       {mine.length > 0 ? (
         <Card style={{ marginTop: spacing.md }}>
           <Txt variant="h3">Mes messages</Txt>
