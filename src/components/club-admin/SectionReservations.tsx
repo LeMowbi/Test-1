@@ -37,14 +37,15 @@ export function SectionReservations({
   const [cancelled, setCancelled] = useState<Reservation[]>([]);
   // Absences (no-show) marquées par le club : trace conservée (status='no_show').
   const [noShows, setNoShows] = useState<Reservation[]>([]);
+  // Échec réseau → null : on GARDE les listes affichées (on n'écrase jamais avec du vide).
   const reloadTraces = () => {
-    void fetchCancelledReservations().then((rows) => setCancelled(rows.filter((r) => r.clubId === club.id)));
-    void fetchNoShowReservations().then((rows) => setNoShows(rows.filter((r) => r.clubId === club.id)));
+    void fetchCancelledReservations().then((rows) => rows && setCancelled(rows.filter((r) => r.clubId === club.id)));
+    void fetchNoShowReservations().then((rows) => rows && setNoShows(rows.filter((r) => r.clubId === club.id)));
   };
   useEffect(() => {
     let alive = true;
-    void fetchCancelledReservations().then((rows) => alive && setCancelled(rows.filter((r) => r.clubId === club.id)));
-    void fetchNoShowReservations().then((rows) => alive && setNoShows(rows.filter((r) => r.clubId === club.id)));
+    void fetchCancelledReservations().then((rows) => alive && rows && setCancelled(rows.filter((r) => r.clubId === club.id)));
+    void fetchNoShowReservations().then((rows) => alive && rows && setNoShows(rows.filter((r) => r.clubId === club.id)));
     return () => {
       alive = false;
     };
@@ -61,7 +62,8 @@ export function SectionReservations({
   useEffect(() => {
     if (!playerIdsKey) return;
     let alive = true;
-    void fetchReliability(playerIdsKey.split(',')).then((rel) => alive && setReliability(rel));
+    // null = échec réseau → on conserve la fiabilité déjà affichée.
+    void fetchReliability(playerIdsKey.split(',')).then((rel) => alive && rel && setReliability(rel));
     return () => {
       alive = false;
     };

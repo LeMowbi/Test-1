@@ -85,18 +85,24 @@ function RootNav() {
   }, [hydrated, state.account, segments, router]);
 
   // Confirmation d'e-mail : le lien reçu par mail rouvre l'app → on échange le code contre
-  // une session, on recharge le profil, puis on entre dans l'accueil.
+  // une session, on recharge le profil. Deux cas distincts : NOUVEL inscrit (bienvenue + accueil)
+  // ou utilisateur DÉJÀ connecté qui change d'adresse (message neutre, on ne le déplace pas).
   const onConfirm = useCallback(
     async (r: 'confirmed' | 'error') => {
       if (r === 'error') {
         toast.show('Lien de confirmation expiré — reconnecte-toi', { icon: 'alert-circle' });
         return;
       }
+      const alreadySignedIn = !!state.account;
       await refreshSession();
-      toast.show('E-mail confirmé — bienvenue ! 🎾');
-      router.replace('/');
+      if (alreadySignedIn) {
+        toast.show('Adresse e-mail mise à jour ✓');
+      } else {
+        toast.show('E-mail confirmé — bienvenue ! 🎾');
+        router.replace('/');
+      }
     },
-    [refreshSession, router, toast],
+    [refreshSession, router, toast, state.account],
   );
   useEmailConfirmLink(onConfirm);
 

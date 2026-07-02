@@ -75,7 +75,7 @@ export default function ReservationsScreen() {
     const ok = await respondInvitation(r.id, accept);
     if (ok) {
       if (accept) hapticSuccess();
-      toast.show(accept ? 'Invitation acceptée ✅' : 'Invitation refusée');
+      toast.show(accept ? 'Invitation acceptée ✓' : 'Invitation refusée');
     } else toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
   };
 
@@ -138,7 +138,8 @@ export default function ReservationsScreen() {
             const owner = isOwner(r);
             const canCancel = owner && r.startsAt - now > FIVE_H;
             const [, mm, dd] = r.dateKey.split('-');
-            const day = dd ?? '';
+            // Sans zéro initial pour rester cohérent avec dateKeyLabel (« 1 juil. », pas « 01 »).
+            const day = dd ? String(Number(dd)) : '';
             const month = MONTHS[Number(mm) - 1] ?? '';
             return (
               <Card key={r.id} style={{ marginBottom: spacing.md }}>
@@ -160,7 +161,7 @@ export default function ReservationsScreen() {
                     </Txt>
                     {r.price ? (
                       <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
-                        {fcfa(r.price)} · ~{perPlayer(r.price)}/joueur
+                        {fcfa(r.price)} · ~{perPlayer(r.price)}/joueur à 4
                       </Txt>
                     ) : null}
                   </View>
@@ -246,7 +247,7 @@ export default function ReservationsScreen() {
           <Card>
             {myComps.map((c, i) => {
               const result = state.compResults[c.id];
-              const mine = state.officialResults.find((o) => o.compId === c.id);
+              const myResult = state.officialResults.find((o) => o.compId === c.id);
               const finished = c.dateKey < today;
               // Inscrit → « avec {partenaire} » ; créé sans s'y inscrire → « organisé par toi ».
               const reg = state.compRegistrations[c.id];
@@ -264,10 +265,13 @@ export default function ReservationsScreen() {
                       </Txt>
                     </View>
                     {result ? (
-                      mine?.result === 'win' ? (
+                      myResult?.result === 'win' ? (
                         <Tag label="Vainqueur !" tone="amber" icon="trophy" />
-                      ) : mine?.result === 'last' ? (
+                      ) : myResult?.result === 'last' ? (
                         <Tag label="Fin de tableau" tone="coral" icon="arrow-down" />
+                      ) : !reg ? (
+                        // Organisateur non inscrit à son propre tournoi : « Participé » serait faux.
+                        <Tag label="Terminé" tone="neutral" />
                       ) : (
                         <Tag label="Participé" tone="blue" />
                       )
@@ -289,7 +293,11 @@ export default function ReservationsScreen() {
         <SectionHeader title={`Passées · ${past.length}`} />
         {past.length === 0 ? (
           <Card>
-            <Txt variant="muted">Tes parties jouées s'afficheront ici, comptées automatiquement.</Txt>
+            <EmptyState
+              icon="time-outline"
+              title="Aucune partie jouée pour l'instant"
+              text="Tes parties jouées s'afficheront ici, comptées automatiquement."
+            />
           </Card>
         ) : (
           <Card>

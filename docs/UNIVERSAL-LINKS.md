@@ -6,51 +6,46 @@ installée (le code de parrainage se pré-remplit tout seul), sinon la page renv
 Domaine : **padelconnectci.com** (acheté sur Cloudflare). Identifiant d'app :
 **`R77YWZ9487.ci.padelco.app`**.
 
-## ⚠️ BLOQUEUR credentials (à régler avant de réactiver l'entitlement)
-Les builds #29 et #30 ont ÉCHOUÉ car le **profil de provisioning Apple** (généré le 2026-06-29) ne
-contient pas la capacité **Associated Domains**, et EAS **ne le régénère pas automatiquement** (la
-clé App Store Connect configurée sert à la soumission, pas à gérer les capacités/profils).
-Tant que ce n'est pas réglé, `associatedDomains` est **retiré d'app.json** pour que les builds
-passent. Le parrainage marche quand même (le lien renvoie vers l'App Store via `site/_redirects`).
+## ✅ ACTIFS depuis le build #34 — rien à faire
 
-**Pour réactiver les Universal Links (ouverture directe de l'app) :**
-1. Régénérer le profil de provisioning AVEC « Associated Domains » — via `eas credentials`
-   (iOS → production → provisioning profile → recréer), OU activer la capacité dans le portail
-   Apple Developer sur l'App ID `ci.padelco.app` puis régénérer le profil.
-2. Remettre dans `app.json` (ios) : `"associatedDomains": ["applinks:padelconnectci.com"]`.
-3. Rebuild. (Le site `site/` + le fichier AASA sont déjà en ligne, rien à refaire côté hébergement.)
+Tout est en place et vérifié :
+- Capacité **« Associated Domains »** activée sur l'App ID `ci.padelco.app` (portail Apple).
+- Profil de provisioning **régénéré** avec cette capacité (builds ≥ #33).
+- `app.json` contient `"associatedDomains": ["applinks:padelconnectci.com"]` —
+  **ne jamais retirer cette ligne**, sinon les liens cesseraient d'ouvrir l'app.
+- Site **déployé** sur Cloudflare Pages : AASA servi en JSON, `/invite/*` et `/club/*`
+  redirigent vers l'App Store pour les visiteurs sans l'app.
 
-## Côté app — code DÉJÀ prêt (indépendant de l'entitlement)
-- Route entrante `/invite/[code]` → met le code de côté et pré-remplit l'inscription.
-- Lien de parrainage = `padelconnectci.com/invite/CODE` (repli App Store si pas d'app).
-- Reste juste à remettre `associatedDomains` une fois le profil régénéré (voir bloqueur ci-dessus).
+> Historique (résolu) : les builds #29/#30 avaient échoué car le profil de provisioning de
+> l'époque n'incluait pas Associated Domains et EAS ne le régénérait pas seul. Réglé en
+> activant la capacité dans le portail Apple Developer puis en supprimant l'ancien profil sur
+> expo.dev — EAS en a régénéré un valide au build suivant (penser à `EXPO_APPLE_TEAM_ID`).
 
-## Côté hébergement — À FAIRE (toi, sur Cloudflare Pages)
+## Côté app — routes ouvertes par les liens
+- `/invite/[code]` → met le code de parrainage de côté et pré-remplit l'inscription.
+- `/club/[id]` → un lien `padelconnectci.com/club/ID` (bouton Partager d'une fiche club)
+  ouvre directement la fiche du club dans l'app.
 
-Le dossier **`site/`** du dépôt contient tout, prêt à déployer :
+## Côté hébergement — DÉPLOYÉ (Cloudflare Pages)
+
+Le dossier **`site/`** du dépôt contient tout :
 ```
 site/
   .well-known/apple-app-site-association   ← fichier Apple (déclare que le domaine ouvre l'app)
   _headers                                 ← force le bon type MIME du fichier Apple
-  _redirects                               ← /invite/* → App Store (visiteurs sans l'app)
+  _redirects                               ← /invite/* et /club/* → App Store (sans l'app)
   index.html                               ← page d'accueil du site
   privacy.html                             ← politique de confidentialité (pour l'App Store)
 ```
 
-### Déployer (2 façons)
-- **A — Glisser-déposer (le plus simple)** : Cloudflare → **Workers & Pages** → *Create* → *Pages* →
-  *Upload assets* → glisse le **contenu du dossier `site/`** → *Deploy*. Puis **Custom domains** →
-  ajoute `padelconnectci.com`.
-- **B — Connecter le dépôt GitHub** : Cloudflare Pages → *Connect to Git* → dépôt `PadelConnect` →
-  *Build output directory* = `site` → Deploy. (Se met à jour tout seul à chaque push.)
+⚠️ Si le déploiement a été fait par **glisser-déposer** (pas connecté à GitHub), toute
+modification du dossier `site/` dans le dépôt doit être **re-déployée à la main** :
+Cloudflare → Workers & Pages → le projet → *Create new deployment* → re-glisser le contenu
+de `site/`. (S'il est connecté à GitHub avec *Build output directory* = `site`, c'est
+automatique à chaque push.)
 
-### Vérifier
-- `https://padelconnectci.com/.well-known/apple-app-site-association` s'ouvre et renvoie du JSON.
-- `https://padelconnectci.com/invite/TEST` (dans un navigateur, sans l'app) redirige vers l'App Store.
-
-## Dernière étape — un nouveau build
-Les Universal Links exigent l'entitlement `associatedDomains` → il faut un **nouveau build EAS**
-(#29) APRÈS que le fichier Apple est en ligne. Test final sur iPhone : ouvrir un lien
-`padelconnectci.com/invite/CODE` depuis Notes/WhatsApp → l'app s'ouvre, code pré-rempli.
-
-> Ordre conseillé : (1) déployer `site/` sur Cloudflare Pages + domaine → (2) je lance le build #29.
+### Vérifier (n'importe quand)
+- `https://padelconnectci.com/.well-known/apple-app-site-association` renvoie du JSON.
+- `https://padelconnectci.com/invite/TEST` (navigateur, sans l'app) redirige vers l'App Store.
+- Sur iPhone avec l'app : un lien `padelconnectci.com/invite/CODE` collé dans Notes/WhatsApp
+  ouvre l'app, code pré-rempli.

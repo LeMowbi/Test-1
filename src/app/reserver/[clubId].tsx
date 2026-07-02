@@ -254,9 +254,9 @@ export default function ReserverScreen() {
         <StickyBar
           label={slot ? fcfa(slotPrice) : `dès ${fcfa(slotPrice)}`}
           hint="session · 1h30"
-          cta="Réserver le terrain"
+          cta={submitting ? 'Réservation…' : 'Réserver le terrain'}
           onPress={confirm}
-          disabled={!ready}
+          disabled={!ready || submitting}
         />
       }
     >

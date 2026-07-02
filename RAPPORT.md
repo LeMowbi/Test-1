@@ -42,7 +42,7 @@ clic « Confirmer » du gérant se reflète immédiatement chez le joueur).
 - **C'est l'ORGANISATEUR qui clôture** : le gérant depuis Espace Club > Tournois
   (« Clôturer & désigner le vainqueur », équipe inscrite proposée en chip ou nom libre),
   le créateur depuis la fiche de son défi. **Pas d'auto-déclaration** : simple, anti-triche.
-- Effets : vainqueur d'un tournoi **officiel** → **+0.25** (borné 7.0) + trophée +
+- Effets : vainqueur d'un tournoi **officiel** → **+0.50** (borné 7.0) + trophée +
   palmarès ; autres participants → « tournois joués » +1, **niveau inchangé** ;
   amicaux/défis → palmarès seulement. *(Choix assumé : la **baisse** de niveau attendra
   la version serveur.)*
@@ -75,7 +75,7 @@ nouveaux écrans, wording unifié.
 | 1. Résa → « En attente » → Confirmer (gérant) → « Confirmée ✓ » côté joueur | ✓ (même état partagé, badge sur Mes réservations + rappel accueil) |
 | 2. Résa + 2 amis → participants visibles + wa.me avec club/date/heure/terrain | ✓ |
 | 3. Heure de fin passée → « jouée » : historique joueur (5+Voir tout), historique club, décompte opérateur, « Parties jouées » +1 | ✓ (`isPlayed` partagé par les 3 espaces) |
-| 4. Tournoi officiel : inscription équipe → clôture organisateur → vainqueur +0.25/trophée/palmarès ; participant « joués » +1, niveau inchangé | ✓ (`closeCompetition`) |
+| 4. Tournoi officiel : inscription équipe → clôture organisateur → vainqueur +0.50/trophée/palmarès ; participant « joués » +1, niveau inchangé | ✓ (`closeCompetition`) |
 | 5. Annulation > 5h OK, < 5h refusée avec message | ✓ |
 | 6. Le soir, Réserver ouvre sur Demain | ✓ |
 | 7. Greps : « J'ai gagné », « Parties à valider », « Rejouer », tarif/note coach, « Jouer un match » | **0 occurrence** |
@@ -93,7 +93,7 @@ comptes synchronisés / SMS, validation des inscrits d'un tournoi côté serveur
   Réserver bascule sur Demain + bouton « Voir demain » (vues Par heure & Par club).
 - **Bascule « jouée »** : dérivée de l'heure de fin (`isPlayed`), partagée joueur/club/opérateur.
 - **Seeds tournois terminés** : un officiel « hier » à clôturer + un déjà clôturé → flux
-  clôture → +0.25 → trophée démontrable en démo.
+  clôture → +0.50 → trophée démontrable en démo.
 - **Contacter le club** : 4 clubs seeds ont un numéro WhatsApp (lien visible).
 - **Ajout d'ami** : erreur inline + bouton désactivé si vide.
 - **Option « code d'accès club » (validée)** : code à 4 chiffres par club, attribué à
@@ -113,7 +113,7 @@ comptes synchronisés / SMS, validation des inscrits d'un tournoi côté serveur
   libère immédiatement. Planning : couleur dédiée + légende « **Hors app** ».
 - **Clôture de tournoi réparée** : « Clôturer & désigner le vainqueur » ouvre désormais un vrai
   panneau de désignation — **liste des équipes inscrites** (sélection radio, « Ton équipe »
-  signalée), « Valider le vainqueur » puis **confirmation** ; effets +0.25/trophée/palmarès
+  signalée), « Valider le vainqueur » puis **confirmation** ; effets +0.50/trophée/palmarès
   inchangés. Les **équipes inscrites s'affichent sur la fiche tournoi** (joueurs et gérant) ;
   **compteurs cohérents partout** via `teamCount` (plafonné à la capacité, seed 9/8 corrigé).
 - **Ajout d'ami** : bouton estompé quand le nom est vide ET message « Indique au moins le
@@ -134,7 +134,7 @@ comptes synchronisés / SMS, validation des inscrits d'un tournoi côté serveur
 - **Clôture de tournoi (récidive)** : la désignation se fait désormais SANS quitter l'Espace
   Club — « Clôturer & désigner le vainqueur » ouvre un **bottom sheet** : équipes inscrites en
   liste radio (« Ton équipe » signalée), « Valider le vainqueur » actif après sélection, puis
-  **confirmation** ; effets +0.25 / trophée / palmarès / bandeau accueil inchangés. Le parcours
+  **confirmation** ; effets +0.50 / trophée / palmarès / bandeau accueil inchangés. Le parcours
   d'acceptation (profil 3.50 → clôture Padelta → « Invité & Karim » → 3.75 + trophée +
   Tournois gagnés 1 + vainqueur sur la fiche) est câblé de bout en bout.
 - **Déblocage** : tap sur une case du planning → **bottom sheet** « détail du créneau » avec

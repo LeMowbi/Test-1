@@ -4,17 +4,28 @@ import { useEffect, useRef } from 'react';
 import { Animated, Easing, Modal, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Confetti } from './Confetti';
+import { useToast } from './Toast';
 import { Button, Txt } from './ui';
+import { addReservationToCalendar } from '@/lib/calendar';
+import { openWhatsApp } from '@/lib/contact';
+import { perPlayer } from '@/lib/format';
 import { colors, gradients, radius, spacing } from '@/theme';
 
 // Écran de confirmation PLEIN ÉCRAN (handoff refonte) : dégradé vert, cercle blanc
 // avec coche qui « pop », anneau qui se dilate, confettis, puis CTA. Apparition en cascade.
+// Parité avec le tunnel guidé (reserver/[clubId].tsx) : mêmes actions « Ajouter à mon
+// calendrier » et « Prévenir mes partenaires » — la voie rapide (BookingSheet) ne doit
+// pas perdre ces suivis utiles juste après la réservation.
 export function BookingConfirmation({
   clubName,
   dayLabel,
   time,
   court,
+  area,
+  startsAt,
+  price,
   participantCount,
+  invitedNames,
   onSeeReservations,
   onClose,
 }: {
@@ -22,11 +33,35 @@ export function BookingConfirmation({
   dayLabel: string;
   time: string;
   court: string;
+  area?: string;
+  startsAt: number;
+  price: number;
   participantCount: number;
+  invitedNames: string[];
   onSeeReservations: () => void;
   onClose: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const toast = useToast();
+
+  const addToCalendar = async () => {
+    const res = await addReservationToCalendar({ clubName, startsAt, court, area });
+    toast.show(
+      res === 'added'
+        ? 'Ajouté à ton calendrier ✓'
+        : res === 'denied'
+          ? 'Autorise le calendrier dans les réglages.'
+          : 'Calendrier indisponible sur cet appareil.',
+      res === 'added' ? undefined : { icon: 'alert-circle' },
+    );
+  };
+
+  const notifyPartners = () => {
+    const who = invitedNames.length ? `\nÉquipe : ${invitedNames.join(', ')}` : '';
+    const share = price ? `\nPrévois ${perPlayer(price)} chacun.` : '';
+    openWhatsApp('', `On joue au padel ! 🎾\n${clubName} — ${dayLabel} à ${time} (session 1h30)\n${court}${who}${share}\nRéservé via PadelConnect.`);
+  };
+
   const check = useRef(new Animated.Value(0)).current; // 0 → 1 : pop de la coche
   const ring = useRef(new Animated.Value(0)).current; // anneau qui se dilate
   const fade = useRef(new Animated.Value(0)).current; // cascade texte/boutons
@@ -78,6 +113,10 @@ export function BookingConfirmation({
 
         <Animated.View style={[styles.actions, { opacity: fade, paddingBottom: insets.bottom + spacing.xl }]}>
           <Button label="Voir mes réservations" icon="calendar" variant="secondary" onPress={onSeeReservations} full />
+          <Button label="Ajouter à mon calendrier" icon="calendar-outline" variant="secondary" onPress={addToCalendar} full />
+          {participantCount > 0 ? (
+            <Button label="Prévenir mes partenaires" icon="logo-whatsapp" variant="secondary" onPress={notifyPartners} full />
+          ) : null}
           <Button label="Terminé" variant="ghost" onPress={onClose} full />
         </Animated.View>
       </LinearGradient>

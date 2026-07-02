@@ -158,21 +158,23 @@ export async function fetchReservations(): Promise<{ ok: boolean; reservations: 
 // Réservations ANNULÉES du périmètre (RLS) — pour un compte club/opérateur, ce sont les
 // annulations de son club. On garde la trace (status='cancelled' posé par cancel_reservation)
 // pour que le club soit prévenu qu'un créneau s'est libéré. Trié du plus récent au plus ancien.
-export async function fetchCancelledReservations(): Promise<Reservation[]> {
+// Convention réseau (CLAUDE.md §8) : `null` en cas d'échec (≠ [] = aucune annulation).
+export async function fetchCancelledReservations(): Promise<Reservation[] | null> {
   const { data, error } = await supabase
     .from('reservations')
     .select('*')
     .eq('status', 'cancelled')
     .order('starts_at', { ascending: false });
-  if (error) return [];
+  if (error) return null;
   return (data ?? []).map((r) => rowToReservation(r as Row));
 }
 
 // Absences (no-show) du périmètre (RLS) — pour un compte club/opérateur, ce sont les absences
 // de son club. Trace conservée (status='no_show' posé par mark_no_show). Plus récent d'abord.
-export async function fetchNoShowReservations(): Promise<Reservation[]> {
+// Convention réseau : `null` en cas d'échec (≠ [] = aucune absence).
+export async function fetchNoShowReservations(): Promise<Reservation[] | null> {
   const { data, error } = await supabase.from('reservations').select('*').eq('status', 'no_show').order('starts_at', { ascending: false });
-  if (error) return [];
+  if (error) return null;
   return (data ?? []).map((r) => rowToReservation(r as Row));
 }
 
@@ -184,12 +186,13 @@ export async function markNoShowRow(id: string, value: boolean): Promise<boolean
 }
 
 // Fiabilité des joueurs (annulations + absences) par id de compte — club/opérateur seulement.
+// Convention réseau : `null` en cas d'échec ({} = aucun joueur demandé / aucun résultat).
 export type Reliability = { cancelled: number; noShow: number };
-export async function fetchReliability(userIds: string[]): Promise<Record<string, Reliability>> {
+export async function fetchReliability(userIds: string[]): Promise<Record<string, Reliability> | null> {
   const ids = [...new Set(userIds.filter(Boolean))];
   if (ids.length === 0) return {};
   const { data, error } = await supabase.rpc('player_reliability', { p_user_ids: ids });
-  if (error) return {};
+  if (error) return null;
   const out: Record<string, Reliability> = {};
   for (const r of (data ?? []) as { user_id: string; cancelled: number; no_show: number }[]) {
     out[r.user_id] = { cancelled: r.cancelled ?? 0, noShow: r.no_show ?? 0 };

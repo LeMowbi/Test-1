@@ -149,13 +149,13 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 - ✅ **Conformité App Store** (confidentialité) — `site/privacy.html` +
   `docs/APP-STORE-CONFORMITE.md` (le porteur héberge le site + remplit App Privacy).
 - ✅ **Suivi bugs + usage** (idée 3) — fait, **self-hosted** (choix du porteur) : `33_diagnostics.sql`
-  (app_errors + app_events), `src/lib/diagnostics.ts` (logError/track), ErrorBoundary racine +
-  handler global. Anonyme, lecture opérateur uniquement. Le porteur doit lancer `33_diagnostics.sql`.
-- ⏳ **Universal Links** (idée 6) — domaine **padelconnectci.com** (acheté, Cloudflare). Côté APP
-  fait : `associatedDomains` (app.json), route `/invite/[code]` + pré-remplissage du code
-  (`pendingReferral`), lien de parrainage → `padelconnectci.com/invite/CODE` (repli App Store).
-  Reste : le porteur déploie le dossier **`site/`** sur Cloudflare Pages (AASA + `_headers` +
-  `_redirects` + privacy.html), PUIS build #29. Guide : `docs/UNIVERSAL-LINKS.md`.
+  (app_errors + app_events, appliqué en base), `src/lib/diagnostics.ts` (logError/track),
+  ErrorBoundary racine + handler global. Anonyme, lecture opérateur uniquement.
+- ✅ **Universal Links** (idée 6) — **actifs depuis le build #34**. `associatedDomains` (app.json),
+  routes `/invite/[code]` (parrainage pré-rempli) et `/club/[id]` (partage de fiche), site
+  **déployé** sur Cloudflare Pages (padelconnectci.com : AASA + redirections App Store).
+  Guide/vérifications : `docs/UNIVERSAL-LINKS.md`. ⚠️ si le site a été déployé par glisser-déposer,
+  re-déployer `site/` à la main après toute modification du dossier.
 - 🔒 **Programme de fidélité** (idée 5) — **gardé pour plus tard** (X parties jouées = récompense).
 - ❌ **Paiement en ligne** (idée 7) — pas pour l'instant.
 - Autres post-lancement : vrai SMTP de confirmation, perf, éventuel kit `PlanningGrid`.

@@ -10,7 +10,7 @@ import { Logo } from '@/components/Logo';
 import { PopIn } from '@/components/PopIn';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
-import { Card, SectionHeader, Txt } from '@/components/ui';
+import { Card, SectionHeader, Tag, Txt } from '@/components/ui';
 import { activeClubs, findClub } from '@/data/clubs';
 import { isTournamentPublic, seedCompetitions } from '@/data/competitions';
 import { DAY_MS, dateKeyLabel, dayKey } from '@/lib/days';
@@ -19,18 +19,20 @@ import { initials, perPlayer } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { isBirthdayToday, parseBirthDate, zodiacFor } from '@/lib/zodiac';
-import { isPlayed, useApp } from '@/store/AppContext';
+import { SESSION_MS, isPlayed, useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
-// Accès rapide — 4 univers (Réserver / Tournois / Amis / Mes matchs).
+// Accès rapide — 4 univers (Réserver / Tournois / Amis / Mes réservations).
 // D1 : Coachs retiré du hub (consultés sur chaque fiche club + lien « Voir tous les coachs »)
 // pour garder la priorité visuelle sur « Réserver ». Grille 4 items équilibrée, pas de tabbar.
+// Libellé « Mes réservations » aligné sur l'écran de destination (reservations.tsx) et le
+// raccourci du profil, pour ne pas avoir deux noms différents pour la même destination.
 type Action = { icon: keyof typeof Ionicons.glyphMap; label: string; route: string; tint: string; bg: string };
 const ACTIONS: Action[] = [
   { icon: 'calendar', label: 'Réserver', route: '/reserver', tint: colors.signature, bg: colors.signatureSoft },
   { icon: 'trophy', label: 'Tournois', route: '/competitions', tint: colors.purple, bg: colors.purpleSoft },
   { icon: 'people', label: 'Amis', route: '/amis', tint: colors.coral, bg: colors.coralSoft },
-  { icon: 'list', label: 'Mes matchs', route: '/reservations', tint: colors.green, bg: colors.greenSoft },
+  { icon: 'list', label: 'Mes réservations', route: '/reservations', tint: colors.green, bg: colors.greenSoft },
 ];
 
 const MONTHS_SHORT = ['janv.', 'févr.', 'mars', 'avr.', 'mai', 'juin', 'juil.', 'août', 'sept.', 'oct.', 'nov.', 'déc.'];
@@ -38,12 +40,16 @@ const AVATAR_TONES = [colors.signature, colors.blue, colors.purple, colors.coral
 
 // ─── Compte à rebours doux ────────────────────────────────────────────────────
 // B-R2 : libellé « dans X jours / demain / aujourd'hui » pour la carte prochain match.
+// Calculé en JOURS CALENDAIRES (via dayKey, cohérent avec la pastille de date), pas en
+// durée écoulée — sinon un match demain 07:30 vu à 20:00 la veille (~11h30 d'écart) se
+// lirait à tort « aujourd'hui ».
 function countdownLabel(startsAt: number): string {
   const now = Date.now();
-  const diffMs = startsAt - now;
-  if (diffMs <= 0) return 'maintenant';
-  const diffDays = Math.floor(diffMs / DAY_MS);
-  if (diffDays === 0) return "aujourd'hui";
+  if (startsAt <= now) return 'maintenant';
+  const [y1, m1, d1] = dayKey(new Date(startsAt)).split('-').map(Number);
+  const [y2, m2, d2] = dayKey(new Date(now)).split('-').map(Number);
+  const diffDays = Math.round((Date.UTC(y1, m1 - 1, d1) - Date.UTC(y2, m2 - 1, d2)) / DAY_MS);
+  if (diffDays <= 0) return "aujourd'hui";
   if (diffDays === 1) return 'demain';
   return `dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
@@ -63,13 +69,23 @@ export default function HomeScreen() {
   const sheen = useRef(new Animated.Value(0)).current;
   const pulse = useRef(new Animated.Value(0)).current;
   useEffect(() => {
-    Animated.loop(Animated.timing(sheen, { toValue: 1, duration: 3400, easing: Easing.inOut(Easing.ease), useNativeDriver: true })).start();
-    Animated.loop(
+    // L'accueil = hub ne se démonte quasi jamais (empilé derrière les autres routes) :
+    // on arrête bien les boucles au démontage, comme Skeleton/BookingConfirmation.
+    const sheenLoop = Animated.loop(
+      Animated.timing(sheen, { toValue: 1, duration: 3400, easing: Easing.inOut(Easing.ease), useNativeDriver: true }),
+    );
+    const pulseLoop = Animated.loop(
       Animated.sequence([
         Animated.timing(pulse, { toValue: 1, duration: 850, easing: Easing.out(Easing.quad), useNativeDriver: true }),
         Animated.timing(pulse, { toValue: 0, duration: 850, easing: Easing.in(Easing.quad), useNativeDriver: true }),
       ]),
-    ).start();
+    );
+    sheenLoop.start();
+    pulseLoop.start();
+    return () => {
+      sheenLoop.stop();
+      pulseLoop.stop();
+    };
   }, [sheen, pulse]);
   const sheenX = sheen.interpolate({ inputRange: [0, 1], outputRange: [-180, 440] });
   const dotScale = pulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.7] });
@@ -95,7 +111,9 @@ export default function HomeScreen() {
     .filter((c) => isTournamentPublic(c) && c.dateKey >= today)
     .slice(0, 2);
   // MES réservations seulement (un compte club/opérateur en reçoit d'autres via RLS).
-  const upcoming = [...myReservations].filter((r) => r.startsAt > now).sort((a, b) => a.startsAt - b.startsAt)[0];
+  // Inclut la résa EN COURS (startsAt + SESSION_MS > now) pour que le match reste affiché
+  // pendant les 1h30 de jeu, au lieu de disparaître entre « prochain match » et « rejouer ».
+  const upcoming = [...myReservations].filter((r) => r.startsAt + SESSION_MS > now).sort((a, b) => a.startsAt - b.startsAt)[0];
 
   // A-L1 : dernier club joué/réservé (la réservation passée la plus récente).
   // N'apparaît QUE s'il n'y a AUCUNE réservation à venir.
@@ -148,19 +166,31 @@ export default function HomeScreen() {
   // La carte contextuelle (prochain match / rejouer) et la carte tournoi (B-R5) sont séparées du nudge.
 
   // B-R4 : profil incomplet si birthDate / photo / genre manquent.
-  const profileIncomplete =
-    !state.account?.birthDate || !state.account?.photoUri || !state.account?.gender || state.account.gender === 'nd';
+  // « Non défini » est une réponse explicite et légitime (onboarding) : elle compte comme
+  // renseignée, sinon un joueur qui la choisit volontairement serait relancé indéfiniment.
+  const profileIncomplete = !state.account?.birthDate || !state.account?.photoUri || !state.account?.gender;
 
   // B-R4 : bandeau fermable (état local, pas persisté).
   const [profileNudgeDismissed, setProfileNudgeDismissed] = useState(false);
   const showProfileNudge = profileIncomplete && !profileNudgeDismissed;
 
-  // Champ manquant le plus visible pour le libellé personnalisé.
-  const missingField = !state.account?.birthDate ? 'date de naissance' : !state.account?.photoUri ? 'photo de profil' : 'genre';
+  // Libellé personnalisé par champ manquant : déterminant accordé + justification exacte
+  // (le signe astro ne dépend QUE de la date de naissance, pas du genre ni de la photo).
+  const missingField: 'date de naissance' | 'photo de profil' | 'genre' = !state.account?.birthDate
+    ? 'date de naissance'
+    : !state.account?.photoUri
+      ? 'photo de profil'
+      : 'genre';
+  const missingFieldHint =
+    missingField === 'date de naissance'
+      ? 'Ajoute ta date de naissance pour ton signe astro →'
+      : missingField === 'photo de profil'
+        ? 'Ajoute ta photo de profil →'
+        : 'Renseigne ton genre →';
 
   // B-R1 : trophée le plus proche du palier (excluant Vainqueur de tournoi et Niveau 4+).
   // Trophées éligibles, ordonnés par proximité (1 ou 2 unités du palier).
-  type NudgeTrophy = { label: string; current: number; target: number; cta: 'reserve' | 'invite' };
+  type NudgeTrophy = { label: string; current: number; target: number; cta: 'reserve' | 'invite' | 'tournament' };
   const trophyNudge: NudgeTrophy | null = (() => {
     const played = stats.played;
     const friendsCount = state.friends.length;
@@ -170,7 +200,7 @@ export default function HomeScreen() {
       { label: 'Première partie', current: played, target: 1, cta: 'reserve' },
       { label: '5 parties', current: played, target: 5, cta: 'reserve' },
       { label: '20 parties', current: played, target: 20, cta: 'reserve' },
-      { label: 'Premier tournoi', current: tournamentsPlayed, target: 1, cta: 'reserve' },
+      { label: 'Premier tournoi', current: tournamentsPlayed, target: 1, cta: 'tournament' },
       { label: '5 amis', current: friendsCount, target: 5, cta: 'invite' },
     ];
 
@@ -262,7 +292,13 @@ export default function HomeScreen() {
                 </Txt>
               ) : null}
             </Pressable>
-            <Pressable onPress={() => dismissNews(news.id)} hitSlop={8} style={styles.newsClose}>
+            <Pressable
+              onPress={() => dismissNews(news.id)}
+              hitSlop={8}
+              style={styles.newsClose}
+              accessibilityRole="button"
+              accessibilityLabel="Fermer l'actualité"
+            >
               <Ionicons name="close" size={16} color={colors.textMuted} />
             </Pressable>
           </View>
@@ -298,22 +334,34 @@ export default function HomeScreen() {
 
         {/* Accès rapide — 4 univers (D1 : Coachs retiré, accessible par fiche club) */}
         <View style={styles.quickRow}>
-          {ACTIONS.map((a) => (
-            <Pressable
-              key={a.label}
-              onPress={() => go(a.route)}
-              style={styles.quickItem}
-              accessibilityRole="button"
-              accessibilityLabel={a.label}
-            >
-              <View style={[styles.quickIcon, { backgroundColor: a.bg }]}>
-                <Ionicons name={a.icon} size={22} color={a.tint} />
-              </View>
-              <Txt variant="small" style={{ fontWeight: '600', textAlign: 'center' }}>
-                {a.label}
-              </Txt>
-            </Pressable>
-          ))}
+          {ACTIONS.map((a) => {
+            // Pastille corail sur « Amis » : découvrabilité des demandes d'ami en attente
+            // (sinon invisible dans l'app tant qu'on n'ouvre pas manuellement l'écran Amis).
+            const pendingRequests = a.route === '/amis' ? state.friendRequests.length : 0;
+            return (
+              <Pressable
+                key={a.label}
+                onPress={() => go(a.route)}
+                style={styles.quickItem}
+                accessibilityRole="button"
+                accessibilityLabel={pendingRequests > 0 ? `${a.label}, ${pendingRequests} demande${pendingRequests > 1 ? 's' : ''} en attente` : a.label}
+              >
+                <View style={[styles.quickIcon, { backgroundColor: a.bg }]}>
+                  <Ionicons name={a.icon} size={22} color={a.tint} />
+                  {pendingRequests > 0 ? (
+                    <View style={styles.quickBadge}>
+                      <Txt variant="small" color={colors.white} style={{ fontWeight: '700', fontSize: 10 }}>
+                        {pendingRequests > 9 ? '9+' : pendingRequests}
+                      </Txt>
+                    </View>
+                  ) : null}
+                </View>
+                <Txt variant="small" style={{ fontWeight: '600', textAlign: 'center' }}>
+                  {a.label}
+                </Txt>
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* ── Nudge unique (a / b / c — mutuellement exclusifs) ─────────── */}
@@ -339,6 +387,8 @@ export default function HomeScreen() {
               }}
               hitSlop={8}
               style={styles.nudgeClose}
+              accessibilityRole="button"
+              accessibilityLabel="Ignorer"
             >
               <Ionicons name="close" size={15} color={colors.textMuted} />
             </Pressable>
@@ -356,7 +406,7 @@ export default function HomeScreen() {
                 Complète ton profil
               </Txt>
               <Txt variant="small" color={colors.textMuted}>
-                Ajoute ta {missingField} pour ton signe astro →
+                {missingFieldHint}
               </Txt>
             </View>
             <Pressable
@@ -366,6 +416,8 @@ export default function HomeScreen() {
               }}
               hitSlop={8}
               style={styles.nudgeClose}
+              accessibilityRole="button"
+              accessibilityLabel="Ignorer"
             >
               <Ionicons name="close" size={15} color={colors.textMuted} />
             </Pressable>
@@ -375,7 +427,9 @@ export default function HomeScreen() {
         {/* c) B-R1 : trophée proche */}
         {activeNudge === 'trophy' && trophyNudge ? (
           <Pressable
-            onPress={() => go(trophyNudge.cta === 'reserve' ? '/reserver' : '/amis')}
+            onPress={() =>
+              go(trophyNudge.cta === 'invite' ? '/amis' : trophyNudge.cta === 'tournament' ? '/competitions' : '/reserver')
+            }
             style={[styles.nudge, { backgroundColor: colors.amberSoft }]}
           >
             <View style={[styles.nudgeIcon, { backgroundColor: colors.amber }]}>
@@ -383,7 +437,13 @@ export default function HomeScreen() {
             </View>
             <View style={{ flex: 1 }}>
               <Txt variant="body" style={{ fontWeight: '700' }}>
-                Plus que {trophyNudge.target - trophyNudge.current} {trophyNudge.cta === 'invite' ? 'ami(s)' : 'partie(s)'} pour le trophée
+                Plus que {trophyNudge.target - trophyNudge.current}{' '}
+                {trophyNudge.cta === 'invite'
+                  ? `ami${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`
+                  : trophyNudge.cta === 'tournament'
+                    ? `tournoi${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`
+                    : `partie${trophyNudge.target - trophyNudge.current > 1 ? 's' : ''}`}{' '}
+                pour le trophée
               </Txt>
               <View style={styles.trophyGaugeTrack}>
                 <View
@@ -422,6 +482,8 @@ export default function HomeScreen() {
               }}
               hitSlop={8}
               style={styles.nudgeClose}
+              accessibilityRole="button"
+              accessibilityLabel="Ignorer"
             >
               <Ionicons name="close" size={15} color={colors.textMuted} />
             </Pressable>
@@ -482,15 +544,11 @@ export default function HomeScreen() {
                     </Txt>
                   </View>
                 </View>
-                <View style={[styles.statusPill, { backgroundColor: upcoming.clubConfirmed ? colors.greenSoft : colors.amberSoft }]}>
-                  <Txt
-                    variant="small"
-                    color={upcoming.clubConfirmed ? colors.green : colors.amber}
-                    style={{ fontWeight: '700', fontSize: 11 }}
-                  >
-                    {upcoming.clubConfirmed ? 'Confirmé' : 'En attente'}
-                  </Txt>
-                </View>
+                {upcoming.clubConfirmed ? (
+                  <Tag label="Confirmé" tone="green" icon="checkmark-circle" />
+                ) : (
+                  <Tag label="En attente" tone="amber" icon="hourglass-outline" />
+                )}
               </View>
               <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.md }} />
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
@@ -510,7 +568,12 @@ export default function HomeScreen() {
                   </Txt>
                 </View>
                 <View style={{ flex: 1 }} />
-                <Pressable onPress={() => go('/reservations')} hitSlop={6}>
+                <Pressable
+                  onPress={() => go('/reservations')}
+                  hitSlop={6}
+                  accessibilityRole="button"
+                  accessibilityLabel="Voir la réservation"
+                >
                   <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
                     Voir
                   </Txt>
@@ -526,13 +589,23 @@ export default function HomeScreen() {
                     </Txt>
                   </View>
                   <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                    <Pressable onPress={() => go('/amis')} style={[styles.matchAction, { backgroundColor: colors.signatureSoft }]}>
+                    <Pressable
+                      onPress={() => go('/amis')}
+                      style={[styles.matchAction, { backgroundColor: colors.signatureSoft }]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Inviter un ami"
+                    >
                       <Ionicons name="person-add-outline" size={14} color={colors.signature} />
                       <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
                         Inviter un ami
                       </Txt>
                     </Pressable>
-                    <Pressable onPress={notifyPartners} style={[styles.matchAction, { backgroundColor: colors.greenSoft }]}>
+                    <Pressable
+                      onPress={notifyPartners}
+                      style={[styles.matchAction, { backgroundColor: colors.greenSoft }]}
+                      accessibilityRole="button"
+                      accessibilityLabel="Prévenir mes partenaires"
+                    >
                       <Ionicons name="logo-whatsapp" size={14} color={colors.green} />
                       <Txt variant="small" color={colors.green} style={{ fontWeight: '700' }}>
                         Prévenir mes partenaires
@@ -543,7 +616,12 @@ export default function HomeScreen() {
               ) : (
                 /* Équipe complète : on peut quand même prévenir */
                 <View style={{ marginTop: spacing.md }}>
-                  <Pressable onPress={notifyPartners} style={[styles.matchAction, { backgroundColor: colors.greenSoft }]}>
+                  <Pressable
+                    onPress={notifyPartners}
+                    style={[styles.matchAction, { backgroundColor: colors.greenSoft }]}
+                    accessibilityRole="button"
+                    accessibilityLabel="Prévenir mes partenaires"
+                  >
                     <Ionicons name="logo-whatsapp" size={14} color={colors.green} />
                     <Txt variant="small" color={colors.green} style={{ fontWeight: '700' }}>
                       Prévenir mes partenaires
@@ -679,6 +757,20 @@ const styles = StyleSheet.create({
   quickRow: { flexDirection: 'row', justifyContent: 'space-between', marginTop: spacing.xl },
   quickItem: { alignItems: 'center', gap: spacing.sm, width: '22%' },
   quickIcon: { width: 54, height: 54, borderRadius: radius.lg, alignItems: 'center', justifyContent: 'center' },
+  quickBadge: {
+    position: 'absolute',
+    top: -4,
+    right: -4,
+    minWidth: 18,
+    height: 18,
+    paddingHorizontal: 4,
+    borderRadius: radius.pill,
+    backgroundColor: colors.coral,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: colors.surface,
+  },
   alert: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -714,7 +806,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  statusPill: { paddingHorizontal: spacing.sm, paddingVertical: 5, borderRadius: radius.pill },
   miniAvatar: {
     width: 30,
     height: 30,

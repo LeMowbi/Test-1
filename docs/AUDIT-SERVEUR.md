@@ -1,74 +1,49 @@
 # Audit — actions serveur (sans terminal)
 
-Trois choses à faire côté **Dashboard Supabase** (tout se fait à la souris, aucun terminal).
-Rien n'est urgent au point de casser l'app : ce sont des durcissements de sécurité/robustesse.
+État au 2026-07-02 : les migrations `30 → 37` sont appliquées, `notify-club` est redéployée
+(confirmé par le porteur). **Il ne reste qu'une action optionnelle : le §2 (WEBHOOK_SECRET).**
 
 ---
 
-## 1) Coller la migration `36_audit_hardening.sql` (2 min)
+## 1) Migration `37_audit2_hardening.sql` — ✅ à coller si pas déjà fait
 
-Corrige deux points :
+Corrige deux points (audit n°2) :
 
-- **Niveau à l'inscription** : le joueur **choisit toujours** son niveau de départ à la première
-  connexion (fonctionnalité conservée). On se contente de le **borner à [1–7] côté serveur** pour
-  qu'une valeur aberrante ne bloque jamais la création du compte. Le niveau n'évolue ensuite que
-  par les tournois.
-- **Clôture de tournoi** : le +0.50 / −0.25 n'est attribué que si le nom d'équipe désigne **une
-  seule** inscription du tournoi (empêche un « vol » de points par deux équipes de même nom).
+- **Avis des invités** : un ami invité qui a accepté et joué peut désormais noter le club
+  (avant, l'app le proposait mais le serveur refusait systématiquement).
+- **Anti double-occupation** : un club ne peut plus créer/valider un tournoi par-dessus des
+  créneaux déjà réservés par des joueurs.
 
 **Étapes :**
 1. Dashboard Supabase → **SQL Editor** → **New query**.
-2. Ouvre le fichier `supabase/36_audit_hardening.sql` du dépôt, copie **tout** son contenu.
-3. Colle dans l'éditeur → **Run**. Le script est **idempotent** (on peut le relancer sans risque).
-4. Message attendu : « Success. No rows returned ».
+2. Ouvre `supabase/37_audit2_hardening.sql` du dépôt, copie **tout** son contenu.
+3. Colle → **Run**. Idempotent (relançable sans risque). Attendu : « Success. No rows returned ».
 
 ---
 
-## 2) Redéployer l'Edge Function `notify-club` (2 min)
+## 2) (Recommandé, quand tu veux) Sécuriser le webhook push (3 min)
 
-Corrige : une **demande d'ami renvoyée après un refus** n'envoyait aucune notification push.
-
-**Étapes :**
-1. Dashboard → **Edge Functions** → **notify-club** → **Edit** (ou « Code »).
-2. Ouvre le fichier `supabase/functions/notify-club/index.ts` du dépôt, copie **tout**.
-3. Colle (remplace tout l'ancien code) → **Deploy**.
-4. Le webhook `friend_requests` doit écouter **INSERT ET UPDATE** (c'est déjà le cas puisque la
-   notif « demande acceptée » fonctionne). Si besoin : Dashboard → **Database → Webhooks** →
-   `friend_requests` → cocher **Insert** et **Update**.
-
----
-
-## 3) (Recommandé) Sécuriser le webhook push (3 min)
-
-Aujourd'hui, tant qu'aucun secret n'est posé, **n'importe qui** connaissant l'URL de la fonction
-peut déclencher des notifications. On ferme ce trou en exigeant un en-tête secret. Le code de la
-fonction gère déjà ce cas : dès que le secret est posé, il est **obligatoire**.
+Tant qu'aucun secret n'est posé, **n'importe qui** connaissant l'URL de la fonction peut
+déclencher des notifications. Le code de la fonction gère déjà le secret : dès qu'il est posé,
+il devient **obligatoire** — rien à redéployer.
 
 **Étapes :**
-1. Choisis un secret (une longue suite aléatoire, ex. généré sur un gestionnaire de mots de passe).
-2. Dashboard → **Edge Functions** → **notify-club** → **Settings** (ou « Secrets ») → ajoute une
-   variable : **Nom** `WEBHOOK_SECRET`, **Valeur** = ton secret → **Save**.
+1. Choisis un secret (longue suite aléatoire, ex. générée par un gestionnaire de mots de passe).
+2. Dashboard → **Edge Functions** → **notify-club** → **Settings** (ou « Secrets ») → ajoute :
+   **Nom** `WEBHOOK_SECRET`, **Valeur** = ton secret → **Save**.
 3. Dashboard → **Database → Webhooks** → pour **chaque** webhook qui appelle `notify-club`
    (`reservations`, `reservation_participants`, `competitions`, `friend_requests`) :
-   **Edit** → section **HTTP Headers** → ajoute un en-tête
-   **`x-webhook-secret`** = **le même secret** → **Save**.
-4. Vérifie : fais une action qui envoie un push (ex. une réservation de test) → la notification
-   arrive toujours. Si plus rien n'arrive, c'est qu'un webhook n'a pas le bon en-tête.
+   **Edit** → **HTTP Headers** → ajoute **`x-webhook-secret`** = **le même secret** → **Save**.
+4. Vérifie : une action qui envoie un push (ex. réservation de test) → la notification arrive
+   toujours. Si plus rien n'arrive, un webhook n'a pas le bon en-tête.
 
-> Astuce : garde le secret quelque part de sûr (le même sur la fonction ET sur tous les webhooks).
-
----
-
-## 4) Vérifier que les migrations `33` / `34` / `35` sont bien passées
-
-Si tu ne l'as pas déjà fait, colle aussi (SQL Editor → Run, dans l'ordre) :
-`33_diagnostics.sql`, `34_level_integrity.sql`, `35_hardening3.sql`.
-**`34` est le plus important** : c'est lui qui verrouille l'écriture du niveau (anti-triche).
-Tous sont idempotents — les relancer ne casse rien.
+> Astuce : garde le secret en lieu sûr (le même sur la fonction ET sur tous les webhooks).
 
 ---
 
-## Ordre conseillé
+## Historique (déjà fait, confirmé le 2026-07-01/02)
 
-1 → 2 → (3) → 4. Une fois fait, préviens-moi : je pourrai lancer le prochain build de l'app
-(il contient toutes les corrections et améliorations de cet audit).
+- ✅ Migrations `30` → `36` appliquées (dont `34_level_integrity` anti-triche niveau et
+  `36_audit_hardening` : niveau borné [1,7] à l'inscription + anti-collision de noms).
+- ✅ Edge Function `notify-club` redéployée (push des demandes d'ami renvoyées après refus).
+- ✅ Webhook `friend_requests` branché (INSERT + UPDATE).

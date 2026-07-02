@@ -115,13 +115,18 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
 
   // Succès → écran de confirmation PLEIN ÉCRAN (handoff refonte).
   if (done) {
+    const invitedNames = [...state.friends.filter((f) => friendIds.includes(f.id)).map((f) => f.name), ...extraNames];
     return (
       <BookingConfirmation
         clubName={club.name}
         dayLabel={day.label}
         time={time}
         court={court ?? ''}
+        area={club.area}
+        startsAt={slotTimestamp(day.key, time)}
+        price={price}
         participantCount={participantCount}
+        invitedNames={invitedNames}
         onSeeReservations={() => {
           onClose();
           router.push('/reservations');

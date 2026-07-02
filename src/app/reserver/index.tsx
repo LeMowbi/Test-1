@@ -85,7 +85,10 @@ export default function ReserverScreen() {
         .filter((s) => s.ts > Date.now() && freeCourts(club, day.key, s.time, ctx).length > 0),
     }));
 
-  const open = (club: Club, time: string) => setSheet({ club, time });
+  const open = (club: Club, time: string) => {
+    hapticLight(); // aligné sur pickDay/pickSlot : tout le tunnel « Réserver » émet un tap léger
+    setSheet({ club, time });
+  };
 
   const isToday = day.key === days[0].key;
   const goTomorrow = () => setDay(days[1]);
@@ -201,7 +204,13 @@ export default function ReserverScreen() {
                     </Txt>
                   </View>
                   {selectedRow.clubs.map(({ club, free }) => (
-                    <Pressable key={club.id} onPress={() => open(club, selectedRow.time)} style={styles.clubMini}>
+                    <Pressable
+                      key={club.id}
+                      onPress={() => open(club, selectedRow.time)}
+                      style={styles.clubMini}
+                      accessibilityRole="button"
+                      accessibilityLabel={`${club.name}, ${free} terrain${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''}, ${fcfa(priceForSlot(club, selectedRow.time))}`}
+                    >
                       <View style={{ flex: 1 }}>
                         <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
                           {club.name}
@@ -220,7 +229,7 @@ export default function ReserverScreen() {
                           {fcfa(priceForSlot(club, selectedRow.time))}
                         </Txt>
                         <Txt variant="small" color={colors.textFaint} style={{ fontSize: 11 }}>
-                          ~{perPlayer(priceForSlot(club, selectedRow.time))}/joueur
+                          ~{perPlayer(priceForSlot(club, selectedRow.time))}/joueur à 4
                         </Txt>
                       </View>
                       <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />

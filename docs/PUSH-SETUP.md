@@ -52,6 +52,9 @@ Dashboard Supabase → **Database → Webhooks** → *Create a new hook* :
 - **Demandes d'ami** (notif sociale) : table `friend_requests`, événements **INSERT _et_
   UPDATE** (coche les deux) → même fonction `notify-club`.
   - INSERT d'une demande (`pending`) → notifie le **destinataire** (« Nouvelle demande d'ami »).
+  - UPDATE `→ pending` (demande **renvoyée** après un refus — le serveur fait un UPDATE, pas un
+    INSERT) → re-notifie le **destinataire** (« Nouvelle demande d'ami »). C'est pour CE cas
+    aussi qu'il faut cocher UPDATE, pas seulement pour l'acceptation.
   - UPDATE `→ accepted` (la personne accepte) → notifie l'**expéditeur** (« Demande acceptée »).
 
 La fonction lit la table + le type d'événement et envoie au bon destinataire (gérant du club,
