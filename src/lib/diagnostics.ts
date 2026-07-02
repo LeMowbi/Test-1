@@ -46,6 +46,36 @@ export function track(name: string, props?: Record<string, unknown>): void {
   }
 }
 
+// ─── Lecture opérateur (carte « Santé de l'app » de l'Espace opérateur, RPC 39) ───
+
+export type DiagSummary = { errors7d: number; events7d: number; topContext?: string };
+
+// Résumé 7 jours — null si échec réseau OU compte non opérateur (la carte s'affiche « — »).
+export async function fetchDiagSummary(): Promise<DiagSummary | null> {
+  const { data, error } = await supabase.rpc('operator_diag_summary');
+  if (error) return null;
+  const row = ((data ?? []) as { errors_7d: number; events_7d: number; top_context: string | null }[])[0];
+  if (!row) return null;
+  return { errors7d: row.errors_7d, events7d: row.events_7d, topContext: row.top_context ?? undefined };
+}
+
+export type RecentError = { message: string; context?: string; platform?: string; appVersion?: string; createdAt: string };
+
+// Dernières erreurs anonymisées (opérateur). null = échec réseau / non autorisé.
+export async function fetchRecentErrors(limit = 5): Promise<RecentError[] | null> {
+  const { data, error } = await supabase.rpc('operator_recent_errors', { p_limit: limit });
+  if (error) return null;
+  return (
+    (data ?? []) as { message: string; context: string | null; platform: string | null; app_version: string | null; created_at: string }[]
+  ).map((r) => ({
+    message: r.message,
+    context: r.context ?? undefined,
+    platform: r.platform ?? undefined,
+    appVersion: r.app_version ?? undefined,
+    createdAt: r.created_at,
+  }));
+}
+
 // Installe le gestionnaire GLOBAL d'erreurs JS (crashs non rattrapés) → on les journalise avant
 // que l'app ne réagisse. On chaîne le handler existant pour ne pas casser le comportement natif.
 export function installGlobalErrorLogging(): void {

@@ -121,6 +121,11 @@ function routeForNotification(data: NotificationData | null | undefined): string
     case 'lesson':
       // Demande de cours reçue → l'Espace Coach (Accepter / Refuser).
       return '/coach-admin';
+    case 'club_reservation':
+    case 'club_tournament':
+      // Push destiné au GÉRANT (nouvelle résa / annulation / demande de tournoi) → un seul
+      // tap ouvre l'Espace Club au lieu de laisser naviguer Profil → Espace Club à la main.
+      return '/club-admin';
     case 'tournament':
       return data.id ? `/competition/${data.id}` : '/competitions';
     default:

@@ -8,6 +8,7 @@ import { BottomSheet } from '@/components/BottomSheet';
 import { Chip } from '@/components/Chip';
 import { LevelStepper } from '@/components/LevelStepper';
 import { Logo } from '@/components/Logo';
+import { Stepper } from '@/components/Stepper';
 import { Button, Txt } from '@/components/ui';
 import { levelLabel } from '@/lib/format';
 import { clearPendingReferral, getPendingReferral } from '@/lib/pendingReferral';
@@ -22,6 +23,12 @@ type FieldKey = 'firstName' | 'lastName' | 'email' | 'phone' | 'password' | 'bir
 // vérification, c'est le clic sur le lien de confirmation reçu par mail.
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v.trim());
 
+// Inscription en 3 étapes (Stepper du kit). Chaque étape ne valide QUE ses propres champs
+// (cf. goNext) — la liste sert aussi de filet de sécurité pour retrouver l'étape d'un champ.
+const STEP_LABELS = ['Compte', 'Profil', 'Parrainage'];
+const STEP_FIELDS: FieldKey[][] = [['email', 'phone', 'password'], ['firstName', 'lastName', 'birth', 'gender'], []];
+const FIELD_ORDER: FieldKey[] = STEP_FIELDS.flat();
+
 export default function Onboarding() {
   const router = useRouter();
   const { signUpWithEmail, signInWithEmail, signInWithPhone, resetPassword, resendConfirmation } = useApp();
@@ -35,6 +42,9 @@ export default function Onboarding() {
   const [photoUri, setPhotoUri] = useState<string | undefined>(undefined);
   const [lvl, setLvl] = useState(3.0);
   const [referralCode, setReferralCode] = useState(''); // parrainage (facultatif)
+  // Étape courante du formulaire (0 = Compte, 1 = Profil, 2 = Parrainage). État global au
+  // composant (pas par étape) : le pré-remplissage du parrainage marche quel que soit l'écran.
+  const [step, setStep] = useState(0);
   // Code capté via un lien d'invitation (padelconnectci.com/invite/CODE) → pré-remplissage.
   // setState APRÈS await (pas dans le corps de l'effet) pour respecter le React Compiler.
   useEffect(() => {
@@ -67,6 +77,21 @@ export default function Onboarding() {
   const [resendMsg, setResendMsg] = useState<string | null>(null); // retour du renvoi d'e-mail
   const scrollRef = useRef<ScrollView>(null);
   const positions = useRef<Partial<Record<FieldKey, number>>>({});
+  // Champ à cibler après un changement d'étape déclenché par create() (filet de sécurité) —
+  // une ref (pas un state) : sa lecture/écriture ne doit pas re-déclencher de rendu.
+  const pendingScroll = useRef<FieldKey | null>(null);
+
+  // Scroll différé vers le champ en erreur après un changement d'étape : il faut d'abord que
+  // le nouveau rendu pose les positions des champs de l'étape affichée (onLayout des <Field>).
+  useEffect(() => {
+    const key = pendingScroll.current;
+    if (!key) return;
+    pendingScroll.current = null;
+    const id = setTimeout(() => {
+      scrollRef.current?.scrollTo({ y: Math.max(0, (positions.current[key] ?? 0) - 24), animated: true });
+    }, 60);
+    return () => clearTimeout(id);
+  }, [step]);
 
   const birthDate = parseBirthDate(birth);
   const zodiac = birthDate ? zodiacFor(birthDate) : null;
@@ -89,15 +114,49 @@ export default function Onboarding() {
     return e;
   };
 
+  // Valide UNIQUEMENT les champs de l'étape affichée (réutilise validate(), qui calcule les
+  // règles pour tous les champs — on ne garde que celles de l'étape courante : les champs des
+  // autres étapes ne sont pas visibles ici, inutile de bloquer dessus). Si l'étape est valide,
+  // on avance ; à la dernière étape, on déclenche la création du compte.
+  const goNext = async () => {
+    const keys = STEP_FIELDS[step];
+    const e = validate();
+    setErrors((cur) => {
+      const next = { ...cur };
+      keys.forEach((k) => {
+        next[k] = e[k];
+      });
+      return next;
+    });
+    setAuthError(null);
+    const first = keys.find((k) => e[k]);
+    if (first) {
+      // Scroll automatique vers le premier champ en erreur DE L'ÉTAPE.
+      scrollRef.current?.scrollTo({ y: Math.max(0, (positions.current[first] ?? 0) - 24), animated: true });
+      return;
+    }
+    if (step < STEP_LABELS.length - 1) setStep((s) => s + 1);
+    else await create();
+  };
+
   const create = async () => {
     if (busy) return; // garde anti double-tap (évite deux signUp → « déjà un compte »)
     const e = validate();
     setErrors(e);
     setAuthError(null);
-    const first = (['email', 'phone', 'password', 'firstName', 'lastName', 'birth', 'gender'] as FieldKey[]).find((k) => e[k]);
+    const first = FIELD_ORDER.find((k) => e[k]);
     if (first) {
-      // Scroll automatique vers le premier champ en erreur.
-      scrollRef.current?.scrollTo({ y: Math.max(0, (positions.current[first] ?? 0) - 24), animated: true });
+      // Filet de sécurité : chaque étape valide déjà ses propres champs avant de laisser passer
+      // à la suivante (goNext) — ce cas ne devrait donc jamais survenir. S'il survient malgré
+      // tout (champ redevenu invalide), on ramène l'utilisateur à l'étape concernée plutôt que
+      // d'échouer silencieusement.
+      const stepIdx = STEP_FIELDS.findIndex((keys) => keys.includes(first));
+      if (stepIdx >= 0 && stepIdx !== step) {
+        pendingScroll.current = first;
+        setStep(stepIdx);
+      } else {
+        scrollRef.current?.scrollTo({ y: Math.max(0, (positions.current[first] ?? 0) - 24), animated: true });
+      }
       return;
     }
     setBusy(true);
@@ -191,6 +250,12 @@ export default function Onboarding() {
               {sentTo}
             </Txt>
           </Txt>
+          {/* Clin d'œil parrainage : confirme que le code saisi a bien accompagné l'inscription. */}
+          {referralCode.trim().length > 0 ? (
+            <Txt variant="small" color={colors.signature} style={{ textAlign: 'center', marginTop: spacing.sm }}>
+              Tu rejoins PadelConnect grâce à un ami 🎾
+            </Txt>
+          ) : null}
           <View style={styles.confirmHint}>
             <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
             <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
@@ -264,200 +329,245 @@ export default function Onboarding() {
         </LinearGradient>
 
         <View style={styles.body}>
-          <View style={{ alignItems: 'center' }}>
-            <Pressable
-              onPress={choosePhoto}
-              style={styles.avatar}
-              accessibilityRole="button"
-              accessibilityLabel={photoUri ? 'Changer la photo de profil' : 'Ajouter une photo de profil'}
-            >
-              {photoUri ? (
-                <Image source={{ uri: photoUri }} style={styles.avatarImg} contentFit="cover" />
-              ) : (
-                <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
-              )}
-            </Pressable>
-            <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
-              Photo (optionnel)
-            </Txt>
-          </View>
+          {/* Progression « Compte / Profil / Parrainage » — purement visuelle (kit Stepper). */}
+          <Stepper steps={STEP_LABELS} current={step} />
 
-          {/* E-mail : identifiant de connexion (confirmé par un lien envoyé par mail). */}
-          <Field
-            label="Adresse e-mail"
-            value={email}
-            onChangeText={(t) => {
-              setEmail(t);
-              clearError('email');
-            }}
-            placeholder="ex. ton.nom@email.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            error={errors.email}
-            onLayout={(y) => {
-              positions.current.email = y;
-            }}
-          />
-          {/* Téléphone : conservé (sans SMS) pour que les clubs puissent joindre les joueurs. */}
-          <Field
-            label="Numéro de téléphone"
-            value={phone}
-            onChangeText={(t) => {
-              setPhone(t);
-              clearError('phone');
-            }}
-            placeholder="+225 07 00 00 00 00"
-            keyboardType="phone-pad"
-            autoCapitalize="none"
-            error={errors.phone}
-            onLayout={(y) => {
-              positions.current.phone = y;
-            }}
-          />
-          <Field
-            label="Mot de passe"
-            value={password}
-            onChangeText={(t) => {
-              setPassword(t);
-              clearError('password');
-            }}
-            placeholder="6 caractères minimum"
-            secureTextEntry
-            autoCapitalize="none"
-            error={errors.password}
-            onLayout={(y) => {
-              positions.current.password = y;
-            }}
-          />
-          <Field
-            label="Prénom"
-            value={firstName}
-            onChangeText={(t) => {
-              setFirstName(t);
-              clearError('firstName');
-            }}
-            placeholder="Ton prénom"
-            autoCapitalize="words"
-            error={errors.firstName}
-            onLayout={(y) => {
-              positions.current.firstName = y;
-            }}
-          />
-          <Field
-            label="Nom"
-            value={lastName}
-            onChangeText={(t) => {
-              setLastName(t);
-              clearError('lastName');
-            }}
-            placeholder="Ton nom"
-            autoCapitalize="words"
-            error={errors.lastName}
-            onLayout={(y) => {
-              positions.current.lastName = y;
-            }}
-          />
-          {/* Date de naissance OPTIONNELLE (brief : différée au profil). */}
-          <Field
-            label="Date de naissance (optionnel)"
-            value={birth}
-            onChangeText={(t) => {
-              setBirth(maskBirthDate(t, birth));
-              clearError('birth');
-            }}
-            placeholder="JJ/MM/AAAA"
-            keyboardType="number-pad"
-            maxLength={10}
-            error={errors.birth}
-            onLayout={(y) => {
-              positions.current.birth = y;
-            }}
-          />
-
-          {/* Petit clin d'œil astro dès que la date est valide ✨ */}
-          {zodiac && birthDate ? (
-            <View style={styles.zodiac}>
-              <Txt variant="h2">{zodiac.emoji}</Txt>
-              <View style={{ flex: 1 }}>
-                <Txt variant="body" style={{ fontWeight: '700' }} color={colors.purple}>
-                  {zodiac.name} · {ageFrom(birthDate)} ans
-                </Txt>
-                <Txt variant="small" color={colors.textMuted}>
-                  {zodiac.message}
+          {step === 0 ? (
+            <>
+              {/* E-mail : identifiant de connexion (confirmé par un lien envoyé par mail). */}
+              <Field
+                label="Adresse e-mail"
+                value={email}
+                onChangeText={(t) => {
+                  setEmail(t);
+                  clearError('email');
+                }}
+                placeholder="ex. ton.nom@email.com"
+                keyboardType="email-address"
+                autoCapitalize="none"
+                error={errors.email}
+                onLayout={(y) => {
+                  positions.current.email = y;
+                }}
+              />
+              {/* Téléphone : conservé (sans SMS) pour que les clubs puissent joindre les joueurs. */}
+              <Field
+                label="Numéro de téléphone"
+                value={phone}
+                onChangeText={(t) => {
+                  setPhone(t);
+                  clearError('phone');
+                }}
+                placeholder="+225 07 00 00 00 00"
+                keyboardType="phone-pad"
+                autoCapitalize="none"
+                error={errors.phone}
+                onLayout={(y) => {
+                  positions.current.phone = y;
+                }}
+              />
+              <Field
+                label="Mot de passe"
+                value={password}
+                onChangeText={(t) => {
+                  setPassword(t);
+                  clearError('password');
+                }}
+                placeholder="6 caractères minimum"
+                secureTextEntry
+                autoCapitalize="none"
+                error={errors.password}
+                onLayout={(y) => {
+                  positions.current.password = y;
+                }}
+              />
+            </>
+          ) : step === 1 ? (
+            <>
+              <View style={{ alignItems: 'center' }}>
+                <Pressable
+                  onPress={choosePhoto}
+                  style={styles.avatar}
+                  accessibilityRole="button"
+                  accessibilityLabel={photoUri ? 'Changer la photo de profil' : 'Ajouter une photo de profil'}
+                >
+                  {photoUri ? (
+                    <Image source={{ uri: photoUri }} style={styles.avatarImg} contentFit="cover" />
+                  ) : (
+                    <Ionicons name="camera-outline" size={28} color={colors.textMuted} />
+                  )}
+                </Pressable>
+                <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+                  Photo (optionnel)
                 </Txt>
               </View>
-            </View>
-          ) : birth.length === 10 ? (
-            <Txt variant="small" color={colors.danger} style={{ marginTop: spacing.sm }}>
-              Cette date n'existe pas — vérifie le jour et le mois.
-            </Txt>
-          ) : null}
 
-          <View
-            onLayout={(e) => {
-              positions.current.gender = e.nativeEvent.layout.y;
-            }}
-          >
-            <Txt variant="label" style={styles.fieldLabel}>
-              Sexe
-            </Txt>
-            <View style={styles.genderRow}>
-              {GENDERS.map((g) => (
-                <Chip
-                  key={g.id}
-                  label={g.label}
-                  active={gender === g.id}
-                  onPress={() => {
-                    setGender(g.id);
-                    clearError('gender');
-                  }}
-                  size="lg"
-                />
-              ))}
-            </View>
-            {errors.gender ? (
-              <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>
-                {errors.gender}
+              <Field
+                label="Prénom"
+                value={firstName}
+                onChangeText={(t) => {
+                  setFirstName(t);
+                  clearError('firstName');
+                }}
+                placeholder="Ton prénom"
+                autoCapitalize="words"
+                error={errors.firstName}
+                onLayout={(y) => {
+                  positions.current.firstName = y;
+                }}
+              />
+              <Field
+                label="Nom"
+                value={lastName}
+                onChangeText={(t) => {
+                  setLastName(t);
+                  clearError('lastName');
+                }}
+                placeholder="Ton nom"
+                autoCapitalize="words"
+                error={errors.lastName}
+                onLayout={(y) => {
+                  positions.current.lastName = y;
+                }}
+              />
+              {/* Date de naissance OPTIONNELLE (brief : différée au profil). */}
+              <Field
+                label="Date de naissance (optionnel)"
+                value={birth}
+                onChangeText={(t) => {
+                  setBirth(maskBirthDate(t, birth));
+                  clearError('birth');
+                }}
+                placeholder="JJ/MM/AAAA"
+                keyboardType="number-pad"
+                maxLength={10}
+                error={errors.birth}
+                onLayout={(y) => {
+                  positions.current.birth = y;
+                }}
+              />
+
+              {/* Petit clin d'œil astro dès que la date est valide ✨ */}
+              {zodiac && birthDate ? (
+                <View style={styles.zodiac}>
+                  <Txt variant="h2">{zodiac.emoji}</Txt>
+                  <View style={{ flex: 1 }}>
+                    <Txt variant="body" style={{ fontWeight: '700' }} color={colors.purple}>
+                      {zodiac.name} · {ageFrom(birthDate)} ans
+                    </Txt>
+                    <Txt variant="small" color={colors.textMuted}>
+                      {zodiac.message}
+                    </Txt>
+                  </View>
+                </View>
+              ) : birth.length === 10 ? (
+                <Txt variant="small" color={colors.danger} style={{ marginTop: spacing.sm }}>
+                  Cette date n'existe pas — vérifie le jour et le mois.
+                </Txt>
+              ) : null}
+
+              <View
+                onLayout={(e) => {
+                  positions.current.gender = e.nativeEvent.layout.y;
+                }}
+              >
+                <Txt variant="label" style={styles.fieldLabel}>
+                  Sexe
+                </Txt>
+                <View style={styles.genderRow}>
+                  {GENDERS.map((g) => (
+                    <Chip
+                      key={g.id}
+                      label={g.label}
+                      active={gender === g.id}
+                      onPress={() => {
+                        setGender(g.id);
+                        clearError('gender');
+                      }}
+                      size="lg"
+                    />
+                  ))}
+                </View>
+                {errors.gender ? (
+                  <Txt variant="small" color={colors.danger} style={{ marginTop: 4 }}>
+                    {errors.gender}
+                  </Txt>
+                ) : null}
+              </View>
+
+              <Txt variant="label" style={styles.fieldLabel}>
+                Ton niveau de jeu
               </Txt>
+              <View style={styles.levelBox}>
+                <LevelStepper value={lvl} onChange={setLvl} />
+                <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
+                  {levelLabel(lvl)} · évoluera selon tes tournois officiels
+                </Txt>
+                {/* Clin d'œil pour inciter à l'honnêteté (sinon le terrain s'en charge 😅). */}
+                <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs, textAlign: 'center' }}>
+                  Joue franc-jeu 😉 — un « 6 » qui perd 6-0, ça se voit en 2 échanges.
+                </Txt>
+              </View>
+            </>
+          ) : (
+            <>
+              {/* Parrainage (facultatif) : code d'un ami qui t'a invité. */}
+              <Field
+                label="Code de parrainage (facultatif)"
+                value={referralCode}
+                onChangeText={(t) => setReferralCode(t.toUpperCase())}
+                placeholder="Ex. A1B2C3D4E5F6"
+                autoCapitalize="characters"
+              />
+              {/* Retour immédiat sur le code saisi/pré-rempli : sans lui, la saisie était muette
+                  (un code mal tapé passait inaperçu, un lien d'invitation semblait ignoré). */}
+              {referralCode.trim().length > 0 ? (
+                /^[0-9A-F]{12}$/.test(referralCode.trim()) ? (
+                  <View style={styles.referralHint}>
+                    <Ionicons name="checkmark-circle" size={14} color={colors.green} />
+                    <Txt variant="small" color={colors.green}>
+                      Code de parrainage détecté ✓ — ton ami sera crédité
+                    </Txt>
+                  </View>
+                ) : (
+                  <View style={styles.referralHint}>
+                    <Ionicons name="information-circle-outline" size={14} color={colors.amberDark} />
+                    <Txt variant="small" color={colors.amberDark}>
+                      Un code fait 12 caractères (lettres et chiffres) — vérifie-le
+                    </Txt>
+                  </View>
+                )
+              ) : null}
+
+              {authError ? (
+                <View style={styles.authError}>
+                  <Ionicons name="alert-circle" size={16} color={colors.danger} />
+                  <Txt variant="small" color={colors.danger} style={{ flex: 1 }}>
+                    {authError}
+                  </Txt>
+                </View>
+              ) : null}
+            </>
+          )}
+
+          {/* Navigation entre étapes : « Retour » (sauf à la 1ʳᵉ) + CTA principal — valide
+              l'étape affichée puis avance (ou crée le compte à la dernière étape). */}
+          <View style={styles.stepNav}>
+            {step > 0 ? (
+              <Button label="Retour" icon="arrow-back" variant="ghost" onPress={() => setStep((s) => s - 1)} disabled={busy} />
             ) : null}
-          </View>
-
-          <Txt variant="label" style={styles.fieldLabel}>
-            Ton niveau de jeu
-          </Txt>
-          <View style={styles.levelBox}>
-            <LevelStepper value={lvl} onChange={setLvl} />
-            <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
-              {levelLabel(lvl)} · évoluera selon tes tournois officiels
-            </Txt>
-            {/* Clin d'œil pour inciter à l'honnêteté (sinon le terrain s'en charge 😅). */}
-            <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.xs, textAlign: 'center' }}>
-              Joue franc-jeu 😉 — un « 6 » qui perd 6-0, ça se voit en 2 échanges.
-            </Txt>
-          </View>
-
-          {/* Parrainage (facultatif) : code d'un ami qui t'a invité. */}
-          <Field
-            label="Code de parrainage (facultatif)"
-            value={referralCode}
-            onChangeText={(t) => setReferralCode(t.toUpperCase())}
-            placeholder="Ex. A1B2C3D4E5F6"
-            autoCapitalize="characters"
-          />
-
-          {authError ? (
-            <View style={styles.authError}>
-              <Ionicons name="alert-circle" size={16} color={colors.danger} />
-              <Txt variant="small" color={colors.danger} style={{ flex: 1 }}>
-                {authError}
-              </Txt>
+            <View style={{ flex: 1 }}>
+              <Button
+                label={step === STEP_LABELS.length - 1 ? (busy ? 'Création…' : 'Créer mon profil') : 'Continuer'}
+                icon={step === STEP_LABELS.length - 1 ? 'checkmark' : 'arrow-forward'}
+                onPress={goNext}
+                disabled={busy}
+                full
+              />
             </View>
-          ) : null}
-
-          <View style={{ marginTop: spacing.xl }}>
-            <Button label={busy ? 'Création…' : 'Créer mon profil'} icon="checkmark" onPress={create} disabled={busy} full />
           </View>
 
+          {/* Mode « Se connecter » : accessible depuis TOUTES les étapes. */}
           <Pressable onPress={() => setSignInOpen(true)} style={{ marginTop: spacing.lg, alignItems: 'center' }}>
             <Txt variant="small" color={colors.textFaint} style={{ textAlign: 'center' }}>
               Tu as déjà un compte ?{' '}
@@ -467,25 +577,29 @@ export default function Onboarding() {
             </Txt>
           </Pressable>
 
-          {/* C-S2 : lien discret vers /decouvrir pour les débutants */}
-          <Pressable onPress={() => router.push('/decouvrir')} style={{ marginTop: spacing.lg, alignItems: 'center' }}>
-            <Txt variant="small" color={colors.textFaint} style={{ textAlign: 'center' }}>
-              Nouveau au padel ?{' '}
-              <Txt variant="small" color={colors.signature}>
-                Découvrir les règles →
-              </Txt>
-            </Txt>
-          </Pressable>
+          {step === 0 ? (
+            <>
+              {/* C-S2 : lien discret vers /decouvrir pour les débutants */}
+              <Pressable onPress={() => router.push('/decouvrir')} style={{ marginTop: spacing.lg, alignItems: 'center' }}>
+                <Txt variant="small" color={colors.textFaint} style={{ textAlign: 'center' }}>
+                  Nouveau au padel ?{' '}
+                  <Txt variant="small" color={colors.signature}>
+                    Découvrir les règles →
+                  </Txt>
+                </Txt>
+              </Pressable>
 
-          <Pressable onPress={() => router.push('/legal')} style={{ marginTop: spacing.md }}>
-            <Txt variant="small" color={colors.textFaint} style={{ textAlign: 'center' }}>
-              En continuant, tu acceptes nos{' '}
-              <Txt variant="small" color={colors.signature}>
-                CGU & confidentialité
-              </Txt>
-              .
-            </Txt>
-          </Pressable>
+              <Pressable onPress={() => router.push('/legal')} style={{ marginTop: spacing.md }}>
+                <Txt variant="small" color={colors.textFaint} style={{ textAlign: 'center' }}>
+                  En continuant, tu acceptes nos{' '}
+                  <Txt variant="small" color={colors.signature}>
+                    CGU & confidentialité
+                  </Txt>
+                  .
+                </Txt>
+              </Pressable>
+            </>
+          ) : null}
         </View>
       </ScrollView>
 
@@ -767,6 +881,8 @@ const styles = StyleSheet.create({
     marginTop: spacing.xl,
   },
   fieldLabel: { marginTop: spacing.lg },
+  stepNav: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center', marginTop: spacing.xl },
+  referralHint: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.xs },
   authError: {
     flexDirection: 'row',
     alignItems: 'center',

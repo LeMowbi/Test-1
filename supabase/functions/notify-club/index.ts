@@ -37,7 +37,8 @@ type Notif = {
   targets: string[];
   title: string;
   body: string;
-  data?: { kind: 'friend_request' | 'reservation' | 'tournament' | 'lesson'; id?: string };
+  // 'club_reservation' / 'club_tournament' = push destiné au GÉRANT → l'app ouvre l'Espace Club.
+  data?: { kind: 'friend_request' | 'reservation' | 'club_reservation' | 'tournament' | 'club_tournament' | 'lesson'; id?: string };
 };
 
 Deno.serve(async (req) => {
@@ -98,6 +99,7 @@ Deno.serve(async (req) => {
         targets: await clubManagerTokens(record.club_id),
         title: 'Nouvelle réservation 🎾',
         body: `${record.booked_by_name ?? 'Un joueur'} — ${record.date_label ?? ''} à ${record.time ?? ''} (${record.court ?? ''}).`,
+        data: { kind: 'club_reservation', id: record.id },
       });
     } else if (table === 'reservations' && type === 'UPDATE' && record.club_confirmed === true && oldRecord.club_confirmed !== true) {
       // Le club vient de CONFIRMER la réservation → prévenir le joueur (auteur).
@@ -114,6 +116,7 @@ Deno.serve(async (req) => {
         targets: await clubManagerTokens(record.club_id),
         title: 'Réservation annulée',
         body: `${record.booked_by_name ?? 'Un joueur'} a annulé son créneau du ${record.date_label ?? ''} à ${record.time ?? ''} (${record.court ?? ''}).`,
+        data: { kind: 'club_reservation', id: record.id },
       });
     } else if (table === 'reservation_participants' && type === 'INSERT') {
       // Un ami vient d'être INVITÉ à une réservation (link_participants) → prévenir l'invité.
@@ -149,6 +152,7 @@ Deno.serve(async (req) => {
         targets: await clubManagerTokens(record.club_id),
         title: 'Nouvelle demande de tournoi 🏆',
         body: `${record.organizer_name ?? 'Un joueur'} propose « ${record.title ?? ''} » — à valider ou refuser.`,
+        data: { kind: 'club_tournament', id: record.id },
       });
     } else if (table === 'competitions' && type === 'UPDATE' && record.status === 'published' && oldRecord.status === 'pending') {
       // Le club a VALIDÉ un tournoi joueur → prévenir l'organisateur ET, si c'est un tournoi

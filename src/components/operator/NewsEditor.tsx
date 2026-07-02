@@ -1,9 +1,10 @@
+import { Ionicons } from '@expo/vector-icons';
 import { useState } from 'react';
-import { TextInput, View } from 'react-native';
+import { StyleSheet, TextInput, View } from 'react-native';
 import { Button, Card, Txt } from '@/components/ui';
 import { useToast } from '@/components/Toast';
 import { opStyles } from '@/components/operator/styles';
-import { colors, spacing } from '@/theme';
+import { colors, radius, spacing } from '@/theme';
 
 // Petit éditeur d'actu d'accueil : titre (obligatoire), sous-titre + lien (optionnels).
 export function NewsEditor({
@@ -64,6 +65,36 @@ export function NewsEditor({
         keyboardType="url"
         style={opStyles.newsInput}
       />
+      {/* Aperçu EN DIRECT du bandeau tel qu'il apparaîtra sur l'accueil joueur (mêmes
+          couleurs/typo que index.tsx) — l'opérateur ne publie plus à l'aveugle. */}
+      {title.trim().length > 0 ? (
+        <View style={{ marginTop: spacing.md }}>
+          <Txt variant="label" color={colors.textFaint}>
+            Aperçu sur l'accueil joueur
+          </Txt>
+          <View style={styles.preview}>
+            <Ionicons name="megaphone" size={18} color={colors.purple} />
+            <View style={{ flex: 1 }}>
+              <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={2}>
+                {title.trim()}
+              </Txt>
+              {subtitle.trim() ? (
+                <Txt variant="small" color={colors.textMuted} numberOfLines={2}>
+                  {subtitle.trim()}
+                </Txt>
+              ) : null}
+              {link.trim() ? (
+                <Txt variant="small" color={colors.purple} style={{ fontWeight: '600', marginTop: 2 }}>
+                  En savoir plus →
+                </Txt>
+              ) : null}
+            </View>
+            <View style={styles.previewClose}>
+              <Ionicons name="close" size={16} color={colors.textMuted} />
+            </View>
+          </View>
+        </View>
+      ) : null}
       <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
         <Button
           size="sm"
@@ -92,3 +123,24 @@ export function NewsEditor({
     </Card>
   );
 }
+
+const styles = StyleSheet.create({
+  // Réplique fidèle du bandeau d'accueil (index.tsx, styles.newsBanner/newsClose).
+  preview: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+    backgroundColor: colors.purpleSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.sm,
+  },
+  previewClose: {
+    width: 26,
+    height: 26,
+    borderRadius: radius.pill,
+    backgroundColor: colors.white,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+});

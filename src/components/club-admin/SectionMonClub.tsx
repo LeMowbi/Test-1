@@ -191,8 +191,44 @@ export function SectionMonClub({ club }: { club: Club }) {
     setCoachPhone('');
   };
 
+  // Checklist d'accueil : guide un club fraîchement rattaché vers une page complète.
+  // Chaque ligne reflète l'état RÉEL ; la carte disparaît quand tout est fait.
+  const checklist = [
+    { done: !!cover || photos.length > 0, label: 'Ajoute tes photos (profil + galerie)' },
+    { done: !!state.clubSlots[club.id], label: 'Vérifie tes horaires ouverts à la réservation' },
+    { done: !!state.clubCourts[club.id], label: 'Vérifie tes terrains (noms, photo par terrain)' },
+    {
+      done: !!state.clubInfo[club.id]?.priceFrom || !!state.clubInfo[club.id]?.priceTiers?.length,
+      label: 'Renseigne tes tarifs',
+    },
+  ];
+  const checklistDone = checklist.every((c) => c.done);
+
   return (
     <>
+      {!checklistDone ? (
+        <Card style={{ marginTop: spacing.md, borderColor: colors.signature }}>
+          <Txt variant="h3">Complète ta page 🎾</Txt>
+          <Txt variant="muted" style={{ marginTop: 2 }}>
+            Une page complète attire plus de joueurs : vraies photos, horaires et tarifs justes.
+          </Txt>
+          <View style={{ marginTop: spacing.sm, gap: spacing.xs }}>
+            {checklist.map((c) => (
+              <View key={c.label} style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <Ionicons
+                  name={c.done ? 'checkmark-circle' : 'ellipse-outline'}
+                  size={16}
+                  color={c.done ? colors.green : colors.textFaint}
+                />
+                <Txt variant="small" color={c.done ? colors.textFaint : colors.text} style={{ flex: 1 }}>
+                  {c.label}
+                </Txt>
+              </View>
+            ))}
+          </View>
+        </Card>
+      ) : null}
+
       {/* Infos du club — éditables par le gérant */}
       <SectionHeader title="Infos du club" />
       <ClubInfoCard key={club.id} club={club} onSave={(patch) => setClubInfo(club.id, patch)} />

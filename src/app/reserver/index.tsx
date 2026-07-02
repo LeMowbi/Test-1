@@ -8,7 +8,7 @@ import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
 import { SegmentedControl } from '@/components/SegmentedControl';
 import { Button, Card, EmptyState, Txt } from '@/components/ui';
-import { activeClubs, type Club } from '@/data/clubs';
+import { activeClubs, isFeaturedClub, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { clubsFreeAt, freeCourts, openSlotsFor, slotGrid, type AvailCtx } from '@/lib/availability';
 import { nextDays, slotTimestamp, type DayOption } from '@/lib/days';
@@ -74,6 +74,11 @@ export default function ReserverScreen() {
     .filter((r) => r.ts > Date.now()); // on masque les heures déjà passées
   const selectedRow = rows.find((r) => r.time === slot) ?? null;
 
+  // Priorité d'affichage des clubs : Padelta (règle porteur) → mes FAVORIS (l'habitué
+  // re-réserve en un geste) → le reste en ordre alphabétique (ordre d'activeClubs).
+  const favIds = state.favoriteClubIds;
+  const clubRank = (c: Club) => (isFeaturedClub(c.id) ? 0 : favIds.includes(c.id) ? 1 : 2);
+
   // Vue « Par club » : pour chaque club, ses créneaux encore libres ce jour. Les clubs
   // « Bientôt » (pas encore réservables) sont exclus, comme dans la vue « Par heure ».
   const byClub = visibleClubs
@@ -83,7 +88,9 @@ export default function ReserverScreen() {
       slots: openSlotsFor(club, state.clubSlots)
         .map((time) => ({ time, ts: slotTimestamp(day.key, time) }))
         .filter((s) => s.ts > Date.now() && freeCourts(club, day.key, s.time, ctx).length > 0),
-    }));
+    }))
+    // Tri STABLE par priorité : à rang égal, l'ordre alphabétique de visibleClubs est conservé.
+    .sort((a, b) => clubRank(a.club) - clubRank(b.club));
 
   const open = (club: Club, time: string) => {
     hapticLight(); // aligné sur pickDay/pickSlot : tout le tunnel « Réserver » émet un tap léger
@@ -203,38 +210,41 @@ export default function ReserverScreen() {
                       {selectedRow.clubs.length} club{selectedRow.clubs.length > 1 ? 's ont' : ' a'} ce créneau libre · {slot}
                     </Txt>
                   </View>
-                  {selectedRow.clubs.map(({ club, free }) => (
-                    <Pressable
-                      key={club.id}
-                      onPress={() => open(club, selectedRow.time)}
-                      style={styles.clubMini}
-                      accessibilityRole="button"
-                      accessibilityLabel={`${club.name}, ${free} terrain${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''}, ${fcfa(priceForSlot(club, selectedRow.time))}`}
-                    >
-                      <View style={{ flex: 1 }}>
-                        <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
-                          {club.name}
-                        </Txt>
-                        <Txt variant="small" color={colors.textMuted} numberOfLines={1}>
-                          {club.area}
-                        </Txt>
-                      </View>
-                      <View style={{ alignItems: 'flex-end', gap: 3 }}>
-                        <View style={styles.freeDot}>
-                          <Txt variant="small" color={colors.green} style={{ fontWeight: '700' }}>
-                            {free} libre{free > 1 ? 's' : ''}
+                  {/* Même priorité que « Par club » : Padelta, puis mes favoris, puis le reste. */}
+                  {[...selectedRow.clubs]
+                    .sort((a, b) => clubRank(a.club) - clubRank(b.club))
+                    .map(({ club, free }) => (
+                      <Pressable
+                        key={club.id}
+                        onPress={() => open(club, selectedRow.time)}
+                        style={styles.clubMini}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${club.name}, ${free} terrain${free > 1 ? 's' : ''} libre${free > 1 ? 's' : ''}, ${fcfa(priceForSlot(club, selectedRow.time))}`}
+                      >
+                        <View style={{ flex: 1 }}>
+                          <Txt variant="body" style={{ fontWeight: '700' }} numberOfLines={1}>
+                            {club.name}
+                          </Txt>
+                          <Txt variant="small" color={colors.textMuted} numberOfLines={1}>
+                            {club.area}
                           </Txt>
                         </View>
-                        <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
-                          {fcfa(priceForSlot(club, selectedRow.time))}
-                        </Txt>
-                        <Txt variant="small" color={colors.textFaint} style={{ fontSize: 11 }}>
-                          ~{perPlayer(priceForSlot(club, selectedRow.time))}/joueur à 4
-                        </Txt>
-                      </View>
-                      <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
-                    </Pressable>
-                  ))}
+                        <View style={{ alignItems: 'flex-end', gap: 3 }}>
+                          <View style={styles.freeDot}>
+                            <Txt variant="small" color={colors.green} style={{ fontWeight: '700' }}>
+                              {free} libre{free > 1 ? 's' : ''}
+                            </Txt>
+                          </View>
+                          <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
+                            {fcfa(priceForSlot(club, selectedRow.time))}
+                          </Txt>
+                          <Txt variant="small" color={colors.textFaint} style={{ fontSize: 11 }}>
+                            ~{perPlayer(priceForSlot(club, selectedRow.time))}/joueur à 4
+                          </Txt>
+                        </View>
+                        <Ionicons name="chevron-forward" size={16} color={colors.textMuted} />
+                      </Pressable>
+                    ))}
                 </View>
               ) : (
                 <View style={[styles.infoPill, { marginTop: spacing.lg }]}>

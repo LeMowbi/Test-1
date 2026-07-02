@@ -81,6 +81,7 @@ import { cancelMatchReminder, scheduleMatchReminder, syncMatchReminders } from '
 import { registerPushToken } from '@/lib/push';
 import { uploadAvatar } from '@/lib/avatar';
 import { clearOperatorNewsServer, fetchOperatorNews, setOperatorNewsServer } from '@/lib/operatorNews';
+import { fetchClubRatings, type ClubRating } from '@/lib/reviewsServer';
 import { track } from '@/lib/diagnostics';
 import { phoneToAuthEmail, supabase } from '@/lib/supabase';
 import {
@@ -210,6 +211,7 @@ export type AppState = {
   friendRequests: IncomingFriendRequest[]; // demandes d'ami REÇUES en attente (Accepter / Refuser)
   coachProfile: CoachProfile | null; // MA fiche coach (null = pas coach) → entrée « Espace Coach »
   myLessons: Lesson[]; // mes cours côté ÉLÈVE (demandes + acceptés/refusés)
+  clubRatings: Record<string, ClubRating>; // note moyenne + nb d'avis par club (cartes des listes)
   officialResults: OfficialResult[];
   compRegistrations: Record<string, { partner: string; at: number }>;
   compResults: Record<string, CompResult>; // tournoi clôturé → équipe vainqueure
@@ -582,6 +584,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         news,
         coachProfile,
         myLessons,
+        ratings,
       ] = await Promise.all([
         fetchReservations(),
         fetchOccupancy(),
@@ -602,6 +605,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchOperatorNews(),
         fetchMyCoachProfile(),
         fetchMyLessons(userId),
+        fetchClubRatings(),
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       // null = échec réseau → on garde les invitations existantes (≠ tableau vide = « aucune »).
@@ -649,6 +653,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         coachProfile: coachProfile === undefined ? s.coachProfile : coachProfile,
         // Mes cours côté élève. null = échec réseau → on garde le miroir.
         myLessons: myLessons ?? s.myLessons,
+        // Notes moyennes des clubs (cartes « 4.2 ★ (12) »). null = échec réseau → on garde.
+        clubRatings: ratings ?? s.clubRatings,
       }));
       // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses). isOwner
       // distingue MES résas (je peux annuler) d'une invitation d'ami (rappels adaptés, cf.
@@ -726,6 +732,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Fiche coach (le club a pu me promouvoir/retirer) + mes cours (le coach a pu répondre).
       void fetchMyCoachProfile().then((cp) => cp !== undefined && ok() && setState((s) => ({ ...s, coachProfile: cp })));
       void fetchMyLessons(userId).then((ls) => ls && ok() && setState((s) => ({ ...s, myLessons: ls })));
+      // Notes moyennes des clubs : de nouveaux avis ont pu être déposés entre-temps.
+      void fetchClubRatings().then((rt) => rt && ok() && setState((s) => ({ ...s, clubRatings: rt })));
       // Actu d'accueil de l'opérateur : publiée/retirée sur un autre appareil → bandeau à jour.
       void fetchOperatorNews().then((n) => n !== undefined && ok() && setState((s) => ({ ...s, operatorNews: n })));
       // Créneaux fermés par un club (sur un autre appareil) → dispo à jour partout.

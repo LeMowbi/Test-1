@@ -266,6 +266,8 @@ function applyInfo(club: Club, overrides?: ClubOverrides): Club & { contactPhone
 // (décision du porteur). Les tris « sponsorisé d'abord » des écrans restent prioritaires —
 // ils sont stables, donc l'ordre ci-dessous est préservé à égalité de boost.
 const FEATURED_CLUB_ID = 'padelta';
+// Les écrans qui re-trient (favoris en tête…) peuvent garder le club mis en avant devant.
+export const isFeaturedClub = (id: string) => id === FEATURED_CLUB_ID;
 export function compareClubs(a: Club, b: Club): number {
   if (a.id !== b.id) {
     if (a.id === FEATURED_CLUB_ID) return -1;

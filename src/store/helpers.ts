@@ -44,6 +44,7 @@ export const initialState: AppState = {
   friendRequests: [],
   coachProfile: null, // fiche coach du compte connecté (promu par son club)
   myLessons: [],
+  clubRatings: {}, // note moyenne + nb d'avis par club (rempli au chargement de session)
   officialResults: [],
   compRegistrations: {},
   compResults: {},

@@ -67,6 +67,8 @@ export default function ClubAdmin() {
   // Données du bottom sheet de détail créneau.
   const now = Date.now();
   const clubRes = state.reservations.filter((r) => r.clubId === club.id);
+  // Réservations à venir en attente de confirmation → rappel visible depuis tous les onglets.
+  const pendingConfirm = clubRes.filter((r) => !r.clubConfirmed && r.startsAt > now).length;
   const clubBlocked = state.blockedSlots.filter((b) => b.clubId === club.id);
   // Repli sur les terrains par défaut : la fiche détail d'un créneau doit lister les terrains
   // même si le gérant n'a pas encore personnalisé sa configuration.
@@ -279,6 +281,23 @@ export default function ClubAdmin() {
 
       <SegmentedControl options={SECTIONS} value={section} onChange={setSection} />
 
+      {/* Rappel visible depuis les AUTRES onglets : des réservations attendent la confirmation
+          du gérant (un tap ramène à l'onglet Réservations). */}
+      {section !== 'Réservations' && pendingConfirm > 0 ? (
+        <Pressable
+          onPress={() => setSection('Réservations')}
+          style={styles.pendingConfirm}
+          accessibilityRole="button"
+          accessibilityLabel={`${pendingConfirm} réservation${pendingConfirm > 1 ? 's' : ''} à confirmer`}
+        >
+          <Ionicons name="hourglass-outline" size={14} color={colors.amberDark} />
+          <Txt variant="small" color={colors.amberDark} style={{ fontWeight: '700', flex: 1 }}>
+            {pendingConfirm} réservation{pendingConfirm > 1 ? 's' : ''} à confirmer
+          </Txt>
+          <Ionicons name="chevron-forward" size={14} color={colors.amberDark} />
+        </Pressable>
+      ) : null}
+
       {section === 'Réservations' ? <SectionReservations club={club} comps={comps} onSelectCell={setSelectedCell} /> : null}
 
       {section === 'Mon club' ? <SectionMonClub club={club} /> : null}
@@ -457,6 +476,15 @@ const styles = StyleSheet.create({
   },
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   signupLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.md, paddingVertical: spacing.xs },
+  pendingConfirm: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.amberSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginTop: spacing.md,
+  },
   pendingBanner: {
     flexDirection: 'row',
     alignItems: 'center',

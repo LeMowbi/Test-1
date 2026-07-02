@@ -42,6 +42,19 @@ function toReview(r: Row): ServerReview {
   };
 }
 
+// Note moyenne + nombre d'avis PAR CLUB en un seul appel (RPC fetch_club_ratings, 39) —
+// alimente les cartes des listes (« 4.2 ★ (12) », comme la fiche). null = échec réseau.
+export type ClubRating = { avg: number; count: number };
+export async function fetchClubRatings(): Promise<Record<string, ClubRating> | null> {
+  const { data, error } = await supabase.rpc('fetch_club_ratings');
+  if (error) return null;
+  const out: Record<string, ClubRating> = {};
+  for (const r of (data ?? []) as { club_id: string; avg_rating: number; review_count: number }[]) {
+    out[r.club_id] = { avg: Number(r.avg_rating), count: r.review_count };
+  }
+  return out;
+}
+
 // Avis d'un club (les plus récents d'abord). Convention réseau (CLAUDE.md §8) : `null` en cas
 // d'échec réseau (≠ [] = aucun avis) pour que l'appelant NE VIDE PAS le miroir affiché sur un blip.
 export async function fetchClubReviews(clubId: string): Promise<ServerReview[] | null> {
