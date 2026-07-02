@@ -1,5 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
@@ -14,7 +15,8 @@ import { SectionTournois } from '@/components/club-admin/SectionTournois';
 import { clubsByName, findClub, manageableClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { competitionBlockedCourts, courtsFor, hasFullDayCompetition } from '@/lib/availability';
-import { slotTimestamp } from '@/lib/days';
+import { openWhatsApp } from '@/lib/contact';
+import { dateKeyLabel, slotTimestamp } from '@/lib/days';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
@@ -23,6 +25,16 @@ const SECTIONS = ['Réservations', 'Mon club', 'Tournois'] as const;
 // Motifs de blocage d’un créneau hors app (repris dans le bottom sheet de détail créneau).
 const BLOCK_REASONS = ['Résa téléphone/WhatsApp', 'Entretien', 'Privatisé', 'Autre'];
 const CLUB_TYPES: Club['type'][] = ['Couvert', 'Extérieur', 'Mixte'];
+// Guide de démarrage fermé (drapeau local persistant — pas une donnée serveur).
+const GUIDE_SEEN_KEY = 'padelco_club_guide_seen';
+// Les 4 gestes essentiels d'un gérant — un club non rodé qui les ignore crée des doublons
+// (résas téléphone non bloquées) et des joueurs inquiets (résas jamais confirmées).
+const GUIDE_STEPS: { icon: keyof typeof Ionicons.glyphMap; text: string }[] = [
+  { icon: 'time-outline', text: 'Renseigne tes créneaux et tes terrains (onglet « Mon club »)' },
+  { icon: 'checkmark-circle-outline', text: 'Confirme chaque réservation reçue — le joueur est rassuré' },
+  { icon: 'lock-closed-outline', text: 'Un créneau pris par téléphone/WhatsApp ? Bloque-le pour éviter les doublons' },
+  { icon: 'alert-circle-outline', text: 'Un joueur absent ? Marque « pas venu » — sa fiabilité en tient compte' },
+];
 
 export default function ClubAdmin() {
   const {
@@ -40,6 +52,19 @@ export default function ClubAdmin() {
   const { refreshControl } = usePullToRefresh();
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
+  // Guide de démarrage : null = drapeau pas encore lu (on n'affiche rien pour éviter un flash).
+  const [guideSeen, setGuideSeen] = useState<boolean | null>(null);
+  useEffect(() => {
+    let alive = true;
+    void AsyncStorage.getItem(GUIDE_SEEN_KEY).then((v) => alive && setGuideSeen(v === '1'));
+    return () => {
+      alive = false;
+    };
+  }, []);
+  const dismissGuide = () => {
+    setGuideSeen(true);
+    void AsyncStorage.setItem(GUIDE_SEEN_KEY, '1');
+  };
   const [closingId, setClosingId] = useState<string | null>(null);
   const [selectedCell, setSelectedCell] = useState<{ dateKey: string; time: string; label: string } | null>(null);
   const [blockingCourt, setBlockingCourt] = useState<string | null>(null);
@@ -157,6 +182,36 @@ export default function ClubAdmin() {
   return (
     <Screen back title="Espace Club" subtitle="Gère ton club" refreshControl={refreshControl}>
       {header}
+
+      {/* Guide de démarrage — les 4 gestes essentiels, fermable une fois assimilé. */}
+      {guideSeen === false ? (
+        <Card style={{ borderColor: colors.signature, marginBottom: spacing.md }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+            <Txt variant="h3" style={{ flex: 1 }}>
+              Bien démarrer en 4 gestes 🎾
+            </Txt>
+            <Pressable onPress={dismissGuide} hitSlop={8} accessibilityRole="button" accessibilityLabel="Fermer le guide">
+              <Ionicons name="close" size={18} color={colors.textMuted} />
+            </Pressable>
+          </View>
+          <View style={{ marginTop: spacing.sm, gap: spacing.sm }}>
+            {GUIDE_STEPS.map((s, i) => (
+              <View key={s.text} style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm }}>
+                <Txt variant="small" color={colors.signature} style={{ fontWeight: '700', width: 14 }}>
+                  {i + 1}
+                </Txt>
+                <Ionicons name={s.icon} size={16} color={colors.signature} style={{ marginTop: 1 }} />
+                <Txt variant="small" color={colors.text} style={{ flex: 1 }}>
+                  {s.text}
+                </Txt>
+              </View>
+            ))}
+          </View>
+          <View style={{ marginTop: spacing.md }}>
+            <Button size="sm" label="C'est compris" icon="checkmark" variant="secondary" onPress={dismissGuide} full />
+          </View>
+        </Card>
+      ) : null}
 
       {/* Mode HORS-LIGNE uniquement : sans session serveur, les modifs restent locales. Connecté,
           tout (config, photos, offres, coachs, confirmations) est enregistré côté serveur. */}
@@ -352,6 +407,25 @@ export default function ClubAdmin() {
                             Réservé via PadelConnect · {resa.bookedBy?.name ?? 'Joueur'}
                           </Txt>
                           {resa.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="amber" />}
+                          {resa.bookedBy?.phone ? (
+                            // Contact direct depuis le planning — même message que la liste
+                            // « À confirmer » (on n'affirme « confirmée » que si c'est vrai).
+                            <Pressable
+                              onPress={() =>
+                                openWhatsApp(
+                                  resa.bookedBy!.phone,
+                                  resa.clubConfirmed
+                                    ? `Bonjour ${resa.bookedBy!.name}, votre réservation du ${dateKeyLabel(resa.dateKey)} à ${resa.time} (${resa.court}) à ${club.name} est bien confirmée ✅`
+                                    : `Bonjour ${resa.bookedBy!.name}, votre réservation du ${dateKeyLabel(resa.dateKey)} à ${resa.time} (${resa.court}) à ${club.name} est bien reçue, je reviens vers vous pour la confirmer.`,
+                                )
+                              }
+                              hitSlop={8}
+                              accessibilityRole="button"
+                              accessibilityLabel={`Contacter ${resa.bookedBy.name} sur WhatsApp`}
+                            >
+                              <Ionicons name="logo-whatsapp" size={18} color={colors.green} />
+                            </Pressable>
+                          ) : null}
                         </>
                       ) : blk ? (
                         <>

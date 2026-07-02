@@ -92,6 +92,10 @@ const styles = StyleSheet.create({
   wrapper: { flex: 1, justifyContent: 'flex-end' },
   sheet: {
     ...shadows.e3,
+    // Plafond tablette : une feuille pleine largeur d'iPad serait démesurée — 480 pt max, centrée.
+    width: '100%',
+    maxWidth: 480,
+    alignSelf: 'center',
     backgroundColor: colors.bgElevated,
     borderTopLeftRadius: radius.xl,
     borderTopRightRadius: radius.xl,

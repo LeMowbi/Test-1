@@ -273,7 +273,8 @@ export default function Onboarding() {
               }}
               full
             />
-            <Button label="Renvoyer l’e-mail" icon="refresh" variant="ghost" onPress={resend} full />
+            {/* Secondaire (pas ghost) : c'est LE geste de secours quand le mail n'arrive pas. */}
+            <Button label="Renvoyer l’e-mail" icon="refresh" variant="secondary" onPress={resend} full />
             <Button label="Modifier l’adresse" variant="ghost" onPress={() => setSentTo(null)} full />
           </View>
           {resendMsg ? (
@@ -326,6 +327,23 @@ export default function Onboarding() {
           <Txt variant="display" color={colors.onSignature} style={styles.heroTitle}>
             Réserve ton terrain à Abidjan
           </Txt>
+          {/* Preuves de confiance : rassurent AVANT de demander e-mail + téléphone. */}
+          <View style={styles.heroProofs}>
+            {(
+              [
+                { icon: 'business', text: 'Les meilleurs clubs d’Abidjan, en un seul endroit' },
+                { icon: 'checkmark-circle', text: 'Chaque réservation confirmée par le club' },
+                { icon: 'shield-checkmark', text: 'Gratuit — tu règles ton terrain au club, comme d’habitude' },
+              ] as const
+            ).map((p) => (
+              <View key={p.icon} style={styles.heroProofRow}>
+                <Ionicons name={p.icon} size={15} color={colors.onSignature} style={{ opacity: 0.85 }} />
+                <Txt variant="small" color={colors.onSignature} style={{ flex: 1, opacity: 0.85 }}>
+                  {p.text}
+                </Txt>
+              </View>
+            ))}
+          </View>
         </LinearGradient>
 
         <View style={styles.body}>
@@ -862,6 +880,8 @@ const styles = StyleSheet.create({
     ...shadows.e2,
   },
   heroTitle: { marginTop: spacing.xl, lineHeight: 38 },
+  heroProofs: { marginTop: spacing.lg, gap: spacing.sm },
+  heroProofRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   confirmIcon: {
     width: 84,
     height: 84,

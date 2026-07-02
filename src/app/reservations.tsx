@@ -15,6 +15,7 @@ import { openWhatsApp } from '@/lib/contact';
 import { hapticSuccess } from '@/lib/haptics';
 import { dateKeyLabel, dayKey } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
+import { APP_DOMAIN } from '@/lib/referrals';
 import { openMaps } from '@/lib/maps';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { colors, radius, spacing } from '@/theme';
@@ -86,6 +87,19 @@ export default function ReservationsScreen() {
     openWhatsApp(
       '',
       `On joue au padel ! 🎾\n${r.clubName} — ${dateKeyLabel(r.dateKey)} à ${r.time} (session 1h30)\n${r.court}${who}${share}\nRéservé via PadelConnect.`,
+    );
+  };
+
+  // Il manque des joueurs : appel à recrues sur WhatsApp (groupe/contact au choix), avec le
+  // lien Universal du club — un padel se joue à 4 et l'app démarre sans réseau d'amis (le
+  // message circule là où les joueurs d'Abidjan sont déjà : leurs groupes WhatsApp).
+  const findPlayers = (r: Reservation) => {
+    const missing = Math.max(1, 3 - r.invited.length);
+    openWhatsApp(
+      '',
+      `Il me manque ${missing} joueur${missing > 1 ? 's' : ''} au padel ! 🎾\n` +
+        `${r.clubName} — ${dateKeyLabel(r.dateKey)} à ${r.time} (session 1h30)${r.price ? ` · ~${perPlayer(r.price)}/joueur` : ''}\n` +
+        `Qui vient ? ${APP_DOMAIN}/club/${r.clubId}`,
     );
   };
 
@@ -251,9 +265,16 @@ export default function ReservationsScreen() {
                     {r.clubConfirmed ? (
                       <Tag label="Confirmé" tone="green" icon="checkmark-circle" />
                     ) : (
-                      <Tag label="En attente" tone="amber" icon="hourglass-outline" />
+                      // « En attente » faisait douter (« mon terrain est-il tenu ? ») — le
+                      // terrain EST bloqué dès la réservation, seul l'accusé du club manque.
+                      <Tag label="Le club confirme…" tone="amber" icon="hourglass-outline" />
                     )}
                   </View>
+                  {!r.clubConfirmed ? (
+                    <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.xs }}>
+                      Ton terrain est bien bloqué — le club valide simplement de son côté.
+                    </Txt>
+                  ) : null}
 
                   {r.coachName ? (
                     // Réservation née d’un COURS accepté par le coach (respond_lesson).
@@ -318,10 +339,10 @@ export default function ReservationsScreen() {
                     <View style={{ flex: 1 }}>
                       <Button
                         size="sm"
-                        label="Prévenir mes partenaires"
+                        label={r.invited.length < 3 && owner ? 'Chercher des joueurs' : 'Prévenir mes partenaires'}
                         icon="logo-whatsapp"
                         variant="secondary"
-                        onPress={() => notifyPartners(r)}
+                        onPress={() => (r.invited.length < 3 && owner ? findPlayers(r) : notifyPartners(r))}
                         pill
                         full
                       />

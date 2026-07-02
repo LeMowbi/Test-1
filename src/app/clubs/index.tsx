@@ -90,11 +90,26 @@ export default function ClubsScreen() {
 
       {list.length === 0 ? (
         query.trim() ? (
-          <EmptyState icon="search-outline" title="Aucun résultat" text={`Aucun club ne correspond à « ${query.trim()} ».`} />
+          <EmptyState
+            icon="search-outline"
+            title="Aucun résultat"
+            text={`Aucun club ne correspond à « ${query.trim()} ».`}
+            actionLabel="Réinitialiser la recherche"
+            onAction={() => {
+              setQuery('');
+              setFilter('Tous');
+            }}
+          />
         ) : filter === 'Favoris' ? (
           <EmptyState icon="heart-outline" title="Aucun favori" text="Touche le cœur sur un club pour l’ajouter ici." />
         ) : (
-          <EmptyState icon="business-outline" title="Aucun club" text={`Aucun club « ${filter} » pour l’instant — change de filtre.`} />
+          <EmptyState
+            icon="business-outline"
+            title="Aucun club"
+            text={`Aucun club « ${filter} » pour l’instant.`}
+            actionLabel="Voir tous les clubs"
+            onAction={() => setFilter('Tous')}
+          />
         )
       ) : (
         list.map((c, i) => (

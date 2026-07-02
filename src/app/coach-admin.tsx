@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import { AppState as RNAppState, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Screen } from '@/components/Screen';
+import { SkeletonLines } from '@/components/Skeleton';
 import { useToast } from '@/components/Toast';
 import { Button, Card, Divider, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { findClub } from '@/data/clubs';
@@ -123,7 +124,7 @@ export default function CoachAdmin() {
         <SectionHeader title={`Demandes de cours${pending.length ? ` · ${pending.length}` : ''}`} />
         {lessons === null && !loadFailed ? (
           <Card>
-            <Txt variant="muted">Chargement des demandes…</Txt>
+            <SkeletonLines lines={3} />
           </Card>
         ) : loadFailed ? (
           <Card style={{ alignItems: 'center', paddingVertical: spacing.lg }}>

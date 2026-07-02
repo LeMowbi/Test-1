@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import { useEffect, useState } from 'react';
 import { View } from 'react-native';
+import { SkeletonLines } from '@/components/Skeleton';
 import { Card, StatTile, Txt } from '@/components/ui';
 import { fetchDiagSummary, fetchRecentErrors, type DiagSummary, type RecentError } from '@/lib/diagnostics';
 import { colors, spacing } from '@/theme';
@@ -25,7 +26,7 @@ export function DiagnosticsCard() {
   if (summary === undefined) {
     return (
       <Card>
-        <Txt variant="muted">Chargement des diagnostics…</Txt>
+        <SkeletonLines lines={3} />
       </Card>
     );
   }

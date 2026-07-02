@@ -18,7 +18,13 @@ export default function CoachDetail() {
   if (!coach) {
     return (
       <Screen back>
-        <EmptyState icon="alert-circle-outline" title="Coach introuvable" />
+        <EmptyState
+          icon="alert-circle-outline"
+          title="Coach introuvable"
+          text="Ce profil n’existe plus ou le lien est périmé."
+          actionLabel="Voir tous les coachs"
+          onAction={() => router.replace('/coachs')}
+        />
       </Screen>
     );
   }

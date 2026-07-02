@@ -105,9 +105,16 @@ export function Screen({
   );
 }
 
+// Largeur de lecture plafonnée : sur iPad (supportsTablet), une colonne pleine largeur
+// devient illisible — on centre le contenu à 640 pt max, sans effet sur iPhone.
+const MAX_CONTENT_WIDTH = 640;
+
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   header: {
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
     paddingHorizontal: spacing.lg,
     paddingTop: spacing.lg,
     paddingBottom: spacing.sm,
@@ -123,5 +130,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  content: { paddingHorizontal: spacing.lg, paddingTop: spacing.sm },
+  content: {
+    width: '100%',
+    maxWidth: MAX_CONTENT_WIDTH,
+    alignSelf: 'center',
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.sm,
+  },
 });

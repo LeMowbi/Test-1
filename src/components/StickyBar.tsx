@@ -27,7 +27,7 @@ export function StickyBar({
           {label}
         </Txt>
         {hint ? (
-          <Txt variant="small" color={colors.textFaint} numberOfLines={1}>
+          <Txt variant="small" color={colors.textMuted} numberOfLines={1}>
             {hint}
           </Txt>
         ) : null}

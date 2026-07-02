@@ -7,6 +7,7 @@ import { Chip } from '@/components/Chip';
 import { PopIn } from '@/components/PopIn';
 import { Reveal } from '@/components/Reveal';
 import { Screen } from '@/components/Screen';
+import { SkeletonCard } from '@/components/Skeleton';
 import { StickyBar } from '@/components/StickyBar';
 import { Stepper } from '@/components/Stepper';
 import { useToast } from '@/components/Toast';
@@ -86,9 +87,10 @@ export default function CoursScreen() {
             </View>
           </Card>
         ) : (
-          <Txt variant="muted" style={{ marginTop: spacing.lg }}>
-            Chargement du coach…
-          </Txt>
+          // Squelette au format de la fiche coach — chargement perçu plus fluide qu'un texte nu.
+          <View style={{ marginTop: spacing.lg }}>
+            <SkeletonCard banner={false} />
+          </View>
         )}
       </Screen>
     );

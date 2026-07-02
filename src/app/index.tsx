@@ -49,7 +49,7 @@ function countdownLabel(startsAt: number): string {
   const [y1, m1, d1] = dayKey(new Date(startsAt)).split('-').map(Number);
   const [y2, m2, d2] = dayKey(new Date(now)).split('-').map(Number);
   const diffDays = Math.round((Date.UTC(y1, m1 - 1, d1) - Date.UTC(y2, m2 - 1, d2)) / DAY_MS);
-  if (diffDays <= 0) return "aujourd’hui";
+  if (diffDays <= 0) return 'aujourd’hui';
   if (diffDays === 1) return 'demain';
   return `dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
 }
@@ -622,7 +622,7 @@ export default function HomeScreen() {
                 {upcoming.clubConfirmed ? (
                   <Tag label="Confirmé" tone="green" icon="checkmark-circle" />
                 ) : (
-                  <Tag label="En attente" tone="amber" icon="hourglass-outline" />
+                  <Tag label="Le club confirme…" tone="amber" icon="hourglass-outline" />
                 )}
               </View>
               <View style={{ height: 1, backgroundColor: colors.hairline, marginVertical: spacing.md }} />
@@ -744,7 +744,7 @@ export default function HomeScreen() {
                       // UTC fixe (Abidjan), comme le reste de l’app — pas le fuseau de l’appareil.
                       const compTs = Date.UTC(y, m - 1, d);
                       const diffDays = Math.ceil((compTs - now) / DAY_MS);
-                      if (diffDays <= 0) return "aujourd’hui !";
+                      if (diffDays <= 0) return 'aujourd’hui !';
                       if (diffDays === 1) return 'demain !';
                       return `dans ${diffDays} jour${diffDays > 1 ? 's' : ''}`;
                     })()}
