@@ -350,7 +350,8 @@ export default function ReservationsScreen() {
             {myComps.map((c, i) => {
               const result = state.compResults[c.id];
               const myResult = state.officialResults.find((o) => o.compId === c.id);
-              const finished = c.dateKey < today;
+              // Fin de plage incluse : un tournoi multi-jours EN COURS reste « À venir ».
+              const finished = (c.endDateKey ?? c.dateKey) < today;
               // Inscrit → « avec {partenaire} » ; créé sans s'y inscrire → « organisé par toi ».
               const reg = state.compRegistrations[c.id];
               const subtitle = reg ? `${c.date} · avec ${reg.partner}` : `${c.date} · organisé par toi`;

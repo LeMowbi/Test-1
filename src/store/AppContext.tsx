@@ -414,7 +414,8 @@ type AppContextType = {
   submitSupportMessage: (message: string, contactPhone?: string) => Promise<{ ok: boolean; error?: string }>;
   fetchSupportMessages: () => Promise<{ ok: boolean; messages: ServerSupportMessage[] }>;
   // Boucle de retour : le joueur relit SES messages d'aide et leur statut.
-  fetchMySupportMessages: () => Promise<ServerSupportMessage[]>;
+  // null = échec réseau (l'écran garde la liste affichée) ≠ [] = aucun message (convention §8).
+  fetchMySupportMessages: () => Promise<ServerSupportMessage[] | null>;
   setSupportMessageStatus: (id: string, status: ServerSupportMessage['status']) => Promise<{ ok: boolean }>;
   approveClub: (id: string) => void;
   rejectClub: (id: string) => void;
@@ -1785,7 +1786,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           .select('*')
           .eq('user_id', userId)
           .order('created_at', { ascending: false });
-        if (error) return [];
+        if (error) return null; // échec réseau ≠ « aucun message » — l'écran garde l'existant
         return (data ?? []) as ServerSupportMessage[];
       },
       setSupportMessageStatus: async (id, status) => {

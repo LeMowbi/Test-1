@@ -22,7 +22,8 @@ export default function Support() {
   // Boucle de retour : l'historique de MES messages avec leur statut (Reçu / Traité).
   const [mine, setMine] = useState<ServerSupportMessage[]>([]);
   const loadMine = useCallback(() => {
-    void fetchMySupportMessages().then(setMine);
+    // null = échec réseau → on garde l'historique affiché (convention §8, pas d'écrasement).
+    void fetchMySupportMessages().then((rows) => rows && setMine(rows));
   }, [fetchMySupportMessages]);
   useEffect(() => {
     loadMine();

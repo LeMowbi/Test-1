@@ -32,8 +32,15 @@ export default function ReserverScreen() {
   const club = findClub(params.clubId, state.customClubs, state.clubInfo);
 
   const dates = useMemo(() => nextDays(7), []);
-  const [day, setDay] = useState<DayOption | null>(dates.find((d) => d.key === params.dateKey) ?? null);
-  const [slot, setSlot] = useState<string | null>(params.time ?? null);
+  // « Rejouer » passe l'heure habituelle SANS jour (?time=…) : on pré-sélectionne le premier
+  // jour où ce créneau est encore à venir (aujourd'hui, sinon demain) — sans ça, le choix du
+  // jour remettait le créneau à zéro et la pré-sélection promise n'était jamais tenue.
+  const presetTime = typeof params.time === 'string' && params.time ? params.time : undefined;
+  const [day, setDay] = useState<DayOption | null>(
+    dates.find((d) => d.key === params.dateKey) ??
+      (presetTime ? (dates.find((d) => slotTimestamp(d.key, presetTime) > Date.now()) ?? null) : null),
+  );
+  const [slot, setSlot] = useState<string | null>(presetTime ?? null);
   const [court, setCourt] = useState<string | null>(null);
   // Participants : toi + jusqu'à 3 invités (amis ou nom libre).
   const [friendIds, setFriendIds] = useState<string[]>([]);

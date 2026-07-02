@@ -135,8 +135,8 @@ export default function ReserverScreen() {
 
         {todayOver && day.key === days[1].key ? (
           <View style={styles.autoHint}>
-            <Ionicons name="moon-outline" size={13} color={colors.textFaint} />
-            <Txt variant="small" color={colors.textFaint}>
+            <Ionicons name="moon-outline" size={13} color={colors.textMuted} />
+            <Txt variant="small" color={colors.textMuted}>
               Plus de créneaux aujourd'hui — voici demain.
             </Txt>
           </View>
@@ -145,8 +145,8 @@ export default function ReserverScreen() {
         <SegmentedControl options={VIEWS} value={view} onChange={setView} />
 
         <View style={styles.legend}>
-          <Ionicons name="hand-left-outline" size={15} color={colors.textFaint} />
-          <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
+          <Ionicons name="hand-left-outline" size={15} color={colors.textMuted} />
+          <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
             {view === 'Par heure' ? 'Choisis un créneau, puis le club où réserver.' : 'Touche une heure libre pour réserver dans ce club.'}
           </Txt>
         </View>
@@ -248,7 +248,7 @@ export default function ReserverScreen() {
                 </View>
               ) : (
                 <View style={[styles.infoPill, { marginTop: spacing.lg }]}>
-                  <Ionicons name="hand-left-outline" size={15} color={colors.textFaint} />
+                  <Ionicons name="hand-left-outline" size={15} color={colors.textMuted} />
                   <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
                     Choisis un créneau ci-dessus pour voir les clubs libres.
                   </Txt>

@@ -115,7 +115,12 @@ export default function HomeScreen() {
   // MES réservations seulement (un compte club/opérateur en reçoit d'autres via RLS).
   // Inclut la résa EN COURS (startsAt + SESSION_MS > now) pour que le match reste affiché
   // pendant les 1h30 de jeu, au lieu de disparaître entre « prochain match » et « rejouer ».
-  const upcoming = [...myReservations].filter((r) => r.startsAt + SESSION_MS > now).sort((a, b) => a.startsAt - b.startsAt)[0];
+  // Les invitations PAS ENCORE ACCEPTÉES sont exclues (comme dans « Mes réservations ») :
+  // elles ont leur bandeau « à confirmer » ci-dessous — sinon la même résa apparaîtrait
+  // à la fois « à confirmer » ET « ton prochain match ».
+  const upcoming = [...myReservations]
+    .filter((r) => r.startsAt + SESSION_MS > now && !state.pendingInvitationIds.includes(r.id))
+    .sort((a, b) => a.startsAt - b.startsAt)[0];
 
   // A-L1 : dernier club joué/réservé (la réservation passée la plus récente).
   // N'apparaît QUE s'il n'y a AUCUNE réservation à venir.
@@ -141,7 +146,8 @@ export default function HomeScreen() {
         if (!c) return false;
         if (c.dateKey < today) return false;
         const [y, m, d] = c.dateKey.split('-').map(Number);
-        const compTs = new Date(y, m - 1, d).getTime();
+        // UTC fixe (Abidjan), comme slotTimestamp/dayKey — pas le fuseau de l'appareil.
+        const compTs = Date.UTC(y, m - 1, d);
         return compTs - now <= 7 * DAY_MS;
       })
       .sort((a, b) => a.dateKey.localeCompare(b.dateKey))[0] ?? null;
@@ -591,7 +597,8 @@ export default function HomeScreen() {
               <View style={styles.matchHead}>
                 <View style={styles.dateChip}>
                   <Txt variant="h2" color={colors.onSignature} style={{ fontSize: 18, lineHeight: 20 }}>
-                    {dd}
+                    {/* Sans zéro initial (« 8 », pas « 08 ») — même règle que Mes réservations. */}
+                    {dd ? String(Number(dd)) : ''}
                   </Txt>
                   <Txt variant="small" color={colors.onPhoto} style={{ fontSize: 9, fontWeight: '700', letterSpacing: 0.5 }}>
                     {(MONTHS_SHORT[Number(mm) - 1] ?? '').toUpperCase()}
@@ -734,7 +741,8 @@ export default function HomeScreen() {
                   <Txt variant="muted">
                     {(() => {
                       const [y, m, d] = upcomingTournament.dateKey.split('-').map(Number);
-                      const compTs = new Date(y, m - 1, d).getTime();
+                      // UTC fixe (Abidjan), comme le reste de l'app — pas le fuseau de l'appareil.
+                      const compTs = Date.UTC(y, m - 1, d);
                       const diffDays = Math.ceil((compTs - now) / DAY_MS);
                       if (diffDays <= 0) return "aujourd'hui !";
                       if (diffDays === 1) return 'demain !';
