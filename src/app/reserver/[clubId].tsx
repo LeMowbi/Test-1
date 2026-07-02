@@ -54,6 +54,36 @@ export default function ReserverScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [celebrate, setCelebrate] = useState(false); // confettis à l’écran de succès (motif amis.tsx)
 
+  // Contexte de disponibilité + terrains libres PAR créneau du jour choisi, mémoïsés (hooks
+  // avant les `return` anticipés — règle React Compiler). Sans ça, chaque frappe dans le champ
+  // « Ou un autre nom… » re-déroulait freeCourts sur TOUS les créneaux, chacun re-balayant
+  // l'occupation non bornée de tous les clubs.
+  const ctx = useMemo<AvailCtx>(
+    () => ({
+      clubs: activeClubs(state.customClubs, state.clubInfo),
+      clubSlots: state.clubSlots,
+      clubCourts: state.clubCourts,
+      reservations: state.reservations,
+      occupancy: state.occupancy,
+      comps: [...seedCompetitions, ...state.myCompetitions],
+      blocked: state.blockedSlots,
+    }),
+    [
+      state.customClubs,
+      state.clubInfo,
+      state.clubSlots,
+      state.clubCourts,
+      state.reservations,
+      state.occupancy,
+      state.myCompetitions,
+      state.blockedSlots,
+    ],
+  );
+  const freeBySlot = useMemo(() => {
+    if (!club || !day) return null;
+    return new Map(openSlotsFor(club, state.clubSlots).map((s) => [s, freeCourts(club, day.key, s, ctx)]));
+  }, [club, day, state.clubSlots, ctx]);
+
   // Anneau qui se dilate autour du badge de succès (même anim que BookingConfirmation.tsx),
   // démarré seulement une fois l’écran de succès affiché et arrêté à la sortie (règle React
   // Compiler : hooks toujours appelés, avant tout `return` anticipé — donc déclarés ici).
@@ -88,21 +118,12 @@ export default function ReserverScreen() {
     );
   }
 
-  const ctx: AvailCtx = {
-    clubs: activeClubs(state.customClubs, state.clubInfo),
-    clubSlots: state.clubSlots,
-    clubCourts: state.clubCourts,
-    reservations: state.reservations,
-    occupancy: state.occupancy,
-    comps: [...seedCompetitions, ...state.myCompetitions],
-    blocked: state.blockedSlots,
-  };
   const openSlots = openSlotsFor(club, state.clubSlots);
   const allCourts = courtsFor(club, state.clubCourts);
   // Bannière « journée fermée » seulement si un tournoi bloque TOUT le club ; un tournoi sur
   // des terrains/créneaux précis laisse les autres réservables (géré créneau par créneau).
   const compToday = !!day && hasFullDayCompetition(club.id, day.key, ctx.comps);
-  const free = day && slot ? freeCourts(club, day.key, slot, ctx) : [];
+  const free = day && slot ? (freeBySlot?.get(slot) ?? []) : [];
 
   // A-L2 : pré-sélectionner le 1er terrain libre dès que jour + créneau sont choisis.
   // Valeur dérivée : si l’utilisateur n’a pas encore choisi manuellement (court === null)
@@ -341,7 +362,7 @@ export default function ReserverScreen() {
               <View style={styles.wrap}>
                 {periodSlots.map((s) => {
                   const isPast = !!day && slotTimestamp(day.key, s) <= Date.now();
-                  const noCourt = !!day && freeCourts(club, day.key, s, ctx).length === 0;
+                  const noCourt = !!day && (freeBySlot?.get(s)?.length ?? 0) === 0;
                   const blocked = !day || compToday || isPast || noCourt;
                   // Avec des plages tarifaires, on montre le prix de chaque créneau.
                   const label = isPast

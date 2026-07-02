@@ -28,7 +28,9 @@ export default function ReservationsScreen() {
   const router = useRouter();
   const { state, myReservations, cancelReservation, respondInvitation, cancelMyLesson, refreshLessons } = useApp();
   const toast = useToast();
-  const [showAllPast, setShowAllPast] = useState(false);
+  // Passées : pagination INCRÉMENTALE (+20) — « tout » d'un coup monterait des centaines de
+  // lignes animées dans un ScrollView non virtualisé chez un joueur assidu.
+  const [pastShownCount, setPastShownCount] = useState(PAST_PREVIEW);
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null); // confirmation avant annulation
   const [cancellingLesson, setCancellingLesson] = useState<string | null>(null); // garde anti double-tap
   // Tirer pour rafraîchir : resynchronise mes réservations (et mes demandes de cours).
@@ -50,7 +52,7 @@ export default function ReservationsScreen() {
   const pendingInvites = upcomingAll.filter(isPending);
   const upcoming = upcomingAll.filter((r) => !isPending(r));
   const past = mine.filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt);
-  const pastShown = showAllPast ? past : past.slice(0, PAST_PREVIEW);
+  const pastShown = past.slice(0, pastShownCount);
 
   // Mes demandes de COURS (coach) encore vivantes : en attente de réponse du coach, ou refusées
   // à venir (pour que le refus laisse une trace ici, pas seulement une notification). Un cours
@@ -428,7 +430,9 @@ export default function ReservationsScreen() {
         ) : (
           <Card>
             {pastShown.map((r, i) => (
-              <Reveal key={r.id} delay={staggerDelay(i)}>
+              // L'entrée n'est animée QUE pour l'aperçu initial : les lignes dépliées via
+              // « Voir plus » arrivent sans Reveal (pas de rafale d'animations au tap).
+              <Reveal key={r.id} delay={i < PAST_PREVIEW ? staggerDelay(i) : 0} disabled={i >= PAST_PREVIEW}>
                 <View>
                   {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
                   <View style={styles.row}>
@@ -460,9 +464,9 @@ export default function ReservationsScreen() {
             {past.length > PAST_PREVIEW ? (
               <Button
                 size="sm"
-                label={showAllPast ? 'Réduire' : `Voir tout (${past.length})`}
+                label={pastShownCount < past.length ? `Voir plus (${past.length - pastShownCount} restantes)` : 'Réduire'}
                 variant="ghost"
-                onPress={() => setShowAllPast((v) => !v)}
+                onPress={() => setPastShownCount((n) => (n < past.length ? n + 20 : PAST_PREVIEW))}
               />
             ) : null}
           </Card>

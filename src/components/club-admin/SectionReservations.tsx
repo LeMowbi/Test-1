@@ -144,11 +144,15 @@ export function SectionReservations({
   const dayTournament = hasFullDayCompetition(club.id, planDay.key, comps);
   // Statut d’UN terrain à un créneau — réservations app + blocages hors app + créneaux/terrains
   // réellement réservés par un tournoi publié (pas toute la journée par défaut).
+  // Pré-filtré sur LE jour affiché : la grille appelle courtStatusAt pour chaque cellule —
+  // balayer tout l'historique du club à chaque cellule deviendrait lourd avec les mois.
+  const planDayRes = clubRes.filter((r) => r.dateKey === planDay.key);
+  const planDayBlocked = clubBlocked.filter((b) => b.dateKey === planDay.key);
   const courtStatusAt = (court: string, time: string): 'reserved' | 'blocked' | 'tournoi' | 'free' => {
     const compBlocked = competitionBlockedCourts(club.id, planDay.key, time, comps);
     if (compBlocked === 'all' || compBlocked.includes(court)) return 'tournoi';
-    if (clubRes.some((r) => r.dateKey === planDay.key && r.time === time && r.court === court)) return 'reserved';
-    if (clubBlocked.some((b) => b.dateKey === planDay.key && b.time === time && b.court === court)) return 'blocked';
+    if (planDayRes.some((r) => r.time === time && r.court === court)) return 'reserved';
+    if (planDayBlocked.some((b) => b.time === time && b.court === court)) return 'blocked';
     return 'free';
   };
 
