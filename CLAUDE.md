@@ -93,7 +93,7 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 - Policies **UPDATE de Storage** : toujours `using` **ET** `with check` (sinon on peut déplacer un
   objet dans le dossier d'autrui).
 - Les migrations sont des fichiers numérotés dans `supabase/` — l'opérateur les colle dans
-  **SQL Editor → Run**. Migrations actuelles : `02` → `38` (voir dossier `supabase/`).
+  **SQL Editor → Run**. Migrations actuelles : `02` → `39` (voir dossier `supabase/`).
 - **Edge Function** `supabase/functions/notify-club/index.ts` (Deno) : envoie les push via
   l'API Expo. Déclenchée par des **Database Webhooks** (INSERT + UPDATE). Redéploiement **sans
   terminal** : Dashboard → Edge Functions → notify-club → Edit → coller le code → Deploy.
@@ -149,16 +149,18 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 - **Build #34** livré (auto-submit TestFlight) : audit complet (lots A/B/C/D/E) + amis-demande, contacts, badge Partenaire, actu
   serveur, uploads réparés, sécurité stockage, animations, diagnostics, **Universal Links actifs**
   (profil de provisioning régénéré avec « Associated Domains »).
-- **Depuis le #34 (poussé, en attente du build #35)** : audit n°2 appliqué (1 HIGH
-  reset-password + 13 moyens + ~90 finitions basses, SQL 37), demandes porteur (« Créneaux
-  disponibles », « Clubs près de toi » remonté, **Padelta premier partout**), et la grosse
-  feature **Coachs & cours + photos club** (SQL 38, Espace Coach, réservation de cours,
-  cover + photo par terrain).
+- **Depuis le #34 (build #35 lancé)** : audit n°2 COMPLET appliqué (1 HIGH reset-password +
+  13 moyens + ~90 finitions basses + 24 propositions design + 16 améliorations par rôle,
+  SQL 37 et 39), demandes porteur (« Créneaux disponibles », « Clubs près de toi » remonté,
+  **Padelta premier partout**), inscription en 3 étapes, notes moyennes réelles sur les
+  cartes, carte « Santé de l'app » opérateur, et la grosse feature **Coachs & cours +
+  photos club** (SQL 38, Espace Coach, réservation de cours, cover + photo par terrain,
+  annulations synchronisées cours ↔ réservation).
 - Serveur appliqué le 2026-07-01 (confirmé par le porteur) : SQL `30` → `36` (dont
   `34_level_integrity` anti-triche et `36_audit_hardening` : niveau borné [1,7] à l'inscription
   + anti-collision de noms à la clôture), webhook `friend_requests`, notify-club redéployé
   (push des demandes d'ami renvoyées).
-- **Reste à faire par le porteur (docs/AUDIT-SERVEUR.md §1)** : coller SQL `37` + `38`,
+- **Reste à faire par le porteur (docs/AUDIT-SERVEUR.md §1)** : coller SQL `37` + `38` + `39`,
   redéployer notify-club, créer le **webhook `lessons`** (INSERT + UPDATE). Optionnel plus
   tard : `WEBHOOK_SECRET` + en-tête `x-webhook-secret` sur les webhooks (§3).
 
