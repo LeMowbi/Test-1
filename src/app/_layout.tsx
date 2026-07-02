@@ -10,6 +10,7 @@ import { AnimatedSplash } from '@/components/AnimatedSplash';
 import { ErrorBoundary } from '@/components/ErrorBoundary';
 import { ToastProvider, useToast } from '@/components/Toast';
 import { installGlobalErrorLogging } from '@/lib/diagnostics';
+import { useNotificationTapRouter } from '@/lib/notifications';
 import { useEmailConfirmLink } from '@/lib/useEmailConfirmLink';
 import { AppProvider, useApp } from '@/store/AppContext';
 import { colors } from '@/theme';
@@ -105,6 +106,11 @@ function RootNav() {
     [refreshSession, router, toast, state.account],
   );
   useEmailConfirmLink(onConfirm);
+
+  // Tap sur une notification (rappel local ou push serveur) → écran concerné plutôt que
+  // de rouvrir l'app là où elle en était.
+  const pushRoute = useCallback((route: string) => router.push(route as never), [router]);
+  useNotificationTapRouter(pushRoute);
 
   return (
     <>

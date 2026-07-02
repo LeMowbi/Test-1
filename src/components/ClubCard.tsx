@@ -19,8 +19,9 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const boosted = state.boostedClubIds.includes(club.id);
   const photo = clubGallery(club, state.clubPhotos[club.id] ?? [])[0];
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
-  // Les avis sont VÉRIFIÉS et serveur (affichés sur la fiche club). Tant qu'un club n'en a pas,
-  // la carte affiche « Nouveau » — jamais de note fabriquée (cohérent avec la fiche).
+  // Les avis sont VÉRIFIÉS et serveur, affichés sur la fiche club (`4.x ★ (n)`). La carte ne
+  // les charge pas (pas de fetch dédié) : elle ne peut donc pas savoir si un club a des avis
+  // ou non — on n'affiche ici aucun tag « Nouveau »/note qui deviendrait faux dès le premier avis.
   const comingSoon = !!club.comingSoon; // club pré-chargé, pas encore réservable
   const partner = !!club.partner && !comingSoon; // club fondateur (partenaire officiel)
   const go = () => router.push(`/club/${club.id}`);
@@ -86,7 +87,7 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           ) : null}
         </View>
         <View style={styles.compactFooter}>
-          {comingSoon ? <Tag label="Pas encore réservable" tone="neutral" /> : <Tag label="Nouveau" tone="coral" icon="sparkles" />}
+          {comingSoon ? <Tag label="Pas encore réservable" tone="neutral" /> : null}
           {/* Prix tronqué + flexShrink : sur une carte étroite (250px), il ne se colle plus à
               la note et ne déborde plus (« …· session » coupé). */}
           {comingSoon ? null : (
@@ -137,9 +138,8 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           </Txt>
         </View>
         <View style={styles.footer}>
-          <Tag label="Nouveau" tone="coral" icon="sparkles" />
           {comingSoon ? (
-            <Txt variant="small" color={colors.purple} style={{ fontWeight: '700' }}>
+            <Txt variant="small" color={colors.purpleDark} style={{ fontWeight: '700' }}>
               Pas encore réservable
             </Txt>
           ) : (

@@ -59,7 +59,10 @@ export function BookingConfirmation({
   const notifyPartners = () => {
     const who = invitedNames.length ? `\nÉquipe : ${invitedNames.join(', ')}` : '';
     const share = price ? `\nPrévois ${perPlayer(price)} chacun.` : '';
-    openWhatsApp('', `On joue au padel ! 🎾\n${clubName} — ${dayLabel} à ${time} (session 1h30)\n${court}${who}${share}\nRéservé via PadelConnect.`);
+    openWhatsApp(
+      '',
+      `On joue au padel ! 🎾\n${clubName} — ${dayLabel} à ${time} (session 1h30)\n${court}${who}${share}\nRéservé via PadelConnect.`,
+    );
   };
 
   const check = useRef(new Animated.Value(0)).current; // 0 → 1 : pop de la coche

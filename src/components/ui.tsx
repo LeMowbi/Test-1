@@ -69,10 +69,25 @@ const txt = StyleSheet.create({
 
 /* ---------------------------------- Carte --------------------------------- */
 
-export function Card({ children, style, onPress }: { children: React.ReactNode; style?: StyleProp<ViewStyle>; onPress?: () => void }) {
+export function Card({
+  children,
+  style,
+  onPress,
+  accessibilityLabel,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
+  accessibilityLabel?: string;
+}) {
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={({ pressed }) => [card.base, pressed && card.pressed, style]}>
+      <Pressable
+        onPress={onPress}
+        style={({ pressed }) => [card.base, pressed && card.pressed, style]}
+        accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel}
+      >
         {children}
       </Pressable>
     );

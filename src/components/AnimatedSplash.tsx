@@ -35,7 +35,10 @@ export function AnimatedSplash({ onDone }: { onDone: () => void }) {
   }, [fade, markOpacity, markScale, onDone, wordOpacity, wordShift]);
 
   return (
-    <Animated.View style={[StyleSheet.absoluteFill, styles.container, { opacity: fade }]} pointerEvents="none">
+    // pointerEvents="auto" (et non "none") : la splash est rendue PAR-DESSUS la Stack déjà
+    // interactive — il faut absorber les touches tant qu'elle est visible, sinon un tap pendant
+    // les ~1,2 s d'animation traverse la splash et atteint un bouton invisible en dessous.
+    <Animated.View style={[StyleSheet.absoluteFill, styles.container, { opacity: fade }]} pointerEvents="auto">
       <View style={styles.row}>
         <Animated.Image
           source={require('../../assets/images/brand-mark.png')}

@@ -21,7 +21,6 @@ export const colors = {
   green: '#0E7A64',
   greenDark: '#0C6A57',
   greenSoft: '#DCEBE4', // vert tint (fond doux)
-  greenOnDark: '#BFEAD9', // vert clair sur fond vert (texte/accents)
   // « Bleu » (legacy) → vert signature (pas de bleu dans la refonte).
   blue: '#0C6A57',
   blueSoft: 'rgba(12,106,87,0.12)',
@@ -41,7 +40,10 @@ export const colors = {
 
   text: '#15211C', // encre principale (quasi-noir vert)
   textMuted: '#6B7A70', // texte secondaire
-  textFaint: '#7C857B', // tertiaire / placeholder (assombri : contraste WCAG suffisant sur beige)
+  // Tertiaire / placeholder. ATTENTION : sous le seuil WCAG AA (4.5:1) en texte normal, aussi bien
+  // sur beige (~3.2:1) que sur blanc (~3.8:1) — réservé aux libellés décoratifs/petits, préférer
+  // textMuted pour tout texte informatif ou placeholder de formulaire.
+  textFaint: '#7C857B',
 
   hairline: '#E7E1D4', // séparateurs internes
   scrim: 'rgba(12,26,22,0.55)', // overlay bas de photo + fond des bottom sheets
@@ -50,8 +52,6 @@ export const colors = {
   // CORAIL réutilisé pour erreurs (cohérent avec l'urgence).
   danger: '#C0492F',
   dangerSoft: '#FBE7DF',
-  warning: '#C29A3A',
-  warningSoft: '#F3E7CC',
   white: '#FFFFFF',
   black: '#000000',
   onSignature: '#FFFFFF',

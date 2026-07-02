@@ -39,6 +39,7 @@ export function CompetitionCard({ comp }: { comp: Competition }) {
           />
           {comp.official ? <Tag label="Officiel" tone="amber" icon="shield-checkmark" /> : null}
           {comp.status === 'pending' ? <Tag label="En attente" tone="coral" icon="hourglass-outline" /> : null}
+          {comp.status === 'rejected' ? <Tag label="Refusé" tone="neutral" icon="close-circle-outline" /> : null}
         </View>
         <Txt variant="muted">{compDateLabel(comp)}</Txt>
       </View>

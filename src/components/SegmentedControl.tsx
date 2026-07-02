@@ -17,7 +17,14 @@ export function SegmentedControl<T extends string>({
       {options.map((opt) => {
         const active = opt === value;
         return (
-          <Pressable key={opt} onPress={() => onChange(opt)} style={[styles.btn, active && styles.active]}>
+          <Pressable
+            key={opt}
+            onPress={() => onChange(opt)}
+            style={[styles.btn, active && styles.active]}
+            accessibilityRole="button"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={opt}
+          >
             <Txt variant="small" color={active ? colors.onSignature : colors.textMuted} numberOfLines={1} style={{ fontWeight: '600' }}>
               {opt}
             </Txt>

@@ -58,7 +58,7 @@ export default function ClubsScreen() {
           value={query}
           onChangeText={setQuery}
           placeholder="Rechercher un club ou un quartier…"
-          placeholderTextColor={colors.textFaint}
+          placeholderTextColor={colors.textMuted}
           autoCapitalize="none"
           style={styles.searchInput}
         />

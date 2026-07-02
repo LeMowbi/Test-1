@@ -21,7 +21,16 @@ import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
 const EXPO_PUSH = 'https://exp.host/--/api/v2/push/send';
 
-type Notif = { targets: string[]; title: string; body: string };
+// `data` (optionnel) : payload lu par le CLIENT au tap sur la notif (src/lib/notifications.ts,
+// useNotificationTapRouter) pour amener directement à l'écran concerné. Seulement posé sur les
+// notifs reçues par un JOUEUR — les écrans /amis, /reservations, /competition/[id] existent pour
+// tous les comptes joueur, contrairement aux écrans gérant/opérateur (hors périmètre de ce routage).
+type Notif = {
+  targets: string[];
+  title: string;
+  body: string;
+  data?: { kind: 'friend_request' | 'reservation' | 'tournament'; id?: string };
+};
 
 Deno.serve(async (req) => {
   try {
@@ -88,6 +97,7 @@ Deno.serve(async (req) => {
         targets: await userToken(record.user_id),
         title: 'Réservation confirmée ✅',
         body: `${record.club_name ?? 'Le club'} a confirmé ton créneau du ${record.date_label ?? ''} à ${record.time ?? ''}.`,
+        data: { kind: 'reservation', id: record.id },
       });
     } else if (
       table === 'reservation_participants' &&
@@ -102,6 +112,7 @@ Deno.serve(async (req) => {
         targets: await userToken(resa?.user_id ?? ''),
         title: 'Invitation acceptée ✅',
         body: 'Un ami a accepté de jouer avec toi.',
+        data: { kind: 'reservation', id: record.reservation_id },
       });
     } else if (table === 'competitions' && type === 'INSERT' && record.status === 'pending' && record.organizer_type === 'joueur') {
       // Tournoi créé par un JOUEUR → en attente : prévenir le club hôte (à valider).
@@ -118,6 +129,7 @@ Deno.serve(async (req) => {
         targets: await userToken(record.organizer_id),
         title: 'Tournoi validé ✅',
         body: `${record.club_name ?? 'Le club'} a validé ton tournoi « ${record.title ?? ''} ». Il est maintenant visible.`,
+        data: { kind: 'tournament', id: record.id },
       });
       const fee = Number(record.commission ?? 0);
       if (record.organizer_type === 'joueur' && fee > 0) {
@@ -133,6 +145,7 @@ Deno.serve(async (req) => {
         targets: await userToken(record.to_user),
         title: 'Nouvelle demande d’ami 👋',
         body: `${await userName(record.from_user)} veut t’ajouter sur PadelConnect.`,
+        data: { kind: 'friend_request' },
       });
     } else if (table === 'friend_requests' && type === 'UPDATE' && record.status === 'pending' && oldRecord.status !== 'pending') {
       // Demande RENVOYÉE après un refus : send_friend_request fait alors un UPDATE (on conflict),
@@ -141,6 +154,7 @@ Deno.serve(async (req) => {
         targets: await userToken(record.to_user),
         title: 'Nouvelle demande d’ami 👋',
         body: `${await userName(record.from_user)} veut t’ajouter sur PadelConnect.`,
+        data: { kind: 'friend_request' },
       });
     } else if (table === 'friend_requests' && type === 'UPDATE' && record.status === 'accepted' && oldRecord.status !== 'accepted') {
       // Demande acceptée → prévenir l'EXPÉDITEUR (vous êtes désormais amis).
@@ -148,11 +162,14 @@ Deno.serve(async (req) => {
         targets: await userToken(record.from_user),
         title: 'Demande acceptée ✅',
         body: `${await userName(record.to_user)} a accepté ta demande d’ami.`,
+        data: { kind: 'friend_request' },
       });
     }
 
     // Aplatis toutes les notifs en messages Expo (une entrée par destinataire).
-    const messages = notifs.flatMap((n) => n.targets.map((to) => ({ to, title: n.title, body: n.body, sound: 'default' })));
+    const messages = notifs.flatMap((n) =>
+      n.targets.map((to) => ({ to, title: n.title, body: n.body, sound: 'default', ...(n.data ? { data: n.data } : {}) })),
+    );
     if (messages.length === 0) return new Response('no targets', { status: 200 });
 
     const pushRes = await fetch(EXPO_PUSH, {

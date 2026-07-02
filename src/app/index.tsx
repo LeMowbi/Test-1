@@ -344,7 +344,9 @@ export default function HomeScreen() {
                 onPress={() => go(a.route)}
                 style={styles.quickItem}
                 accessibilityRole="button"
-                accessibilityLabel={pendingRequests > 0 ? `${a.label}, ${pendingRequests} demande${pendingRequests > 1 ? 's' : ''} en attente` : a.label}
+                accessibilityLabel={
+                  pendingRequests > 0 ? `${a.label}, ${pendingRequests} demande${pendingRequests > 1 ? 's' : ''} en attente` : a.label
+                }
               >
                 <View style={[styles.quickIcon, { backgroundColor: a.bg }]}>
                   <Ionicons name={a.icon} size={22} color={a.tint} />
@@ -427,9 +429,7 @@ export default function HomeScreen() {
         {/* c) B-R1 : trophée proche */}
         {activeNudge === 'trophy' && trophyNudge ? (
           <Pressable
-            onPress={() =>
-              go(trophyNudge.cta === 'invite' ? '/amis' : trophyNudge.cta === 'tournament' ? '/competitions' : '/reserver')
-            }
+            onPress={() => go(trophyNudge.cta === 'invite' ? '/amis' : trophyNudge.cta === 'tournament' ? '/competitions' : '/reserver')}
             style={[styles.nudge, { backgroundColor: colors.amberSoft }]}
           >
             <View style={[styles.nudgeIcon, { backgroundColor: colors.amber }]}>
