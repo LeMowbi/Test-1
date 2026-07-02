@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { TextInput, View } from 'react-native';
 import { Button, Card, Txt } from '@/components/ui';
+import { useToast } from '@/components/Toast';
 import { opStyles } from '@/components/operator/styles';
 import { colors, spacing } from '@/theme';
 
@@ -11,17 +12,25 @@ export function NewsEditor({
   onRemove,
 }: {
   news: { title: string; subtitle?: string; link?: string } | null;
-  onPublish: (n: { title: string; subtitle?: string; link?: string }) => void;
+  onPublish: (n: { title: string; subtitle?: string; link?: string }) => Promise<{ ok: boolean }>;
   onRemove: () => void;
 }) {
+  const toast = useToast();
   const [title, setTitle] = useState(news?.title ?? '');
   const [subtitle, setSubtitle] = useState(news?.subtitle ?? '');
   const [link, setLink] = useState(news?.link ?? '');
   const [saved, setSaved] = useState(false);
+  const [publishing, setPublishing] = useState(false);
 
-  const publish = () => {
-    if (title.trim().length < 3) return;
-    onPublish({ title, subtitle, link });
+  const publish = async () => {
+    if (title.trim().length < 3 || publishing) return;
+    setPublishing(true);
+    const { ok } = await onPublish({ title, subtitle, link });
+    setPublishing(false);
+    if (!ok) {
+      toast.show('Publication impossible — réessaie', { icon: 'alert-circle' });
+      return;
+    }
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
   };
@@ -58,10 +67,10 @@ export function NewsEditor({
       <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
         <Button
           size="sm"
-          label={saved ? 'Publiée ✓' : 'Publier l’actu'}
+          label={publishing ? 'Publication…' : saved ? 'Publiée ✓' : 'Publier l’actu'}
           icon={saved ? 'checkmark' : 'megaphone'}
           onPress={publish}
-          disabled={title.trim().length < 3}
+          disabled={title.trim().length < 3 || publishing}
           full
         />
         {news ? (

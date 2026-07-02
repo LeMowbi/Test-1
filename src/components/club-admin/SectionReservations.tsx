@@ -8,7 +8,7 @@ import { LegendDot } from '@/components/club-admin/LegendDot';
 import { QuickBlock } from '@/components/club-admin/QuickBlock';
 import { type Club } from '@/data/clubs';
 import { competitionBlockedCourts, courtsFor, hasFullDayCompetition, openSlotsFor } from '@/lib/availability';
-import { dateKeyLabel, nextDays, weekKeyOf, weekLabel } from '@/lib/days';
+import { DAY_MS, dateKeyLabel, nextDays, weekKeyOf, weekLabel } from '@/lib/days';
 import { fcfa } from '@/lib/format';
 import { openWhatsApp } from '@/lib/contact';
 import { hapticLight } from '@/lib/haptics';
@@ -16,7 +16,7 @@ import { fetchCancelledReservations, fetchNoShowReservations, fetchReliability, 
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
 import { colors, radius, shadows, spacing } from '@/theme';
 
-type SelectedCell = { dateKey: string; time: string; label: string; value: number };
+type SelectedCell = { dateKey: string; time: string; label: string };
 
 export function SectionReservations({
   club,
@@ -162,7 +162,10 @@ export function SectionReservations({
   // Revenu = somme des prix RÉELS des réservations (figés à la réservation). On additionne les
   // parties JOUÉES (revenu encaissé) — même base que la commission.
   const revenueOf = (items: Reservation[]) => items.reduce((sum, r) => sum + (r.price ?? 0), 0);
-  const weekRevenue = revenueOf(weekRes.filter((r) => isPlayed(r, now)));
+  // Revenu RÉTROSPECTIF sur les 7 DERNIERS jours (≠ occupation ci-dessus, qui est une prévision
+  // vers l'avant) : `week` (nextDays) démarre AUJOURD'HUI et va vers J+6, donc `weekRes` ne
+  // contient quasiment jamais de parties jouées — on se base ici sur pastRes (déjà jouées).
+  const last7DaysRevenue = revenueOf(pastRes.filter((r) => r.startsAt >= now - 7 * DAY_MS));
 
   return (
     <>
@@ -191,6 +194,8 @@ export function SectionReservations({
           courts={courts}
           dayHasTournament={(dKey) => hasFullDayCompetition(club.id, dKey, comps)}
           courtStatus={(dKey, time, court) => {
+            const compBlocked = competitionBlockedCourts(club.id, dKey, time, comps);
+            if (compBlocked === 'all' || compBlocked.includes(court)) return { state: 'tournoi' };
             const resa = clubRes.find((r) => r.dateKey === dKey && r.time === time && r.court === court);
             if (resa) return { state: 'reserved', label: resa.bookedBy?.name ?? 'Joueur' };
             const blk = clubBlocked.find((b) => b.dateKey === dKey && b.time === time && b.court === court);
@@ -215,7 +220,14 @@ export function SectionReservations({
             const dd = new Date(d.value);
             const active = d.key === planDay.key;
             return (
-              <Pressable key={d.key} onPress={() => setPlanDayKey(d.key)} style={[styles.dayPill, active && styles.dayPillActive]}>
+              <Pressable
+                key={d.key}
+                onPress={() => setPlanDayKey(d.key)}
+                style={[styles.dayPill, active && styles.dayPillActive]}
+                accessibilityRole="button"
+                accessibilityLabel={d.label}
+                accessibilityState={{ selected: active }}
+              >
                 <Txt variant="small" color={active ? colors.onSignature : colors.textFaint} style={{ fontSize: 10, fontWeight: '700' }}>
                   {['DIM', 'LUN', 'MAR', 'MER', 'JEU', 'VEN', 'SAM'][dd.getUTCDay()]}
                 </Txt>
@@ -267,14 +279,19 @@ export function SectionReservations({
                           : st === 'tournoi'
                             ? styles.gcTournoi
                             : styles.gcFree;
+                    // Libellé lu par un lecteur d'écran (les cases libres sont sinon vides).
+                    const statusLabel =
+                      st === 'reserved' ? 'réservé' : st === 'blocked' ? 'bloqué' : st === 'tournoi' ? 'tournoi' : 'libre';
                     return (
                       <Pressable
                         key={t}
                         onPress={() => {
                           hapticLight(); // repère tactile sur une grille dense (terrains × créneaux)
-                          onSelectCell({ dateKey: planDay.key, time: t, label: `${planDay.label} · ${t}`, value: planDay.value });
+                          onSelectCell({ dateKey: planDay.key, time: t, label: `${planDay.label} · ${t}` });
                         }}
                         style={({ pressed }) => [styles.gridCellBox, cellStyle, pressed && { opacity: 0.7, transform: [{ scale: 0.94 }] }]}
+                        accessibilityRole="button"
+                        accessibilityLabel={`${court}, ${t}, ${statusLabel}`}
                       >
                         {st === 'reserved' ? <Ionicons name="checkmark" size={12} color={colors.onSignature} /> : null}
                         {st === 'blocked' ? <Ionicons name="lock-closed" size={11} color={colors.textFaint} /> : null}
@@ -323,7 +340,7 @@ export function SectionReservations({
                 REVENU DES PARTIES JOUÉES (7 J)
               </Txt>
               <Txt variant="h2" color={colors.green}>
-                {fcfa(weekRevenue)}
+                {fcfa(last7DaysRevenue)}
               </Txt>
             </View>
           </View>
@@ -393,7 +410,11 @@ export function SectionReservations({
                     onPress={() =>
                       openWhatsApp(
                         r.bookedBy!.phone,
-                        `Bonjour ${r.bookedBy!.name}, votre réservation du ${dateKeyLabel(r.dateKey)} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`,
+                        // Le message ne doit affirmer « confirmée » QUE si elle l'est vraiment
+                        // côté serveur (r.clubConfirmed) — sinon on informe sans mentir au joueur.
+                        r.clubConfirmed
+                          ? `Bonjour ${r.bookedBy!.name}, votre réservation du ${dateKeyLabel(r.dateKey)} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`
+                          : `Bonjour ${r.bookedBy!.name}, votre réservation du ${dateKeyLabel(r.dateKey)} à ${r.time} (${r.court}) à ${club.name} est bien reçue, je reviens vers vous pour la confirmer.`,
                       )
                     }
                   />
@@ -413,7 +434,7 @@ export function SectionReservations({
       {/* Annulations récentes — un joueur a libéré son créneau (> 5 h avant le match). */}
       {cancelled.length > 0 ? (
         <View style={{ marginTop: spacing.xl }}>
-          <SectionHeader title={`Annulations récentes · ${Math.min(cancelled.length, 8)}`} />
+          <SectionHeader title={`Annulations récentes · ${cancelled.length}`} />
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.sm }}>
               <Ionicons name="information-circle-outline" size={16} color={colors.textMuted} />
@@ -447,7 +468,7 @@ export function SectionReservations({
       {/* Absences (no-show) — joueurs marqués « pas venu » par le club. */}
       {noShows.length > 0 ? (
         <View style={{ marginTop: spacing.xl }}>
-          <SectionHeader title={`Absences · ${Math.min(noShows.length, 8)}`} />
+          <SectionHeader title={`Absences · ${noShows.length}`} />
           <Card>
             <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: spacing.sm, marginBottom: spacing.sm }}>
               <Ionicons name="warning-outline" size={16} color={colors.coral} />

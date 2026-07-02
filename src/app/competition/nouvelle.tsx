@@ -153,7 +153,7 @@ export default function NouvelleCompetition() {
     <Screen
       back
       title="Créer un tournoi"
-      subtitle={asClub ? `Pour ${club?.name ?? 'votre club'}` : 'En tant que joueur'}
+      subtitle={asClub ? `Pour ${club?.name ?? 'ton club'}` : 'En tant que joueur'}
       scrollRef={scrollRef}
     >
       <Field

@@ -33,15 +33,24 @@ par Supabase dans la fonction — rien à configurer.)
 
 Dashboard Supabase → **Database → Webhooks** → *Create a new hook* :
 
-- **Réservation → club** ET **Confirmation → joueur** : table `reservations`, événements
-  **INSERT _et_ UPDATE** (coche les deux) → appelle la fonction `notify-club`.
+- **Réservation → club** ET **Confirmation → joueur** ET **Annulation → club** : table
+  `reservations`, événements **INSERT _et_ UPDATE** (coche les deux) → appelle la fonction
+  `notify-club`.
   - INSERT = nouvelle réservation → notifie le **gérant** du club.
   - UPDATE = le gérant confirme (case `club_confirmed`) → notifie le **joueur** (« Réservation
     confirmée ✅ »).
+  - UPDATE = le joueur annule (`status → cancelled`, depuis `booked`) → notifie le **gérant**
+    du club (« Réservation annulée »).
   - ⚠️ Si tu avais déjà créé le hook `reservations` en INSERT seul, **édite-le** pour cocher
-    aussi **UPDATE** (sinon la notif de confirmation au joueur ne partira pas).
-- **Invitation acceptée → auteur** (notif sociale) : table `reservation_participants`,
-  événement **UPDATE** → même fonction `notify-club`.
+    aussi **UPDATE** (sinon les notifs de confirmation et d'annulation ne partiront pas).
+- **Invitation → invité** ET **Invitation acceptée → auteur** (notifs sociales) : table
+  `reservation_participants`, événements **INSERT _et_ UPDATE** (coche les deux) → même
+  fonction `notify-club`.
+  - INSERT (un ami est rattaché à une résa partagée) → notifie l'**invité** (« Invitation à
+    jouer 🎾 »).
+  - UPDATE `→ accepted` → notifie l'**auteur** de la réservation (« Invitation acceptée ✅ »).
+  - ⚠️ Si tu avais créé ce hook en UPDATE seul, **édite-le** pour cocher aussi **INSERT**
+    (sinon l'invité ne reçoit jamais rien).
 - **Tournois** : table `competitions`, événements **INSERT _et_ UPDATE** (coche les deux) →
   même fonction `notify-club`.
   - INSERT d'un tournoi **joueur** (en attente) → notifie le **gérant** du club hôte (« à
@@ -49,6 +58,8 @@ Dashboard Supabase → **Database → Webhooks** → *Create a new hook* :
   - UPDATE `pending → published` (le club valide) → notifie l'**organisateur** (« Tournoi
     validé ✅ ») **et l'opérateur** (« frais à encaisser », montant Wave) — on ne facture donc
     que les tournois réellement confirmés.
+  - UPDATE `pending → rejected` (le club refuse) → notifie l'**organisateur** (« Tournoi non
+    retenu »).
 - **Demandes d'ami** (notif sociale) : table `friend_requests`, événements **INSERT _et_
   UPDATE** (coche les deux) → même fonction `notify-club`.
   - INSERT d'une demande (`pending`) → notifie le **destinataire** (« Nouvelle demande d'ami »).

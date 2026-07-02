@@ -3,6 +3,7 @@ import { Button, Card, Divider, Tag, Txt } from '@/components/ui';
 import { type Competition } from '@/data/competitions';
 import { openWhatsApp } from '@/lib/contact';
 import { fcfa } from '@/lib/format';
+import { hapticSuccess } from '@/lib/haptics';
 import { colors, spacing } from '@/theme';
 
 // Frais à encaisser sur les tournois JOUEURS : l'opérateur voit chaque tournoi publié, son
@@ -62,7 +63,10 @@ export function TournamentFees({
                   size="sm"
                   label={paid ? 'Marquer non réglé' : 'Marquer réglé'}
                   variant={paid ? 'ghost' : 'primary'}
-                  onPress={() => onSetPaid(c.id, !paid)}
+                  onPress={() => {
+                    if (!paid) hapticSuccess(); // accusé discret, comme « Marquer payé » d'un club
+                    onSetPaid(c.id, !paid);
+                  }}
                   full
                 />
               </View>

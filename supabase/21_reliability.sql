@@ -34,8 +34,11 @@ begin
     update public.reservations set status = 'booked' where id = p_id and status = 'no_show';
   end if;
   return found;
-exception when unique_violation then
-  return false; -- le créneau a été repris entre-temps : retour à 'booked' impossible
+exception
+  when unique_violation then
+    return false; -- le créneau a été repris entre-temps : retour à 'booked' impossible
+  when check_violation then
+    return false; -- créneau désormais bloqué/retenu par un tournoi : retour à 'booked' refusé proprement
 end;
 $$;
 

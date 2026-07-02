@@ -13,7 +13,7 @@ import { SectionReservations } from '@/components/club-admin/SectionReservations
 import { SectionTournois } from '@/components/club-admin/SectionTournois';
 import { clubsByName, findClub, manageableClubs, type Club } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
-import { courtsFor, hasFullDayCompetition } from '@/lib/availability';
+import { competitionBlockedCourts, courtsFor, hasFullDayCompetition } from '@/lib/availability';
 import { slotTimestamp } from '@/lib/days';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
 import { useApp } from '@/store/AppContext';
@@ -41,7 +41,7 @@ export default function ClubAdmin() {
 
   const [section, setSection] = useState<(typeof SECTIONS)[number]>('Réservations');
   const [closingId, setClosingId] = useState<string | null>(null);
-  const [selectedCell, setSelectedCell] = useState<{ dateKey: string; time: string; label: string; value: number } | null>(null);
+  const [selectedCell, setSelectedCell] = useState<{ dateKey: string; time: string; label: string } | null>(null);
   const [blockingCourt, setBlockingCourt] = useState<string | null>(null);
 
   // Inscription d'un nouveau club (validée ensuite par l'opérateur PadelConnect).
@@ -111,7 +111,7 @@ export default function ClubAdmin() {
     <View style={styles.note}>
       <Ionicons name="business" size={15} color={colors.textFaint} />
       <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
-        {club.name} — espace gérant.
+        {club.name} — Espace Club.
       </Txt>
     </View>
   );
@@ -153,7 +153,7 @@ export default function ClubAdmin() {
   }
 
   return (
-    <Screen back title="Espace Club" subtitle="Gérez votre club" refreshControl={refreshControl}>
+    <Screen back title="Espace Club" subtitle="Gère ton club" refreshControl={refreshControl}>
       {header}
 
       {/* Mode HORS-LIGNE uniquement : sans session serveur, les modifs restent locales. Connecté,
@@ -307,7 +307,11 @@ export default function ClubAdmin() {
             (() => {
               const cellTs = slotTimestamp(selectedCell.dateKey, selectedCell.time);
               const isPast = cellTs <= now;
+              // Terrains retenus par un tournoi PARTIEL (certains terrains/créneaux seulement —
+              // la journée entière est déjà couverte par hasFullDayCompetition ci-dessus).
+              const compBlocked = competitionBlockedCourts(club.id, selectedCell.dateKey, selectedCell.time, comps);
               return courts.map((c, i) => {
+                const isTournoi = compBlocked === 'all' || compBlocked.includes(c);
                 const resa = cellRes.find((r) => r.court === c);
                 const blk = clubBlocked.find((b) => b.dateKey === selectedCell.dateKey && b.time === selectedCell.time && b.court === c);
                 const isBlocking = blockingCourt === c;
@@ -316,7 +320,14 @@ export default function ClubAdmin() {
                     {i > 0 ? <Divider style={{ marginBottom: spacing.sm }} /> : null}
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
                       <Tag label={c} tone="neutral" />
-                      {resa ? (
+                      {isTournoi ? (
+                        <>
+                          <Ionicons name="trophy" size={14} color={colors.purple} />
+                          <Txt variant="small" color={colors.purple} style={{ flex: 1, fontWeight: '600' }}>
+                            Retenu par un tournoi
+                          </Txt>
+                        </>
+                      ) : resa ? (
                         <>
                           <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }} numberOfLines={1}>
                             Réservé via PadelConnect · {resa.bookedBy?.name ?? 'Joueur'}
@@ -360,7 +371,7 @@ export default function ClubAdmin() {
                         </>
                       )}
                     </View>
-                    {isBlocking && !resa && !blk && !isPast ? (
+                    {isBlocking && !isTournoi && !resa && !blk && !isPast ? (
                       <View style={[styles.wrap, { marginTop: spacing.sm }]}>
                         {BLOCK_REASONS.map((reason) => (
                           <Chip
@@ -403,8 +414,10 @@ export default function ClubAdmin() {
                 : undefined
             }
             onClose={(winner, isMe, loser, loserIsMe, podium) => {
-              closeCompetition(closingComp, winner, isMe, loser, loserIsMe, podium);
-              setClosingId(null);
+              void closeCompetition(closingComp, winner, isMe, loser, loserIsMe, podium).then((ok) => {
+                toast.show(ok ? 'Tournoi clôturé' : 'Clôture impossible — réessaie.', ok ? undefined : { icon: 'alert-circle' });
+                if (ok) setClosingId(null);
+              });
             }}
             onCancel={() => setClosingId(null)}
             onDelete={

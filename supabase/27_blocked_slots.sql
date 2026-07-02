@@ -81,6 +81,15 @@ begin
   if new.status is distinct from 'booked' then
     return new; -- on ne garde que les créneaux réellement réservés
   end if;
+  -- UPDATE qui ne déplace PAS la ligne (même club/jour/heure/terrain, restait déjà 'booked') :
+  -- ex. set_club_confirmed (bascule club_confirmed) ou mark_no_show qui annule une absence. On
+  -- ne revalide QUE les vraies transitions/déplacements vers 'booked' (insert, ou changement de
+  -- créneau) — sinon un tournoi publié APRÈS coup sur ce créneau bloquerait à tort une ligne déjà
+  -- valide (35_hardening3.sql a étendu cette barrière aux UPDATE, trop largement).
+  if tg_op = 'UPDATE' and old.status = 'booked' and old.club_id = new.club_id and old.date_key = new.date_key
+     and old.time = new.time and old.court = new.court then
+    return new;
+  end if;
   -- Créneau fermé hors app par le club ?
   if exists (
     select 1 from public.blocked_slots b

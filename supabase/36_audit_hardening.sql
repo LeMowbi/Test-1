@@ -3,9 +3,12 @@
 -- Deux corrections issues de l'audit :
 --   1) NIVEAU À L'INSCRIPTION : le joueur CHOISIT son niveau de départ à la première connexion
 --      (fonctionnalité voulue, avec le message d'honnêteté). On garde ce choix, mais on le BORNE
---      à [1.0, 7.0] côté serveur : ainsi une valeur hors bornes (forgée ou aberrante) ne fait plus
---      échouer la création du profil et ne peut pas dépasser 7. Le niveau n'évolue ensuite que via
---      close_competition (protégé par le trigger protect_level, migration 34).
+--      à [1.0, 7.0] côté serveur : ainsi une valeur NUMÉRIQUE hors bornes (forgée ou aberrante)
+--      ne fait plus échouer la création du profil et ne peut pas dépasser 7. Une valeur NON
+--      NUMÉRIQUE (ex. level:'abc', forgée hors app — l'app envoie toujours un nombre) reste
+--      rejetée par le cast : comportement acceptable, l'app normale n'est jamais concernée. Le
+--      niveau n'évolue ensuite que via close_competition (protégé par le trigger protect_level,
+--      migration 34).
 --   2) ATTRIBUTION DE NIVEAU (close_competition) : le vainqueur/perdant était apparié par la
 --      chaîne « prénom & partenaire », 100 % contrôlée par l'utilisateur. Deux équipes d'un même
 --      tournoi portant la même chaîne créaient une collision (un joueur pouvait « voler » le +0.50).

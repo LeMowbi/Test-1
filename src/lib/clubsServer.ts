@@ -18,9 +18,10 @@ export type ClubOverride = {
 };
 
 // Toutes les surcharges de page (édités par les gérants) → { clubId: surcharge } pour fusion.
-export async function fetchClubOverrides(): Promise<Record<string, ClubOverride>> {
+// null = échec réseau (≠ {} = « aucune surcharge ») → l'appelant garde l'existant (convention §8).
+export async function fetchClubOverrides(): Promise<Record<string, ClubOverride> | null> {
   const { data, error } = await supabase.from('club_overrides').select('*');
-  if (error) return {};
+  if (error) return null;
   const out: Record<string, ClubOverride> = {};
   for (const r of (data ?? []) as ClubOverrideRow[]) {
     out[r.club_id] = {
@@ -72,9 +73,10 @@ type ClubConfigRow = {
 };
 
 // Toutes les configs de club → { clubId: config } pour fusion dans le store au chargement.
-export async function fetchClubConfigs(): Promise<Record<string, ClubConfig>> {
+// null = échec réseau (≠ {} = « aucune config ») → l'appelant garde l'existant (convention §8).
+export async function fetchClubConfigs(): Promise<Record<string, ClubConfig> | null> {
   const { data, error } = await supabase.from('club_config').select('*');
-  if (error) return {};
+  if (error) return null;
   const out: Record<string, ClubConfig> = {};
   for (const r of (data ?? []) as ClubConfigRow[]) {
     out[r.club_id] = {

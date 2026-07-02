@@ -47,7 +47,6 @@ export default function Operateur() {
     setTournamentFee,
   } = useApp();
   const toast = useToast();
-  const { refreshControl } = usePullToRefresh();
 
   // Liste de TOUS les clubs (base + serveur) pour le sélecteur « Accès gérant ».
   const manageableList = useMemo(
@@ -137,6 +136,13 @@ export default function Operateur() {
   // à chaque changement d'état (effets à dépendances vides).
   const fetchSupportRef = useRef(fetchSupportMessages);
   fetchSupportRef.current = fetchSupportMessages;
+  // Rechargement des signalements — réutilisé au montage ET par le pull-to-refresh (sinon
+  // le message d'erreur promettait « tire pour rafraîchir » sans que ça ne recharge rien).
+  const loadSupport = useCallback(async () => {
+    const { ok, messages } = await fetchSupportRef.current();
+    setSupportError(!ok);
+    if (ok) setSupport(messages);
+  }, []);
   useEffect(() => {
     let alive = true;
     // On lit le drapeau `ok` : un échec réseau (ok=false, messages=[]) ne doit PAS afficher
@@ -150,6 +156,7 @@ export default function Operateur() {
       alive = false;
     };
   }, []);
+  const { refreshControl } = usePullToRefresh(loadSupport);
   const markSupport = async (id: string, status: ServerSupportMessage['status']) => {
     const prev = support.find((m) => m.id === id)?.status;
     setSupport((cur) => cur.map((m) => (m.id === id ? { ...m, status } : m)));
@@ -316,7 +323,9 @@ export default function Operateur() {
       `Détail :\n${lines}`;
     const phone = (findClub(row.clubId, state.customClubs, state.clubInfo) as { contactPhone?: string } | undefined)?.contactPhone ?? '';
     openWhatsApp(phone, message);
-    setPaymentStatus(row.clubId, week, 'sent');
+    // Ne JAMAIS rétrograder un statut déjà « payé » : un renvoi du décompte (justificatif,
+    // relance) à un club déjà réglé ne doit pas faire regonfler « Reste à encaisser ».
+    if (statusOf(row.clubId) !== 'paid') setPaymentStatus(row.clubId, week, 'sent');
   };
 
   // Export de TOUTE la semaine (tableau CSV, séparateur « ; ») à partager (comptabilité).
@@ -388,7 +397,9 @@ export default function Operateur() {
           color={colors.green}
           bg={colors.greenSoft}
         />
-        <StatTile value={fcfa(thisWeekCommission)} label="Commission / 7 j" color={colors.amberDark} bg={colors.amberSoft} />
+        {/* « (cette sem.) » et non « / 7 j » : semaine CALENDAIRE en cours (≠ fenêtre glissante
+            de « Résas / 7 j » juste à côté) — deux périodes différentes, à ne pas confondre. */}
+        <StatTile value={fcfa(thisWeekCommission)} label="Commission (cette sem.)" color={colors.amberDark} bg={colors.amberSoft} />
       </View>
 
       {/* Sélecteur de semaine ‹ › */}
@@ -1022,7 +1033,7 @@ const styles = StyleSheet.create({
     lineHeight: 44,
     fontFamily: font.family.heavy,
     fontWeight: font.weight.heavy,
-    color: colors.amber,
+    color: colors.amberDark, // amber (icônes/étoiles) est sous le seuil WCAG AA en texte sur blanc
     letterSpacing: -0.5,
     marginVertical: 2,
   },

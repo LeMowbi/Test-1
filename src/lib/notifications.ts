@@ -28,7 +28,11 @@ if (isNative) {
   });
 }
 
-export type ReminderInput = { id: string; clubName: string; time: string; startsAt: number; court: string };
+// `isOwner` : true si JE suis l'auteur de la réservation (celui qui peut l'annuler). Un ami
+// simplement INVITÉ n'a ni bouton « Annuler » ni « équipe » à confirmer — ses rappels doivent
+// donc être différents (cf. scheduleMatchReminder). Par défaut true (compat : tous les points
+// d'entrée qui planifient MA propre réservation, jamais celle d'un tiers).
+export type ReminderInput = { id: string; clubName: string; time: string; startsAt: number; court: string; isOwner?: boolean };
 
 // Demande la permission (idempotent). Renvoie true si accordée.
 export async function ensureNotificationPermission(): Promise<boolean> {
@@ -53,22 +57,28 @@ async function scheduleAt(when: number, r: ReminderInput, title: string, body: s
   });
 }
 
-// Programme les DEUX rappels d'UNE réservation (chacun ignoré si sa date est déjà passée) :
-//  1) 5 h 15 min avant → dernière fenêtre pour annuler sans frais ;
-//  2) 2 h avant → le match approche.
+// Programme les rappels d'UNE réservation (chacun ignoré si sa date est déjà passée) :
+//  1) 5 h 15 min avant → dernière fenêtre pour annuler sans frais (AUTEUR uniquement : un
+//     invité n'a pas de bouton « Annuler », ce rappel ne le concerne pas) ;
+//  2) 2 h avant → le match approche (tout le monde, texte adapté selon le rôle).
 export async function scheduleMatchReminder(r: ReminderInput): Promise<void> {
   if (!isNative) return;
-  await scheduleAt(
-    r.startsAt - CANCEL_WARNING_LEAD_MS,
-    r,
-    'Tu joues toujours ? ⏳',
-    `${r.clubName} à ${r.time} · ${r.court}. Dans 15 min, l'annulation gratuite ne sera plus possible.`,
-  );
+  const isOwner = r.isOwner ?? true;
+  if (isOwner) {
+    await scheduleAt(
+      r.startsAt - CANCEL_WARNING_LEAD_MS,
+      r,
+      'Tu joues toujours ? ⏳',
+      `${r.clubName} à ${r.time} · ${r.court}. Dans 15 min, l'annulation gratuite ne sera plus possible.`,
+    );
+  }
   await scheduleAt(
     r.startsAt - REMINDER_LEAD_MS,
     r,
     'Ton match de padel approche 🎾',
-    `${r.clubName} à ${r.time} · ${r.court}. Pense à confirmer ton équipe !`,
+    isOwner
+      ? `${r.clubName} à ${r.time} · ${r.court}. Pense à confirmer ton équipe !`
+      : `${r.clubName} à ${r.time} · ${r.court}. Confirme ta présence !`,
   );
 }
 

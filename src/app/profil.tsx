@@ -36,6 +36,7 @@ function trophyTier(t: Trophy): { tier: number; name: string | null; next: numbe
 export default function ProfilScreen() {
   const router = useRouter();
   const { state, stats, setRemindersOn, signOut, updateAccount, deleteAccount, updateEmail } = useApp();
+  const toast = useToast();
   const { refreshControl } = usePullToRefresh();
   const { account, level, friends, officialResults } = state;
   // Les comptes créés par TÉLÉPHONE ont un e-mail technique « …@phone.padelconnect.app » : on
@@ -84,8 +85,10 @@ export default function ProfilScreen() {
 
   const changePhoto = async () => {
     const uri = await pickImage({ square: true });
-    if (uri) updateAccount({ photoUri: uri });
     setPhotoSheet(false);
+    if (!uri) return;
+    const { photoSaved } = await updateAccount({ photoUri: uri });
+    if (!photoSaved) toast.show('Photo non enregistrée — vérifie ta connexion', { icon: 'alert-circle' });
   };
 
   // Trophées ÉVOLUTIFs : chaque trophée monte en paliers (Bronze → Argent → Or → Platine)
@@ -448,7 +451,7 @@ export default function ProfilScreen() {
               icon="trash-outline"
               variant="danger"
               onPress={() => {
-                updateAccount({ photoUri: undefined });
+                void updateAccount({ photoUri: undefined });
                 setPhotoSheet(false);
               }}
               full
@@ -559,8 +562,8 @@ function EditAccount({ onDone }: { onDone: () => void }) {
     const uri = await pickImage({ square: true });
     if (uri) setPhotoUri(uri);
   };
-  const save = () => {
-    updateAccount({
+  const save = async () => {
+    const { photoSaved } = await updateAccount({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
       phone: phone.trim(),
@@ -568,7 +571,12 @@ function EditAccount({ onDone }: { onDone: () => void }) {
       birthDate: parseBirthDate(birth) ? birth.trim() : a.birthDate,
       gender,
     });
-    toast.show('Profil mis à jour ✓');
+    // On ne ment plus sur la photo : si son upload a échoué (réseau), l'utilisateur doit le
+    // savoir au lieu de croire sa nouvelle photo enregistrée (les autres champs, eux, sont bien à jour).
+    toast.show(
+      photoSaved ? 'Profil mis à jour ✓' : 'Profil mis à jour, mais la photo non enregistrée — vérifie ta connexion',
+      photoSaved ? undefined : { icon: 'alert-circle' },
+    );
     onDone();
   };
 

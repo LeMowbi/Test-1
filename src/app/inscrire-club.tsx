@@ -159,8 +159,8 @@ export default function InscrireClub() {
         <View style={styles.privacy}>
           <Ionicons name="lock-closed-outline" size={13} color={colors.textFaint} />
           <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
-            Tes infos servent uniquement à te recontacter. Inscrire un club ne donne pas accès à l'espace gérant tant que PadelConnect ne
-            l'a pas activé. Tu pourras nous contacter directement après l'envoi.
+            Tes infos servent uniquement à te recontacter. Inscrire un club ne donne pas accès à l'Espace Club tant que PadelConnect ne l'a
+            pas activé. Tu pourras nous contacter directement après l'envoi.
           </Txt>
         </View>
       </View>

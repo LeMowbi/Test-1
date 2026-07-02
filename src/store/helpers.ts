@@ -78,13 +78,14 @@ export const initialState: AppState = {
 // Config club serveur → tranches du store. Le serveur fait foi pour les clubs qu'il connaît ;
 // on ne remplace une tranche locale que si le serveur la fournit (slice présent). Mutualisé
 // entre le chargement de session et le rafraîchissement au retour au premier plan.
-export function clubConfigSlices(s: AppState, configs: Record<string, ClubConfig>) {
+// `configs` = null en cas d'échec réseau (convention §8) → on garde les tranches existantes.
+export function clubConfigSlices(s: AppState, configs: Record<string, ClubConfig> | null) {
   const clubSlots = { ...s.clubSlots };
   const clubCourts = { ...s.clubCourts };
   const clubOffers = { ...s.clubOffers };
   const clubCoaches = { ...s.clubCoaches };
   const clubPhotos = { ...s.clubPhotos };
-  for (const [id, c] of Object.entries(configs)) {
+  for (const [id, c] of Object.entries(configs ?? {})) {
     if (c.slots) clubSlots[id] = c.slots;
     if (c.courts) clubCourts[id] = c.courts;
     if (c.offers) clubOffers[id] = c.offers;

@@ -2,17 +2,21 @@
 // Déclenchée par des Database Webhooks. Cas gérés :
 //   • reservations INSERT  → notif au(x) GÉRANT(s) du club (nouvelle réservation).
 //   • reservations UPDATE (club_confirmed passe à true) → notif au JOUEUR (résa confirmée).
+//   • reservations UPDATE (status → cancelled, depuis 'booked') → notif au(x) GÉRANT(s) du club
+//     (le joueur a annulé — terrain à libérer côté préparation).
+//   • reservation_participants INSERT → notif à l'AMI INVITÉ (nouvelle invitation à jouer).
 //   • reservation_participants UPDATE (accepted) → notif à l'AUTEUR (un invité a accepté).
 //   • competitions INSERT (tournoi JOUEUR en attente) → notif au(x) gérant(s) du club hôte (à valider).
 //   • competitions UPDATE (pending → published) → notif à l'ORGANISATEUR (tournoi validé) ET, si
 //     frais > 0, à l'OPÉRATEUR (« frais à encaisser ») — donc seulement après validation du club.
+//   • competitions UPDATE (pending → rejected) → notif à l'ORGANISATEUR (tournoi refusé).
 //   • friend_requests INSERT (pending) → notif au DESTINATAIRE (nouvelle demande d'ami).
 //   • friend_requests UPDATE (→ pending) → notif au DESTINATAIRE (demande RENVOYÉE après un refus :
 //     send_friend_request fait un UPDATE on conflict, pas un INSERT).
 //   • friend_requests UPDATE (→ accepted) → notif à l'EXPÉDITEUR (demande acceptée).
 // L'envoi passe par l'API Push d'Expo (pas besoin de gérer APNs soi-même : Expo route vers
-// Apple/Google). Les webhooks « reservations » et « competitions » doivent écouter INSERT
-// **et** UPDATE (cf. docs/PUSH-SETUP.md).
+// Apple/Google). Les webhooks « reservations », « reservation_participants » et « competitions »
+// doivent écouter INSERT **et** UPDATE (cf. docs/PUSH-SETUP.md).
 //
 // Aucune clé secrète ici — on lit les jetons en base via la SERVICE ROLE (injectée par
 // Supabase dans les variables d'environnement de la fonction).
@@ -99,6 +103,27 @@ Deno.serve(async (req) => {
         body: `${record.club_name ?? 'Le club'} a confirmé ton créneau du ${record.date_label ?? ''} à ${record.time ?? ''}.`,
         data: { kind: 'reservation', id: record.id },
       });
+    } else if (table === 'reservations' && type === 'UPDATE' && record.status === 'cancelled' && oldRecord.status === 'booked') {
+      // Le joueur vient d'ANNULER une réservation qu'il avait faite (peut-être déjà confirmée) →
+      // prévenir le(s) gérant(s) du club (terrain à libérer côté préparation).
+      notifs.push({
+        targets: await clubManagerTokens(record.club_id),
+        title: 'Réservation annulée',
+        body: `${record.booked_by_name ?? 'Un joueur'} a annulé son créneau du ${record.date_label ?? ''} à ${record.time ?? ''} (${record.court ?? ''}).`,
+      });
+    } else if (table === 'reservation_participants' && type === 'INSERT') {
+      // Un ami vient d'être INVITÉ à une réservation (link_participants) → prévenir l'invité.
+      const { data: resa } = await supabase
+        .from('reservations')
+        .select('user_id, club_name, date_label, time, court')
+        .eq('id', record.reservation_id)
+        .maybeSingle();
+      notifs.push({
+        targets: await userToken(record.user_id),
+        title: 'Invitation à jouer 🎾',
+        body: `${await userName(resa?.user_id ?? '')} t'invite à jouer le ${resa?.date_label ?? ''} à ${resa?.time ?? ''} (${resa?.club_name ?? ''}).`,
+        data: { kind: 'reservation', id: record.reservation_id },
+      });
     } else if (
       table === 'reservation_participants' &&
       type === 'UPDATE' &&
@@ -139,6 +164,15 @@ Deno.serve(async (req) => {
           body: `« ${record.title ?? ''} » validé — frais à encaisser : ${fee.toLocaleString('fr-FR')} FCFA (Wave).`,
         });
       }
+    } else if (table === 'competitions' && type === 'UPDATE' && record.status === 'rejected' && oldRecord.status === 'pending') {
+      // Le club a REFUSÉ un tournoi joueur en attente → prévenir l'organisateur (sinon il reste
+      // dans le flou, contrairement à la validation qui, elle, notifie déjà).
+      notifs.push({
+        targets: await userToken(record.organizer_id),
+        title: 'Tournoi non retenu',
+        body: `${record.club_name ?? 'Le club'} n'a pas retenu ton tournoi « ${record.title ?? ''} ».`,
+        data: { kind: 'tournament', id: record.id },
+      });
     } else if (table === 'friend_requests' && type === 'INSERT' && record.status === 'pending') {
       // Nouvelle demande d'ami → prévenir le DESTINATAIRE (il accepte/refuse dans l'app).
       notifs.push({

@@ -11,7 +11,7 @@ const BLOCK_REASONS = ['Résa téléphone/WhatsApp', 'Entretien', 'Privatisé', 
 
 // Mini-formulaire « Bloquer un créneau » : date → heure → terrain → motif.
 // Distingue réservé / bloqué / libre, et permet de débloquer (avec confirmation).
-export type CourtStatus = { state: 'free' | 'reserved' | 'blocked'; label?: string };
+export type CourtStatus = { state: 'free' | 'reserved' | 'blocked' | 'tournoi'; label?: string };
 
 export function QuickBlock({
   days,
@@ -105,8 +105,21 @@ export function QuickBlock({
                 {courts.map((c) => {
                   const st = courtStatus(day.key, time, c);
                   const label =
-                    st.state === 'reserved' ? `${c} · réservé (${st.label})` : st.state === 'blocked' ? `${c} · bloqué (${st.label})` : c;
-                  const tone = st.state === 'reserved' ? colors.textMuted : st.state === 'blocked' ? colors.coral : colors.text;
+                    st.state === 'reserved'
+                      ? `${c} · réservé (${st.label})`
+                      : st.state === 'blocked'
+                        ? `${c} · bloqué (${st.label})`
+                        : st.state === 'tournoi'
+                          ? `${c} · tournoi`
+                          : c;
+                  const tone =
+                    st.state === 'reserved'
+                      ? colors.textMuted
+                      : st.state === 'blocked'
+                        ? colors.coral
+                        : st.state === 'tournoi'
+                          ? colors.purple
+                          : colors.text;
                   return (
                     <Pressable
                       key={c}
@@ -114,6 +127,10 @@ export function QuickBlock({
                         setError(null);
                         if (st.state === 'reserved') {
                           setError(`Déjà réservé par ${st.label} — vois avec le joueur.`);
+                          return;
+                        }
+                        if (st.state === 'tournoi') {
+                          setError('Terrain retenu par un tournoi — non blocable.');
                           return;
                         }
                         if (st.state === 'blocked') {
@@ -124,7 +141,11 @@ export function QuickBlock({
                         setCourt(c === court ? null : c);
                         setConfirmUnblock(null);
                       }}
-                      style={[styles.courtRow, court === c && styles.courtRowSel, st.state === 'reserved' && { opacity: 0.6 }]}
+                      style={[
+                        styles.courtRow,
+                        court === c && styles.courtRowSel,
+                        (st.state === 'reserved' || st.state === 'tournoi') && { opacity: 0.6 },
+                      ]}
                     >
                       <Ionicons
                         name={
@@ -132,9 +153,11 @@ export function QuickBlock({
                             ? 'person'
                             : st.state === 'blocked'
                               ? 'lock-closed'
-                              : court === c
-                                ? 'radio-button-on'
-                                : 'radio-button-off'
+                              : st.state === 'tournoi'
+                                ? 'trophy'
+                                : court === c
+                                  ? 'radio-button-on'
+                                  : 'radio-button-off'
                         }
                         size={16}
                         color={tone}

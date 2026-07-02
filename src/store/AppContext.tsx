@@ -40,7 +40,8 @@ import {
   setTournamentFee as setTournamentFeeRpc,
   unregisterCompetition as unregisterCompetitionRpc,
 } from '@/lib/competitionsServer';
-import type { Competition } from '@/data/competitions';
+import { seedCompetitions, type Competition } from '@/data/competitions';
+import { competitionBlockedCourts } from '@/lib/availability';
 import type { Review } from '@/data/reviews';
 import { type Friend } from '@/data/user';
 import {
@@ -252,7 +253,9 @@ type AppContextType = {
   stats: Stats;
   myReservations: Reservation[]; // mes réservations seules (cf. memo) — pour tout écran perso
   setAccount: (a: Account) => void;
-  updateAccount: (patch: Partial<Account>) => void;
+  // photoSaved = false quand une NOUVELLE photo locale a échoué à l'upload (réseau) : l'appelant
+  // doit alors prévenir l'utilisateur au lieu d'afficher un toast de succès mensonger.
+  updateAccount: (patch: Partial<Account>) => Promise<{ photoSaved: boolean }>;
   // Inscription serveur PRINCIPALE — e-mail (confirmé) + mot de passe, le téléphone est
   // conservé (sans SMS) pour que les clubs puissent joindre les joueurs. `needsConfirm`
   // = true quand l'e-mail de confirmation vient d'être envoyé (pas encore de session).
@@ -291,7 +294,7 @@ type AppContextType = {
     loserName?: string,
     loserIsMe?: boolean,
     podium?: { second?: string; third?: string }, // americano : 2ᵉ/3ᵉ place
-  ) => Promise<void>;
+  ) => Promise<boolean>; // false = échec serveur (réseau/droits) → l'UI ne doit pas se taire
   setRemindersOn: (on: boolean) => void;
   setReserverView: (v: 'Par heure' | 'Par club') => void;
   addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => Promise<{ ok: boolean }>;
@@ -311,7 +314,7 @@ type AppContextType = {
   sendFriendRequest: (phone: string) => Promise<FriendRequestResult>;
   // Réponds à une demande REÇUE (accept=true → on devient amis ; false → refusée).
   respondFriendRequest: (requestId: string, accept: boolean) => Promise<boolean>;
-  removeFriend: (id: string) => void;
+  removeFriend: (id: string) => Promise<boolean>; // false = échec serveur (réseau) → l'ami reste affiché
   toggleFavorite: (clubId: string) => void;
   addClubPhoto: (clubId: string, uri: string) => Promise<void>;
   removeClubPhoto: (clubId: string, uri: string) => void;
@@ -381,7 +384,9 @@ type AppContextType = {
   setClubCourts: (clubId: string, courts: string[]) => void;
   blockSlot: (b: BlockedSlot, startsAt: number) => boolean;
   unblockSlot: (clubId: string, dateKey: string, time: string, court: string) => void;
-  setOperatorNews: (news: { title: string; subtitle?: string; link?: string }) => void;
+  // ok = false quand l'écriture SERVEUR a échoué (réseau/session) : l'actu reste alors visible
+  // seulement sur le téléphone de l'opérateur — l'appelant doit le dire honnêtement.
+  setOperatorNews: (news: { title: string; subtitle?: string; link?: string }) => Promise<{ ok: boolean }>;
   removeOperatorNews: () => void; // retire l'actu d'accueil publiée
   dismissNews: (id: string) => void;
   resetAll: () => void;
@@ -429,8 +434,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     remindersOnRef.current = state.remindersOn;
   }, [state.remindersOn]);
 
-  // NOTE : le NIVEAU n'est JAMAIS écrit par le client. Il est attribué uniquement côté serveur
-  // dans close_competition (tournois officiels) et protégé en base par le trigger protect_level
+  // NOTE : le NIVEAU est écrit par le client UNE SEULE FOIS, à l'inscription (choix initial du
+  // joueur, borné [1.0, 7.0] côté serveur par handle_new_user — cf. supabase/36_audit_hardening.sql).
+  // Ensuite, il n'est PLUS JAMAIS modifié par le client : seul close_competition (tournois
+  // officiels) l'ajuste côté serveur, protégé en base par le trigger protect_level
   // (34_level_integrity.sql) — anti-triche. Le client se contente de LIRE `level` (loadSession,
   // reread après clôture) et de l'afficher.
 
@@ -583,7 +590,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         boostedClubIds: boosts ? Object.keys(boosts).filter((id) => boosts[id] > Date.now()) : s.boostedClubIds,
         // Pages club éditées par les gérants (serveur) → visibles par tous. On fusionne au-dessus
         // des éventuelles surcharges locales (le serveur fait foi pour les clubs qu'il connaît).
-        clubInfo: { ...s.clubInfo, ...overrides },
+        // null = échec réseau → on garde les surcharges déjà connues (convention §8).
+        clubInfo: overrides ? { ...s.clubInfo, ...overrides } : s.clubInfo,
         // Config club partagée (horaires, terrains, offres, coachs, photos).
         ...clubConfigSlices(s, configs),
         // Tournois serveur (visibles par tous, synchronisés) + mes inscriptions + clôtures.
@@ -597,11 +605,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // on garde l'existant ; null = aucune actu publiée → bandeau retiré.
         operatorNews: news === undefined ? s.operatorNews : news,
       }));
-      // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses).
+      // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses). isOwner
+      // distingue MES résas (je peux annuler) d'une invitation d'ami (rappels adaptés, cf.
+      // scheduleMatchReminder) — sinon un invité recevait « annulation gratuite » / « confirme ton
+      // équipe » alors qu'il n'a ni bouton Annuler ni équipe à confirmer.
       if (reservationsRes.ok) {
-        const mine = reservationsRes.reservations.filter(
-          (r) => (!r.userId || r.userId === userId || activeParts.includes(r.id)) && r.startsAt > Date.now(),
-        );
+        const mine = reservationsRes.reservations
+          .filter((r) => (!r.userId || r.userId === userId || activeParts.includes(r.id)) && r.startsAt > Date.now())
+          .map((r) => ({ ...r, isOwner: !r.userId || r.userId === userId }));
         void syncMatchReminders(mine, remindersOnRef.current);
       }
     } catch {
@@ -693,8 +704,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       });
       // Config club (horaires, terrains, offres, coachs, photos) éditée par un gérant ailleurs :
       // on relit pour que la disponibilité et la fiche restent à jour sans réinstaller.
+      // null = échec réseau → on garde la config existante (convention §8, même garde que
+      // fetchClubStatus/fetchClubBoosts ci-dessus).
       void fetchClubConfigs().then((configs) => {
-        if (ok()) setState((s) => ({ ...s, ...clubConfigSlices(s, configs) }));
+        if (configs && ok()) setState((s) => ({ ...s, ...clubConfigSlices(s, configs) }));
       });
       // Tournois créés/validés/clôturés sur un autre appareil : on relit pour rester à jour.
       if (ok()) void refreshCompetitions(userId);
@@ -770,8 +783,19 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     // déclenche qu'UNE sérialisation après un court silence, au lieu d'un JSON.stringify + write
     // à chaque frappe. Compromis accepté : une mutation dans les 500 ms précédant une fermeture
     // brutale peut ne pas être persistée (miroir best-effort, le serveur reste la source de vérité).
-    const t = setTimeout(persist, 500);
-    return () => clearTimeout(t);
+    // MAIS certaines préférences (rappels, favoris, actu fermée…) ne vivent QUE localement — pas
+    // de filet serveur pour elles — d'où le flush immédiat au passage en arrière-plan ci-dessous.
+    let t: ReturnType<typeof setTimeout> | null = setTimeout(persist, 500);
+    const sub = RNAppState.addEventListener('change', (st) => {
+      if (st === 'active' || !t) return;
+      clearTimeout(t);
+      t = null;
+      void persist();
+    });
+    return () => {
+      if (t) clearTimeout(t);
+      sub.remove();
+    };
   }, [state, hydrated]);
 
   // MES réservations — source unique pour tout calcul PERSONNEL. En mode serveur, un compte
@@ -797,12 +821,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       stats,
       myReservations,
       setAccount: (a) => setState((s) => ({ ...s, account: a })),
-      updateAccount: (patch) => {
+      updateAccount: async (patch) => {
         setState((s) => ({ ...s, account: s.account ? { ...s.account, ...patch } : s.account }));
         // Persistance SERVEUR des champs texte modifiés (si connecté) : sans ça, ils étaient
         // écrasés par l'ancienne valeur serveur au prochain chargement.
         const userId = state.serverUserId;
-        if (!userId) return;
+        if (!userId) return { photoSaved: true };
         const row: Record<string, string | null> = {};
         if (patch.firstName !== undefined) row.first_name = patch.firstName.trim();
         if (patch.lastName !== undefined) row.last_name = patch.lastName.trim();
@@ -811,21 +835,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (patch.gender !== undefined) row.gender = patch.gender ?? null;
         if (Object.keys(row).length > 0) void supabase.from('profiles').update(row).eq('id', userId);
         // PHOTO : on l'envoie au stockage (survit à une réinstallation, synchro multi-appareils).
+        // On ATTEND le résultat (≠ fire-and-forget) pour que l'appelant sache honnêtement si la
+        // photo a bien été enregistrée, au lieu d'un toast de succès mensonger en cas d'échec réseau.
         if ('photoUri' in patch) {
           const uri = patch.photoUri;
           if (uri && !uri.startsWith('http')) {
             // Nouvelle photo locale → upload, puis on remplace l'URI locale par l'URL publique.
             const prevPhoto = state.account?.photoUri; // photo AVANT ce changement (snapshot)
-            void uploadAvatar(userId, uri).then((url) => {
-              if (!url) {
-                // Échec d'upload : on NE conserve PAS l'URI locale file:// (illisible après une
-                // réinstallation ou sur un autre appareil) → on revient à la photo précédente.
-                setState((s) => ({ ...s, account: s.account ? { ...s.account, photoUri: prevPhoto } : s.account }));
-                return;
-              }
-              setState((s) => ({ ...s, account: s.account ? { ...s.account, photoUri: url } : s.account }));
-              void supabase.from('profiles').update({ photo_uri: url }).eq('id', userId);
-            });
+            const url = await uploadAvatar(userId, uri);
+            if (!url) {
+              // Échec d'upload : on NE conserve PAS l'URI locale file:// (illisible après une
+              // réinstallation ou sur un autre appareil) → on revient à la photo précédente.
+              setState((s) => ({ ...s, account: s.account ? { ...s.account, photoUri: prevPhoto } : s.account }));
+              return { photoSaved: false };
+            }
+            setState((s) => ({ ...s, account: s.account ? { ...s.account, photoUri: url } : s.account }));
+            void supabase.from('profiles').update({ photo_uri: url }).eq('id', userId);
           } else {
             // Photo retirée (uri vide) ou déjà une URL serveur → on reflète tel quel côté serveur.
             void supabase
@@ -834,6 +859,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               .eq('id', userId);
           }
         }
+        return { photoSaved: true };
       },
       // ── Inscription par E-MAIL (parcours principal) ────────────────────────
       // E-mail réel + mot de passe ; le téléphone est conservé (sans SMS). Avec la
@@ -868,6 +894,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         }
         // Photo choisie à l'inscription : on la met de côté (pas encore de session pour l'envoyer
         // au stockage). loadSession l'enverra à la 1ʳᵉ ouverture de session, puis effacera la clé.
+        // On efface D'ABORD systématiquement une éventuelle clé laissée par une inscription
+        // PRÉCÉDENTE jamais confirmée sur cet appareil (sinon sa photo « fuiterait » vers ce
+        // nouveau compte à la prochaine connexion) — on ne la repose que si CETTE inscription a
+        // vraiment une photo à envoyer.
+        await AsyncStorage.removeItem(PENDING_AVATAR_KEY);
         const pendingPhoto = profile.photoUri;
         if (pendingPhoto && !/^https?:\/\//.test(pendingPhoto)) {
           await AsyncStorage.setItem(PENDING_AVATAR_KEY, pendingPhoto);
@@ -919,6 +950,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         sessionEpochRef.current += 1; // invalide toute requête en vol du compte sortant
         supabase.auth.signOut().catch(() => {});
         void syncMatchReminders([], false); // on efface les rappels locaux du compte sortant
+        // Anti-fuite de photo entre comptes sur le même appareil : une clé orpheline (inscription
+        // jamais confirmée) ne doit pas être reprise par le PROCHAIN compte connecté ici.
+        void AsyncStorage.removeItem(PENDING_AVATAR_KEY);
         setState(loggedOutState);
       },
       // Réinitialisation du mot de passe : envoie un lien par e-mail qui rouvre l'app sur l'écran
@@ -950,6 +984,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         sessionEpochRef.current += 1;
         supabase.auth.signOut().catch(() => {});
         void syncMatchReminders([], false);
+        void AsyncStorage.removeItem(PENDING_AVATAR_KEY); // anti-fuite de photo vers le prochain compte
         setState(loggedOutState);
         return { ok: true };
       },
@@ -966,7 +1001,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             third: podium?.third,
             loser: loserName,
           });
-          if (!ok) return; // le serveur a refusé (droits)
+          if (!ok) return false; // le serveur a refusé (droits)
           if (state.serverUserId) {
             // Rejoue clôture + palmarès depuis le serveur, puis relit MON niveau (attribué côté
             // serveur si j'ai gagné/perdu) pour l'afficher immédiatement. Lecture ATTENDUE (pas un
@@ -978,7 +1013,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               setState((s) => ({ ...s, level: clampLevel(Number(data.level ?? state.level)) }));
             }
           }
-          return;
+          return true;
         }
         // Mode LOCAL (démo hors session, tournoi non serveur) : palmarès + niveau locaux.
         setState((s) => {
@@ -1015,12 +1050,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             ],
           };
         });
+        return true;
       },
       setRemindersOn: (on) => {
         setState((s) => ({ ...s, remindersOn: on }));
         // (Dé)programme les rappels locaux pour MES résas à venir (pas celles des autres,
-        // qu'un compte club/opérateur reçoit via RLS) selon l'interrupteur.
-        const upcoming = myReservations.filter((r) => r.startsAt > Date.now());
+        // qu'un compte club/opérateur reçoit via RLS) selon l'interrupteur. isOwner distingue
+        // mes réservations d'une invitation d'ami (rappels adaptés, cf. scheduleMatchReminder).
+        const upcoming = myReservations
+          .filter((r) => r.startsAt > Date.now())
+          .map((r) => ({ ...r, isOwner: !r.userId || r.userId === state.serverUserId }));
         void syncMatchReminders(upcoming, on);
       },
       setReserverView: (v) => setState((s) => ({ ...s, reserverView: v })),
@@ -1263,10 +1302,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (res.status === 'accepted' && res.friend) {
           const friend = res.friend;
           setState((s) => {
+            // On retire aussi la demande ENTRANTE correspondante : le serveur venait de l'accepter
+            // automatiquement (envoi croisé) — sans ça, la carte « Demande d'ami » restait affichée
+            // avec des boutons Accepter/Refuser qui n'avaient plus rien à confirmer côté serveur.
+            const friendRequests = s.friendRequests.filter((r) => r.fromId !== friend.id);
+            if (s.friends.some((f) => f.id === friend.id)) return { ...s, friendRequests };
             const digits = phone.replace(/\D/g, '').slice(-10);
-            if (s.friends.some((f) => f.id === friend.id)) return s;
-            if (digits.length >= 8 && s.friends.some((f) => (f.phone ?? '').replace(/\D/g, '').slice(-10) === digits)) return s;
-            return { ...s, friends: [friend, ...s.friends] };
+            if (digits.length >= 8 && s.friends.some((f) => (f.phone ?? '').replace(/\D/g, '').slice(-10) === digits)) {
+              return { ...s, friendRequests };
+            }
+            return { ...s, friends: [friend, ...s.friends], friendRequests };
           });
         }
         return res;
@@ -1282,9 +1327,18 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           void fetchFriends().then((friends) => friends && sessionEpochRef.current === epoch && setState((s) => ({ ...s, friends })));
         return true;
       },
-      removeFriend: (id) => {
-        if (state.serverUserId) void removeFriendOnServer(id); // retrait serveur (idempotent, deux sens)
+      removeFriend: async (id) => {
+        // Aligné sur respondFriendRequest : on attend la confirmation SERVEUR avant de retirer
+        // l'ami de l'affichage (sinon, hors-ligne, il réapparaît au prochain fetchFriends réussi).
+        if (!state.serverUserId) {
+          setState((s) => ({ ...s, friends: s.friends.filter((f) => f.id !== id) }));
+          return true;
+        }
+        const epoch = sessionEpochRef.current;
+        const ok = await removeFriendOnServer(id); // idempotent (les deux sens du lien)
+        if (!ok || sessionEpochRef.current !== epoch) return false; // échec réseau ou déconnexion entre-temps
         setState((s) => ({ ...s, friends: s.friends.filter((f) => f.id !== id) }));
+        return true;
       },
       toggleFavorite: (clubId) =>
         setState((s) => ({
@@ -1627,6 +1681,15 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           x.clubId === b.clubId && x.dateKey === b.dateKey && x.time === b.time && x.court === b.court;
         if (state.reservations.some(sameSlot)) return false;
         if (state.blockedSlots.some(sameSlot)) return false;
+        // Ceinture-bretelles : jamais de blocage manuel par-dessus un terrain déjà retenu par un
+        // tournoi publié (même protection que la grille/le détail de créneau côté UI) — même si
+        // un appelant oubliait de vérifier avant d'appeler blockSlot.
+        const comps = [
+          ...state.myCompetitions.filter((c) => c.clubId === b.clubId),
+          ...seedCompetitions.filter((c) => c.clubId === b.clubId),
+        ];
+        const compBlocked = competitionBlockedCourts(b.clubId, b.dateKey, b.time, comps);
+        if (compBlocked === 'all' || compBlocked.includes(b.court)) return false;
         // Persistance SERVEUR : le blocage devient RÉEL (visible par tous, empêche vraiment la
         // réservation via le trigger) et survit à la réinstallation. Optimiste + réconcilié au fetch.
         if (state.serverUserId) void blockSlotRow(b);
@@ -1644,21 +1707,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       // L'opérateur publie/met à jour l'actu d'accueil. On ne régénère l'id (ce qui la
       // fait RÉAPPARAÎTRE chez les joueurs qui l'avaient fermée) QUE si le contenu change.
-      setOperatorNews: (news) =>
-        setState((s) => {
-          const title = news.title.trim();
-          const subtitle = news.subtitle?.trim() || undefined;
-          // Lien : on n'accepte qu'une URL ; on préfixe https:// si l'opérateur l'a oublié.
-          let link = news.link?.trim() || undefined;
-          if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
-          if (link && !/^https?:\/\/.+\..+/i.test(link)) link = undefined;
-          const prev = s.operatorNews;
-          const unchanged = !!prev && prev.title === title && prev.subtitle === subtitle && prev.link === link;
-          const next = { id: unchanged ? prev.id : uid(), title, subtitle, link };
-          // Publication SERVEUR : sans ça l'actu ne serait vue que sur le téléphone de l'opérateur.
-          if (s.serverUserId) void setOperatorNewsServer(next);
-          return { ...s, operatorNews: next };
-        }),
+      // ok = false si la publication SERVEUR échoue : l'appelant doit le dire honnêtement (au lieu
+      // d'un « Publiée ✓ » mensonger si l'actu n'a en fait été enregistrée que localement).
+      setOperatorNews: async (news) => {
+        const title = news.title.trim();
+        const subtitle = news.subtitle?.trim() || undefined;
+        // Lien : on n'accepte qu'une URL ; on préfixe https:// si l'opérateur l'a oublié.
+        let link = news.link?.trim() || undefined;
+        if (link && !/^https?:\/\//i.test(link)) link = `https://${link}`;
+        if (link && !/^https?:\/\/.+\..+/i.test(link)) link = undefined;
+        const prev = state.operatorNews;
+        const unchanged = !!prev && prev.title === title && prev.subtitle === subtitle && prev.link === link;
+        const next = { id: unchanged ? prev.id : uid(), title, subtitle, link };
+        setState((s) => ({ ...s, operatorNews: next })); // affichage immédiat côté opérateur
+        const ok = state.serverUserId ? await setOperatorNewsServer(next) : true;
+        return { ok };
+      },
       removeOperatorNews: () =>
         setState((s) => {
           if (s.serverUserId) void clearOperatorNewsServer();

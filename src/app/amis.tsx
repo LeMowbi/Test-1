@@ -216,8 +216,10 @@ export default function AmisScreen() {
                       variant="danger"
                       onPress={() => {
                         hapticWarning();
-                        removeFriend(f.id);
                         setRemoveId(null);
+                        void removeFriend(f.id).then((ok) => {
+                          if (!ok) toast.show('Retrait impossible — réessaie', { icon: 'alert-circle' });
+                        });
                       }}
                     />
                     <Button size="sm" label="Non" variant="secondary" onPress={() => setRemoveId(null)} />
