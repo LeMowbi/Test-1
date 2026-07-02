@@ -113,6 +113,7 @@ export function loggedOutState(s: AppState): AppState {
     occupancy: [],
     customClubs: s.customClubs.filter((c) => !c.fromServer),
     clubCommission: {}, // donnée opérateur : on la purge à la déconnexion
+    operatorPayments: {}, // donnée opérateur : on la purge à la déconnexion
     level: initialState.level,
     friends: [],
     friendRequests: [],

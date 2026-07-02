@@ -15,8 +15,8 @@ export type Club = {
   amenities: string[];
   priceFrom: number; // FCFA / session (1h30) — INDICATIF, « dès » (heures creuses)
   priceTiers?: PriceTier[]; // tarifs par plage horaire (prioritaires sur priceFrom si présents)
-  rating: number; // moyenne communautaire (démo)
-  reviewsCount: number; // démo
+  // La note affichée vient EXCLUSIVEMENT des avis serveur vérifiés (cf. club/[id].tsx) — pas de
+  // champ ici, pour ne jamais risquer d'afficher un chiffre inventé.
   mapsQuery: string; // requête Google Maps
   accent: string; // couleur du visuel placeholder
   contactPhone?: string; // WhatsApp du club — alimente le lien discret « Contacter le club »
@@ -58,8 +58,6 @@ const FOUNDER_CLUBS: Club[] = [
       'Club proposant la réservation de créneaux et la création de matchs entre joueurs, situé du côté de Cocody Danga / Riviera Golf.',
     amenities: ['Réservation en ligne', 'Vestiaires', 'Location de raquettes'],
     priceFrom: 15000,
-    rating: 4.6,
-    reviewsCount: 38,
     mapsQuery: 'Abidjan Padel Cocody',
     accent: ACCENTS[0],
   },
@@ -73,8 +71,6 @@ const FOUNDER_CLUBS: Club[] = [
     blurb: 'Destination sport & lifestyle avec terrains de padel en extérieur, café et restaurant. Réservation via application.',
     amenities: ['Café & restaurant', 'Terrasse', 'Vestiaires'],
     priceFrom: 14000,
-    rating: 4.7,
-    reviewsCount: 52,
     mapsQuery: 'District Club Padel Abidjan',
     accent: ACCENTS[1],
   },
@@ -88,8 +84,6 @@ const FOUNDER_CLUBS: Club[] = [
     blurb: 'Club de padel à Marcory, au carrefour de Marcory (derrière CAP SUD). Ambiance conviviale pour joueurs de tous niveaux.',
     amenities: ['Vestiaires', 'Parking', 'Buvette'],
     priceFrom: 12000,
-    rating: 4.4,
-    reviewsCount: 21,
     mapsQuery: 'Elite Club Marcory Abidjan',
     accent: ACCENTS[2],
   },
@@ -103,8 +97,6 @@ const FOUNDER_CLUBS: Club[] = [
     blurb: 'Quatre terrains à Marcory Résidentiel (Rue Zéphirs). Idéal pour matchs entre amis et entraînements.',
     amenities: ['Vestiaires', 'Location de raquettes', 'Parking'],
     priceFrom: 13000,
-    rating: 4.5,
-    reviewsCount: 29,
     mapsQuery: 'Ivoire Padel Club Marcory Abidjan',
     accent: ACCENTS[0],
   },
@@ -118,8 +110,6 @@ const FOUNDER_CLUBS: Club[] = [
     blurb: "Parmi les premiers terrains de padel du pays, installés du côté de l'Hôtel Ivoire à Cocody.",
     amenities: ['Vestiaires', 'Cadre arboré', 'Buvette'],
     priceFrom: 16000,
-    rating: 4.6,
-    reviewsCount: 47,
     mapsQuery: 'Padel Magic Hotel Ivoire Cocody Abidjan',
     accent: ACCENTS[1],
   },
@@ -133,8 +123,6 @@ const FOUNDER_CLUBS: Club[] = [
     blurb: 'Terrain de padel desservant Faya et ses environs, vers Bingerville. Accueil familial et détendu.',
     amenities: ['Parking', 'Buvette'],
     priceFrom: 10000,
-    rating: 4.3,
-    reviewsCount: 12,
     mapsQuery: 'Padel Palmeraie Faya Bingerville',
     accent: ACCENTS[4],
   },
@@ -148,8 +136,6 @@ const FOUNDER_CLUBS: Club[] = [
     blurb: 'Quatre terrains au cœur de la Zone 4 (Rue du Dr Blanchard), à Marcory. Très accessible depuis le Plateau.',
     amenities: ['Vestiaires', 'Bar', 'Location de raquettes'],
     priceFrom: 15000,
-    rating: 4.5,
-    reviewsCount: 41,
     mapsQuery: 'Padel Zone 4 Rue du Docteur Blanchard Marcory Abidjan',
     accent: ACCENTS[2],
   },
@@ -170,8 +156,6 @@ const FOUNDER_CLUBS: Club[] = [
       { start: '16:00', end: '20:30', price: 30000, label: 'Soirée' },
       { start: '20:30', end: '24:00', price: 15000, label: 'Fin de soirée' },
     ],
-    rating: 4.8,
-    reviewsCount: 73,
     mapsQuery: 'Padelta Cocody Danga Abidjan',
     accent: ACCENTS[1],
   },
@@ -185,8 +169,6 @@ const FOUNDER_CLUBS: Club[] = [
     blurb: 'Club de padel outdoor en Zone 3, avec sa propre application de réservation. Bonne ambiance après le travail.',
     amenities: ['Réservation en ligne', 'Vestiaires', 'Buvette'],
     priceFrom: 12000,
-    rating: 4.5,
-    reviewsCount: 34,
     mapsQuery: 'PadelHouse Zone 3 Abidjan',
     accent: ACCENTS[0],
   },
@@ -245,8 +227,6 @@ export function serverRowToClub(row: {
     blurb: row.blurb ?? '',
     amenities: row.amenities ?? [],
     priceFrom: row.price_from ?? 10000,
-    rating: 0,
-    reviewsCount: 0,
     mapsQuery: `${row.name} ${row.city ?? CITY}`,
     accent: ACCENTS[accentIdx],
     contactPhone: row.contact_phone ?? undefined,

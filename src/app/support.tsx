@@ -71,6 +71,7 @@ export default function Support() {
           placeholder="Explique ton problème (bug, réservation, club, paiement…)"
           placeholderTextColor={colors.textFaint}
           multiline
+          accessibilityLabel="Décris ton problème"
           style={styles.input}
         />
         <Button

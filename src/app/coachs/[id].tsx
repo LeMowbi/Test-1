@@ -6,7 +6,7 @@ import { Screen } from '@/components/Screen';
 import { Button, Card, EmptyState, Tag, Txt } from '@/components/ui';
 import { getClub } from '@/data/clubs';
 import { coachClubName, getCoach } from '@/data/coaches';
-import { callNumber } from '@/lib/contact';
+import { callNumber, openWhatsApp } from '@/lib/contact';
 import { initials } from '@/lib/format';
 import { colors, font, radius, shadows, spacing } from '@/theme';
 
@@ -29,7 +29,13 @@ export default function CoachDetail() {
     <Screen
       back
       contentStyle={{ paddingTop: 0, paddingHorizontal: 0, paddingBottom: 112 }}
-      overlay={<CoachActionBar onClub={club ? () => router.push(`/club/${club.id}`) : undefined} onCall={() => callNumber(coach.phone)} />}
+      overlay={
+        <CoachActionBar
+          onClub={club ? () => router.push(`/club/${club.id}`) : undefined}
+          onCall={() => callNumber(coach.phone)}
+          onWhatsApp={() => openWhatsApp(coach.phone)}
+        />
+      }
     >
       {/* En-tête héros bleu (univers Coachs) — avatar + identité en surimpression */}
       <View style={styles.hero}>
@@ -70,7 +76,7 @@ export default function CoachDetail() {
               {coach.level}
             </Txt>
             <Txt variant="small" color={colors.textFaint}>
-              spécialité
+              catégorie
             </Txt>
           </View>
           <View style={styles.infoChip}>
@@ -117,8 +123,9 @@ export default function CoachDetail() {
   );
 }
 
-// Barre d'action basse collante : « Voir le club » (secondaire) + « Appeler » (pill bleu).
-function CoachActionBar({ onClub, onCall }: { onClub?: () => void; onCall: () => void }) {
+// Barre d'action basse collante : « Voir le club » (secondaire) + « Appeler » (pill bleu) +
+// « WhatsApp » (canal n°1 en Côte d'Ivoire — le texte au-dessus de cette barre promet les deux).
+function CoachActionBar({ onClub, onCall, onWhatsApp }: { onClub?: () => void; onCall: () => void; onWhatsApp: () => void }) {
   const insets = useSafeAreaInsets();
   return (
     <View style={[styles.actionBar, { paddingBottom: spacing.md + insets.bottom }]}>
@@ -138,6 +145,9 @@ function CoachActionBar({ onClub, onCall }: { onClub?: () => void; onCall: () =>
           Appeler
         </Txt>
       </Pressable>
+      <View style={{ flex: 1 }}>
+        <Button label="WhatsApp" icon="logo-whatsapp" variant="secondary" onPress={onWhatsApp} full />
+      </View>
     </View>
   );
 }

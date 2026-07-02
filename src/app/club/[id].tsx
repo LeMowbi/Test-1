@@ -42,14 +42,19 @@ export default function ClubDetail() {
   const [text, setText] = useState('');
   const [sent, setSent] = useState(false);
   const [noteError, setNoteError] = useState(false);
-  const [toast, setToast] = useState<string | null>(null);
+  // tone distingue succès (coche verte) et échec (icône d'alerte rouge) — même overlay pour les deux.
+  const [toast, setToast] = useState<{ text: string; tone: 'success' | 'error' } | null>(null);
   const [viewer, setViewer] = useState<number | null>(null); // photo ouverte en plein écran
   const [tierTab, setTierTab] = useState(0); // onglet de tarifs actif (plages nommées)
   const [showAllReviews, setShowAllReviews] = useState(false); // liste d'avis repliée par défaut
   const [serverReviews, setServerReviews] = useState<ServerReview[]>([]);
   const [reviewsLoading, setReviewsLoading] = useState(true); // 1er chargement → squelette (≠ « 0 avis »)
+  const [reviewsError, setReviewsError] = useState(false); // échec réseau au 1er chargement (≠ « aucun avis »)
   const [replyTarget, setReplyTarget] = useState<string | null>(null); // avis auquel le gérant répond
   const [replyDraft, setReplyDraft] = useState('');
+  const [submitting, setSubmitting] = useState(false); // garde anti double-tap : publier l'avis
+  const [replying, setReplying] = useState(false); // garde anti double-tap : publier la réponse
+  const [removing, setRemoving] = useState(false); // garde anti double-tap : supprimer mon avis
   const { width: winW } = useWindowDimensions();
 
   // Avis VÉRIFIÉS du serveur : chargés à l'ouverture (effet) et rechargés après chaque action
@@ -57,7 +62,27 @@ export default function ClubDetail() {
   const clubId = club?.id;
   const loadReviews = () => {
     // Échec réseau → fetchClubReviews renvoie null : on garde les avis déjà affichés (pas d'écrasement).
-    if (clubId) void fetchClubReviews(clubId).then((r) => r && setServerReviews(r));
+    if (clubId)
+      void fetchClubReviews(clubId).then((r) => {
+        if (r) {
+          setServerReviews(r);
+          setReviewsError(false);
+        }
+      });
+  };
+  // Réessayer après un échec réseau au 1er chargement (bouton dédié, avec squelette pendant l'attente).
+  const retryReviews = () => {
+    if (!clubId) return;
+    setReviewsLoading(true);
+    void fetchClubReviews(clubId).then((r) => {
+      if (r) {
+        setServerReviews(r);
+        setReviewsError(false);
+      } else {
+        setReviewsError(true);
+      }
+      setReviewsLoading(false);
+    });
   };
   const { refreshControl } = usePullToRefresh(loadReviews);
   useEffect(() => {
@@ -65,7 +90,9 @@ export default function ClubDetail() {
     if (clubId)
       void fetchClubReviews(clubId).then((r) => {
         if (!alive) return;
-        if (r) setServerReviews(r); // null = échec réseau → on ne vide pas la liste
+        if (r)
+          setServerReviews(r); // null = échec réseau → on ne vide pas la liste
+        else setReviewsError(true); // 1er chargement en échec → distinct de « club sans avis »
         setReviewsLoading(false);
       });
     return () => {
@@ -107,6 +134,8 @@ export default function ClubDetail() {
   const reviewsShown = showAllReviews ? reviews : reviews.slice(0, REVIEWS_PREVIEW);
   const ratingCount = reviews.length;
   const avgRating = ratingCount ? Math.round((reviews.reduce((s, r) => s + r.rating, 0) / ratingCount) * 10) / 10 : 0;
+  // « Nouveau » = vraiment 0 avis. En cas d'échec réseau, on ne sait pas encore → repli neutre.
+  const showAsNew = ratingCount === 0 && !reviewsError;
   // Mon avis (modifiable / supprimable) et mon rôle de gérant de CE club (pour répondre).
   const myReview = state.serverUserId ? reviews.find((r) => r.userId === state.serverUserId) : undefined;
   const isManager = state.serverManagedClubId === club.id || state.role === 'operator';
@@ -121,15 +150,21 @@ export default function ClubDetail() {
   const hasPlayedHere = myReservations.some((r) => r.clubId === club.id && isPlayed(r));
 
   const submit = async () => {
+    if (submitting) return; // garde anti double-tap (le RPC est un upsert, mais on évite 2 allers-retours)
     if (!hasPlayedHere) return; // garde-fou : pas de note sans partie jouée
     if (rating === 0) {
       setNoteError(true); // plus de tap silencieux : on demande la note
       return;
     }
     setNoteError(false);
+    setSubmitting(true);
     const res = await submitReview(club.id, rating, text);
+    setSubmitting(false);
     if (!res.ok) {
-      setToast(res.reason === 'not_played' ? 'Avis réservé à ceux qui ont joué ici.' : 'Envoi impossible — réessaie.');
+      setToast({
+        text: res.reason === 'not_played' ? 'Avis réservé à ceux qui ont joué ici.' : 'Envoi impossible — réessaie.',
+        tone: 'error',
+      });
       setTimeout(() => setToast(null), 2400);
       return;
     }
@@ -140,33 +175,43 @@ export default function ClubDetail() {
     loadReviews();
   };
 
-  // Modifier mon avis : on repré-remplit le formulaire avec ma note/mon texte.
+  // Modifier mon avis : on repré-remplit le formulaire avec ma note/mon texte, hors champ de vision
+  // (le formulaire est en haut de la section, le bouton « Modifier » en bas) → toast d'orientation.
   const editMyReview = () => {
     if (!myReview) return;
     setRating(myReview.rating);
     setText(myReview.text);
     setSent(false);
+    setToast({ text: 'Modifie ton avis ci-dessus ↑', tone: 'success' });
+    setTimeout(() => setToast(null), 2200);
   };
   const removeMyReview = async () => {
-    if (!state.serverUserId) return;
+    if (removing || !state.serverUserId) return; // garde anti double-tap
+    setRemoving(true);
     const ok = await deleteMyReview(club.id, state.serverUserId);
+    setRemoving(false);
     if (ok) {
       loadReviews();
-      setToast('Avis supprimé');
+      setToast({ text: 'Avis supprimé', tone: 'success' });
     } else {
-      setToast('Suppression impossible — réessaie.');
+      setToast({ text: 'Suppression impossible — réessaie.', tone: 'error' });
     }
     setTimeout(() => setToast(null), 2200);
   };
   // Gérant : publier / retirer une réponse à un avis.
   const sendReply = async (reviewId: string) => {
+    if (replying || !replyDraft.trim()) return; // garde anti double-tap + pas d'envoi d'une réponse vide
+    setReplying(true);
     const ok = await replyToReview(reviewId, replyDraft);
+    setReplying(false);
     if (ok) {
       setReplyTarget(null);
       setReplyDraft('');
       loadReviews();
+      setToast({ text: 'Réponse publiée', tone: 'success' });
+      setTimeout(() => setToast(null), 2200);
     } else {
-      setToast('Réponse impossible — réessaie.');
+      setToast({ text: 'Réponse impossible — réessaie.', tone: 'error' });
       setTimeout(() => setToast(null), 2400);
     }
   };
@@ -188,11 +233,11 @@ export default function ClubDetail() {
             onPress={() => router.push(`/reserver/${club.id}`)}
           />
           {toast ? (
-            // Toast léger (ex. « Lien copié ! » après partage sur ordinateur)
-            <View style={styles.toast} pointerEvents="none">
-              <Ionicons name="checkmark-circle" size={16} color={colors.white} />
+            // Toast léger (succès ex. « Lien copié ! » ou échec ex. « Envoi impossible »).
+            <View style={[styles.toast, toast.tone === 'error' && styles.toastError]} pointerEvents="none">
+              <Ionicons name={toast.tone === 'error' ? 'alert-circle' : 'checkmark-circle'} size={16} color={colors.white} />
               <Txt variant="small" color={colors.white}>
-                {toast}
+                {toast.text}
               </Txt>
             </View>
           ) : null}
@@ -219,7 +264,7 @@ export default function ClubDetail() {
           onPress={async () => {
             const r = await shareClub(club);
             if (r === 'copied') {
-              setToast('Lien copié !');
+              setToast({ text: 'Lien copié !', tone: 'success' });
               setTimeout(() => setToast(null), 2200);
             }
           }}
@@ -245,8 +290,10 @@ export default function ClubDetail() {
         {boosted ? <Tag label="Sponsorisé" tone="amber" icon="megaphone" /> : null}
         <Tag label={club.type} tone="neutral" />
         <Tag label={`${courtCount} terrain${courtCount > 1 ? 's' : ''}`} tone="neutral" />
-        {ratingCount === 0 ? (
+        {showAsNew ? (
           <Tag label="Nouveau" tone="coral" icon="sparkles" />
+        ) : ratingCount === 0 ? (
+          <Tag label="Note indisponible" tone="neutral" icon="cloud-offline-outline" />
         ) : (
           <Tag label={`${avgRating.toFixed(1)} ★ (${ratingCount})`} tone="amber" />
         )}
@@ -256,9 +303,15 @@ export default function ClubDetail() {
       <View style={styles.infoChips}>
         <View style={styles.infoChip}>
           <Ionicons name="star" size={16} color={colors.amber} />
-          {ratingCount === 0 ? <Txt variant="h3">Nouveau</Txt> : <Txt variant="h3">{avgRating.toFixed(1)}</Txt>}
+          {showAsNew ? (
+            <Txt variant="h3">Nouveau</Txt>
+          ) : ratingCount === 0 ? (
+            <Txt variant="h3">—</Txt>
+          ) : (
+            <Txt variant="h3">{avgRating.toFixed(1)}</Txt>
+          )}
           <Txt variant="small" color={colors.textFaint}>
-            {ratingCount === 0 ? 'club' : `${ratingCount} avis`}
+            {showAsNew ? 'club' : ratingCount === 0 ? 'indisponible' : `${ratingCount} avis`}
           </Txt>
         </View>
         <View style={styles.infoChip}>
@@ -513,7 +566,7 @@ export default function ClubDetail() {
               <Txt variant="h3" style={{ marginTop: spacing.sm }}>
                 Merci pour ton avis !
               </Txt>
-              <Button label="Ajouter un autre avis" variant="ghost" onPress={() => setSent(false)} />
+              <Button label="Modifier mon avis" variant="ghost" onPress={() => setSent(false)} />
             </View>
           ) : !hasPlayedHere ? (
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
@@ -551,7 +604,12 @@ export default function ClubDetail() {
                 multiline
                 style={styles.input}
               />
-              <Button label={myReview ? 'Mettre à jour mon avis' : "Publier l'avis"} icon="send" onPress={submit} />
+              <Button
+                label={submitting ? 'Envoi…' : myReview ? 'Mettre à jour mon avis' : "Publier l'avis"}
+                icon="send"
+                onPress={submit}
+                disabled={submitting}
+              />
             </>
           )}
         </Card>
@@ -561,6 +619,17 @@ export default function ClubDetail() {
           <Card style={{ marginTop: spacing.md, gap: spacing.md }}>
             <SkeletonLines lines={2} />
             <SkeletonLines lines={2} />
+          </Card>
+        ) : reviewsError && reviews.length === 0 ? (
+          // Échec réseau au 1er chargement : à ne pas confondre avec un club réellement sans avis.
+          <Card style={{ marginTop: spacing.md, alignItems: 'center' }}>
+            <Ionicons name="cloud-offline-outline" size={22} color={colors.textFaint} />
+            <Txt variant="muted" style={{ marginTop: spacing.xs, textAlign: 'center' }}>
+              Impossible de charger les avis.
+            </Txt>
+            <View style={{ marginTop: spacing.xs }}>
+              <Button size="sm" label="Réessayer" variant="ghost" icon="refresh" onPress={retryReviews} />
+            </View>
           </Card>
         ) : reviews.length === 0 ? (
           <Txt variant="muted" style={{ marginTop: spacing.md }}>
@@ -602,7 +671,14 @@ export default function ClubDetail() {
                 {state.serverUserId === r.userId ? (
                   <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.sm }}>
                     <Button size="sm" label="Modifier" variant="ghost" icon="create-outline" onPress={editMyReview} />
-                    <Button size="sm" label="Supprimer" variant="ghost" icon="trash-outline" onPress={removeMyReview} />
+                    <Button
+                      size="sm"
+                      label={removing ? 'Suppression…' : 'Supprimer'}
+                      variant="ghost"
+                      icon="trash-outline"
+                      onPress={removeMyReview}
+                      disabled={removing}
+                    />
                   </View>
                 ) : null}
 
@@ -619,7 +695,13 @@ export default function ClubDetail() {
                         style={styles.input}
                       />
                       <View style={{ flexDirection: 'row', gap: spacing.sm }}>
-                        <Button size="sm" label="Publier la réponse" icon="send" onPress={() => sendReply(r.id)} />
+                        <Button
+                          size="sm"
+                          label={replying ? 'Envoi…' : 'Publier la réponse'}
+                          icon="send"
+                          onPress={() => sendReply(r.id)}
+                          disabled={replying || !replyDraft.trim()}
+                        />
                         <Button
                           size="sm"
                           label="Annuler"
@@ -801,4 +883,5 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.sm,
     borderRadius: radius.pill,
   },
+  toastError: { backgroundColor: colors.danger },
 });

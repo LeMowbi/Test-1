@@ -9,6 +9,7 @@ import { activeClubs, findClub } from '@/data/clubs';
 import { COMP_FORMATS } from '@/data/competitions';
 import { courtsFor, openSlotsFor } from '@/lib/availability';
 import { nextDays, type DayOption } from '@/lib/days';
+import { fcfa } from '@/lib/format';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -302,7 +303,7 @@ export default function NouvelleCompetition() {
       {/* Frais fixe PadelConnect (tournois joueurs) — transparence à l'organisateur. */}
       {isPlayerTournament && state.tournamentFee > 0 ? (
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.lg }}>
-          Frais d'organisation PadelConnect : {state.tournamentFee.toLocaleString('fr-FR')} FCFA (réglés au club, reversés à PadelConnect).
+          Frais d'organisation PadelConnect : {fcfa(state.tournamentFee)} (réglés au club, reversés à PadelConnect).
         </Txt>
       ) : null}
 

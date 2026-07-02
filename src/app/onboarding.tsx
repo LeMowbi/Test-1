@@ -94,7 +94,7 @@ export default function Onboarding() {
     const e = validate();
     setErrors(e);
     setAuthError(null);
-    const first = (['email', 'password', 'phone', 'firstName', 'lastName', 'birth', 'gender'] as FieldKey[]).find((k) => e[k]);
+    const first = (['email', 'phone', 'password', 'firstName', 'lastName', 'birth', 'gender'] as FieldKey[]).find((k) => e[k]);
     if (first) {
       // Scroll automatique vers le premier champ en erreur.
       scrollRef.current?.scrollTo({ y: Math.max(0, (positions.current[first] ?? 0) - 24), animated: true });
@@ -297,7 +297,6 @@ export default function Onboarding() {
             onLayout={(y) => {
               positions.current.email = y;
             }}
-            autoFocus
           />
           {/* Téléphone : conservé (sans SMS) pour que les clubs puissent joindre les joueurs. */}
           <Field
@@ -624,7 +623,13 @@ function SignInSheet({
             </Txt>
           </Pressable>
         ) : null}
-        <Pressable onPress={() => setMode(byEmail ? 'phone' : 'email')} style={{ alignItems: 'center', paddingVertical: spacing.xs }}>
+        <Pressable
+          onPress={() => {
+            clearError(); // efface l'erreur/l'info du mode quitté (sinon message obsolète affiché)
+            setMode(byEmail ? 'phone' : 'email');
+          }}
+          style={{ alignItems: 'center', paddingVertical: spacing.xs }}
+        >
           <Txt variant="small" color={colors.signature}>
             {byEmail ? 'Se connecter par téléphone' : 'Se connecter par e-mail'}
           </Txt>

@@ -1,4 +1,4 @@
-// Compétitions — données de DÉMONSTRATION. Créées par un CLUB ou par un JOUEUR.
+// Compétitions — tournois RÉELS créés par un CLUB ou par un JOUEUR (aucune donnée de démo).
 
 import { dateKeyLabel } from '@/lib/days';
 
@@ -65,15 +65,16 @@ export function teamCount(comp: Competition, isRegistered: boolean): number {
   return Math.min(comp.slots, comp.registered + (isRegistered ? 1 : 0));
 }
 
-// Équipes à afficher : le roster RÉEL pour un tournoi serveur (plus aucun nom fictif), sinon
-// les équipes de démonstration pour les seeds. `myTeam` est mis en tête pour le mettre en avant.
+// Équipes à afficher : le roster RÉEL pour un tournoi serveur (aucun nom fictif). Un tournoi
+// local (hors session) n'a pas de roster serveur : seule MON équipe (si inscrit) est connue.
+// `myTeam` est mis en tête pour le mettre en avant.
 export function teamsToShow(comp: Competition, myTeam?: string): string[] {
   if (comp.server) {
     const list = comp.teamNames ?? [];
     if (!myTeam) return list;
     return [myTeam, ...list.filter((t) => t !== myTeam)]; // ma team en tête, sans doublon
   }
-  return demoTeams(comp, myTeam);
+  return myTeam ? [myTeam] : [];
 }
 
 // Le tournoi a-t-il des frais d'inscription (≠ gratuit) ? Sert à proposer de contacter
@@ -81,39 +82,6 @@ export function teamsToShow(comp: Competition, myTeam?: string): string[] {
 export function hasEntryFee(fee: string | undefined): boolean {
   const v = (fee ?? '').trim().toLowerCase();
   return v.length > 0 && v !== 'gratuit';
-}
-
-// Équipes de DÉMONSTRATION d'un tournoi (noms stables par tournoi). Si l'utilisateur
-// est inscrit, son équipe est en tête de liste.
-const TEAM_POOL = [
-  'Awa & Yann',
-  'Aïcha & David',
-  'Fatou & Karim',
-  'Marina & Ali',
-  'Nadia & Serge',
-  'Aminata & Paul',
-  'Chantal & Idriss',
-  'Léa & Moussa',
-  'Sarah & Franck',
-  'Mariam & Hervé',
-  'Clara & Bakary',
-  'Eva & Junior',
-];
-export function demoTeams(comp: Competition, myTeam?: string): string[] {
-  const seed = comp.id.split('').reduce((s, ch) => s + ch.charCodeAt(0), 0);
-  const total = teamCount(comp, !!myTeam);
-  const others = total - (myTeam ? 1 : 0);
-  // Noms UNIQUES garantis (le pool fait 12 noms, un tournoi peut avoir 24 équipes) :
-  // indispensable pour les clés React et la sélection du vainqueur par nom.
-  const list: string[] = [];
-  const used = new Map<string, number>();
-  for (let i = 0; i < others; i++) {
-    const base = TEAM_POOL[(seed + i) % TEAM_POOL.length];
-    const n = (used.get(base) ?? 0) + 1;
-    used.set(base, n);
-    list.push(n === 1 ? base : `${base} (${n})`);
-  }
-  return myTeam ? [myTeam, ...list] : list;
 }
 
 // Frais / récompense saisis librement par l'organisateur : on formate les nombres

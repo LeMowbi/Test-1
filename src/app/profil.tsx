@@ -557,12 +557,28 @@ function EditAccount({ onDone }: { onDone: () => void }) {
   const [birth, setBirth] = useState(a.birthDate ?? '');
   const [gender, setGender] = useState<Gender | undefined>(a.gender);
   const [photoUri, setPhotoUri] = useState<string | undefined>(a.photoUri);
+  const [error, setError] = useState<string | null>(null);
 
   const choose = async () => {
     const uri = await pickImage({ square: true });
     if (uri) setPhotoUri(uri);
   };
   const save = async () => {
+    // Mêmes règles qu'à l'inscription : on refuse d'écraser prénom/nom/téléphone par du vide
+    // (le téléphone sert d'ailleurs à l'appariement des amis/participants aux 10 derniers chiffres).
+    if (firstName.trim().length < 2) {
+      setError('Indique ton prénom (2 lettres minimum).');
+      return;
+    }
+    if (lastName.trim().length < 1) {
+      setError('Indique ton nom.');
+      return;
+    }
+    if (phone.replace(/\D/g, '').length < 8) {
+      setError('Numéro invalide — au moins 8 chiffres.');
+      return;
+    }
+    setError(null);
     const { photoSaved } = await updateAccount({
       firstName: firstName.trim(),
       lastName: lastName.trim(),
@@ -627,6 +643,11 @@ function EditAccount({ onDone }: { onDone: () => void }) {
           <Chip key={gd.id} label={gd.label} active={gender === gd.id} onPress={() => setGender(gd.id)} />
         ))}
       </View>
+      {error ? (
+        <Txt variant="small" color={colors.danger} style={{ marginTop: spacing.md }}>
+          {error}
+        </Txt>
+      ) : null}
       <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
         <View style={{ flex: 1 }}>
           <Button label="Enregistrer" icon="checkmark" onPress={save} full />

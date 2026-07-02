@@ -32,17 +32,20 @@ export default function InscrireClub() {
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
 
-  const ready = name.trim().length >= 2 && area.trim().length >= 2;
+  const ready = name.trim().length >= 2 && area.trim().length >= 2 && phone.replace(/\D/g, '').length >= 8;
 
   const submit = async () => {
     if (!ready || sending) return;
     setSending(true);
+    // Le FCFA n'a pas de décimales : on retire tout séparateur (espace, virgule…) avant de
+    // convertir, sinon un tarif saisi « 15 000 » ou « 15,000 » donnait NaN et disparaissait.
+    const priceNum = Number(price.replace(/\D/g, ''));
     const res = await submitClubRequest({
       name,
       area,
       type,
       courts,
-      priceFrom: Number(price) > 0 ? Number(price) : undefined,
+      priceFrom: priceNum > 0 ? priceNum : undefined,
       contactPhone: phone,
       message,
     });
@@ -66,8 +69,8 @@ export default function InscrireClub() {
             Demande reçue !
           </Txt>
           <Txt variant="muted" style={{ textAlign: 'center' }}>
-            PadelConnect a bien reçu ta demande pour <Txt style={{ fontWeight: '700' }}>{name.trim()}</Txt>. Nous te recontactons rapidement
-            au numéro indiqué pour activer ta page club.
+            PadelConnect a bien reçu ta demande pour <Txt style={{ fontWeight: '700' }}>{name.trim()}</Txt>. Nous te recontacterons
+            rapidement au numéro indiqué pour activer ta page club.
           </Txt>
           <Button label="Revenir à mon profil" icon="arrow-back" variant="ghost" onPress={() => router.back()} full />
         </Card>
@@ -103,6 +106,7 @@ export default function InscrireClub() {
           onChangeText={setName}
           placeholder="Nom du club"
           placeholderTextColor={colors.textFaint}
+          accessibilityLabel="Nom du club"
           style={styles.input}
         />
         <TextInput
@@ -110,6 +114,7 @@ export default function InscrireClub() {
           onChangeText={setArea}
           placeholder="Quartier / commune (ex. Cocody)"
           placeholderTextColor={colors.textFaint}
+          accessibilityLabel="Quartier ou commune"
           style={styles.input}
         />
         <View style={styles.wrap}>
@@ -128,6 +133,7 @@ export default function InscrireClub() {
           placeholder="Tarif indicatif d'une session 1h30 (FCFA — optionnel)"
           placeholderTextColor={colors.textFaint}
           keyboardType="numeric"
+          accessibilityLabel="Tarif indicatif d'une session"
           style={styles.input}
         />
       </Card>
@@ -142,6 +148,7 @@ export default function InscrireClub() {
           placeholder="Ton numéro (WhatsApp de préférence)"
           placeholderTextColor={colors.textFaint}
           keyboardType="phone-pad"
+          accessibilityLabel="Numéro de téléphone"
           style={styles.input}
         />
         <TextInput
@@ -150,6 +157,7 @@ export default function InscrireClub() {
           placeholder="Un mot pour nous (optionnel)"
           placeholderTextColor={colors.textFaint}
           multiline
+          accessibilityLabel="Message pour l'équipe"
           style={[styles.input, { height: 88, textAlignVertical: 'top' }]}
         />
       </Card>
@@ -160,7 +168,7 @@ export default function InscrireClub() {
           <Ionicons name="lock-closed-outline" size={13} color={colors.textFaint} />
           <Txt variant="small" color={colors.textFaint} style={{ flex: 1 }}>
             Tes infos servent uniquement à te recontacter. Inscrire un club ne donne pas accès à l'Espace Club tant que PadelConnect ne l'a
-            pas activé. Tu pourras nous contacter directement après l'envoi.
+            pas activé. Besoin de nous joindre entre-temps ? Passe par l'écran Aide & support.
           </Txt>
         </View>
       </View>

@@ -6,6 +6,7 @@ import { Screen } from '@/components/Screen';
 import { useToast } from '@/components/Toast';
 import { Button, Txt } from '@/components/ui';
 import { supabase } from '@/lib/supabase';
+import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
 // Écran de RÉINITIALISATION du mot de passe (ouvert par le lien reçu par e-mail, deep link
@@ -16,6 +17,7 @@ export default function ResetPasswordScreen() {
   const router = useRouter();
   const params = useLocalSearchParams<{ code?: string }>();
   const toast = useToast();
+  const { refreshSession } = useApp();
   const code = Array.isArray(params.code) ? params.code[0] : params.code;
   // Sans code dans le lien → « error » d'emblée (évite un setState synchrone dans l'effet).
   const [status, setStatus] = useState<'exchanging' | 'ready' | 'error'>(code ? 'exchanging' : 'error');
@@ -49,6 +51,10 @@ export default function ResetPasswordScreen() {
       return;
     }
     toast.show('Mot de passe mis à jour ✓');
+    // La session Supabase est valide (exchangeCodeForSession + updateUser) mais state.account
+    // n'est pas encore adopté par le Context → sans ça, le garde racine renvoyait vers
+    // /onboarding malgré une session active (comme onConfirm dans _layout.tsx).
+    await refreshSession();
     router.replace('/');
   };
 

@@ -77,13 +77,18 @@ export default function ParrainageScreen() {
             Joue à plusieurs
           </Txt>
           <Txt variant="small" color={colors.onPhoto} style={{ marginTop: 4 }}>
-            Le padel, c'est mieux entre amis. Invite-les — tu les retrouves direct sur tes réservations.
+            Le padel, c'est mieux entre amis. Invite-les — dès qu'ils rejoignent, envoie-leur une demande d'ami pour jouer ensemble.
           </Txt>
         </LinearGradient>
 
         {/* Mon code de parrainage — à partager, tape pour copier dans le message */}
         {myCode ? (
-          <Pressable onPress={invite} style={styles.codeCard} accessibilityLabel="Partager mon code de parrainage">
+          <Pressable
+            onPress={invite}
+            style={styles.codeCard}
+            accessibilityRole="button"
+            accessibilityLabel="Partager mon code de parrainage"
+          >
             <View style={{ flex: 1 }}>
               <Txt variant="label" color={colors.textFaint}>
                 MON CODE DE PARRAINAGE

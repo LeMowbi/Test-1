@@ -30,6 +30,7 @@ export default function AmisScreen() {
   const [searching, setSearching] = useState(false);
   const [sending, setSending] = useState(false);
   const [found, setFound] = useState<{ name: string; level?: number } | null>(null);
+  const [foundPhone, setFoundPhone] = useState<string | null>(null); // numéro EXACT correspondant à `found`
   const [search, setSearch] = useState<'idle' | 'found' | 'notfound'>('idle');
   const [busyReq, setBusyReq] = useState<string | null>(null); // demande reçue en cours de réponse
   const [celebrate, setCelebrate] = useState(false); // confettis à l'acceptation d'une demande
@@ -42,24 +43,29 @@ export default function AmisScreen() {
   // Cherche le joueur par son numéro côté serveur. On n'invite que s'il a un VRAI compte.
   const doSearch = async () => {
     if (!phoneReady || searching) return;
+    const q = phone; // copie locale : on ignore le résultat si le numéro a changé entre-temps
     setSearching(true);
     setSearch('idle');
-    const res = await findPlayerByPhone(phone);
+    const res = await findPlayerByPhone(q);
     setSearching(false);
+    if (q !== phone) return; // recherche périmée (le champ a changé pendant l'attente)
     if (res) {
       setFound(res);
+      setFoundPhone(q); // numéro EXACT ayant produit ce résultat, utilisé par sendRequest
       setSearch('found');
     } else {
       setFound(null);
+      setFoundPhone(null);
       setSearch('notfound');
     }
   };
 
   // Envoie une DEMANDE d'ami : la personne doit l'accepter (elle n'est pas ajoutée d'office).
+  // On invite le numéro AFFICHÉ (foundPhone), pas le numéro courant du champ (qui a pu changer).
   const sendRequest = async () => {
-    if (!found || sending) return;
+    if (!found || !foundPhone || sending) return;
     setSending(true);
-    const res = await sendFriendRequest(phone);
+    const res = await sendFriendRequest(foundPhone);
     setSending(false);
     const name = res.friend?.name ?? found.name;
     if (res.status === 'sent') {
@@ -79,6 +85,7 @@ export default function AmisScreen() {
     }
     setPhone(DEFAULT_DIAL);
     setFound(null);
+    setFoundPhone(null);
     setSearch('idle');
   };
 
@@ -198,7 +205,7 @@ export default function AmisScreen() {
                         {f.name}
                       </Txt>
                       <Txt variant="small" color={colors.textMuted}>
-                        {subtitleFor(f.level, f.phone)}
+                        {subtitleFor(f.level)}
                       </Txt>
                     </View>
                   </Pressable>
@@ -255,6 +262,7 @@ export default function AmisScreen() {
               placeholder="Numéro (+225…)"
               placeholderTextColor={colors.textFaint}
               keyboardType="phone-pad"
+              editable={!searching}
               style={styles.input}
             />
             <View style={{ marginTop: spacing.sm, opacity: phoneReady ? 1 : 0.5 }}>
@@ -304,13 +312,9 @@ export default function AmisScreen() {
   );
 }
 
-// Sous-titre « Niveau X · {ville/zone si dispo} » — le second segment n'apparaît
-// que s'il est renseigné (numéro de l'ami ou club favori du joueur suivi).
-function subtitleFor(level: number | undefined, extra?: string): string {
-  const parts: string[] = [];
-  if (level !== undefined) parts.push(`Niveau ${level.toFixed(1)}`);
-  if (extra) parts.push(extra);
-  return parts.length > 0 ? parts.join(' · ') : 'Joueur PadelConnect';
+// Sous-titre « Niveau X », ou « Joueur PadelConnect » si le niveau n'est pas renseigné.
+function subtitleFor(level: number | undefined): string {
+  return level !== undefined ? `Niveau ${level.toFixed(1)}` : 'Joueur PadelConnect';
 }
 
 const styles = StyleSheet.create({

@@ -5,7 +5,7 @@
 // ce test ne couvre donc plus que les données encore embarquées (clubs, tournois, coachs).
 
 import { clubs } from '@/data/clubs';
-import { seedCompetitions, demoTeams, formatFee, teamCount } from '@/data/competitions';
+import { seedCompetitions, teamsToShow, formatFee } from '@/data/competitions';
 import { coaches } from '@/data/coaches';
 import { minPrice, priceTiersFor } from '@/lib/pricing';
 
@@ -54,11 +54,22 @@ check(
 // 4. Aucun tournoi de démo exposé (données réelles uniquement).
 check(seedCompetitions.length === 0, 'Aucun tournoi de démonstration embarqué (données réelles serveur)');
 
-// 5. Fonction pure demoTeams : équipes UNIQUES même sur un tournoi plein (24 > pool de 12).
-const fullComp = { id: 'synthetic-24', slots: 24, registered: 24 } as unknown as Parameters<typeof demoTeams>[0];
-const teams = demoTeams(fullComp);
-check(teams.length === teamCount(fullComp, false), `demoTeams : ${teams.length} équipes générées (tournoi plein)`);
-check(new Set(teams).size === teams.length, 'demoTeams : noms d’équipes TOUS uniques (pool 12 < 24 équipes)');
+// 5. teamsToShow : aucun nom fictif — un tournoi LOCAL (hors serveur) ne montre que MON
+// équipe (si inscrit), jamais d'adversaires inventés ; un tournoi SERVEUR montre son roster réel.
+const localComp = { id: 'synthetic-local', slots: 8, registered: 0 } as unknown as Parameters<typeof teamsToShow>[0];
+check(teamsToShow(localComp).length === 0, 'teamsToShow (local, non inscrit) : aucune équipe fictive');
+check(
+  teamsToShow(localComp, 'Moi & Partenaire').length === 1,
+  'teamsToShow (local, inscrit) : seulement MON équipe, pas d’adversaire inventé',
+);
+const serverComp = {
+  id: 'synthetic-server',
+  slots: 8,
+  registered: 2,
+  server: true,
+  teamNames: ['Awa & Yann', 'Moi & Partenaire'],
+} as unknown as Parameters<typeof teamsToShow>[0];
+check(teamsToShow(serverComp, 'Moi & Partenaire')[0] === 'Moi & Partenaire', 'teamsToShow (serveur) : mon équipe en tête du roster réel');
 
 // 6. formatFee : vide → « Gratuit », espace les milliers, et est idempotent (fonction pure).
 check(

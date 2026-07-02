@@ -828,9 +828,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const userId = state.serverUserId;
         if (!userId) return { photoSaved: true };
         const row: Record<string, string | null> = {};
-        if (patch.firstName !== undefined) row.first_name = patch.firstName.trim();
-        if (patch.lastName !== undefined) row.last_name = patch.lastName.trim();
-        if (patch.phone !== undefined) row.phone = patch.phone.trim();
+        // Filet de sécurité : ne jamais écraser prénom/nom/téléphone par une chaîne vide côté
+        // serveur (l'écran d'édition valide déjà, mais on protège aussi ce point d'entrée).
+        if (patch.firstName !== undefined && patch.firstName.trim()) row.first_name = patch.firstName.trim();
+        if (patch.lastName !== undefined && patch.lastName.trim()) row.last_name = patch.lastName.trim();
+        if (patch.phone !== undefined && patch.phone.trim()) row.phone = patch.phone.trim();
         if (patch.birthDate !== undefined) row.birth_date = patch.birthDate?.trim() || null;
         if (patch.gender !== undefined) row.gender = patch.gender ?? null;
         if (Object.keys(row).length > 0) void supabase.from('profiles').update(row).eq('id', userId);
@@ -1485,8 +1487,6 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             blurb: `Club de padel à ${area.trim() || 'Abidjan'} — inscrit via PadelConnect.`,
             amenities: ['Vestiaires'],
             priceFrom: Math.max(0, priceFrom),
-            rating: 0,
-            reviewsCount: 0,
             mapsQuery: `${n} padel ${area.trim() || ''} Abidjan`.replace(/\s+/g, ' '),
             accent: accents[s.customClubs.length % accents.length],
             status: 'pending',
@@ -1519,7 +1519,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           type: input.type ?? null,
           courts: input.courts ?? null,
           price_from: input.priceFrom ?? null,
-          contact_phone: input.contactPhone?.trim() || null,
+          // Filet de sécurité (comme submitSupportMessage) : si le champ a été vidé, on retombe
+          // sur le téléphone du compte pour garder un canal de rappel — la carte de succès promet
+          // « on te recontacte au numéro indiqué ».
+          contact_phone: input.contactPhone?.trim() || state.account?.phone || null,
           message: input.message?.trim() || null,
           requested_by: user.id,
         });

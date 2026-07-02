@@ -35,6 +35,7 @@ export default function CompetitionDetail() {
   const [toast, setToast] = useState<string | null>(null);
   const [openPlayer, setOpenPlayer] = useState<PlayerLike | null>(null);
   const [registering, setRegistering] = useState(false); // évite double-clic + toast menteur si échec serveur
+  const [closing, setClosing] = useState(false); // évite double-clic sur la clôture + retour d'échec
 
   if (!comp) {
     return (
@@ -95,15 +96,38 @@ export default function CompetitionDetail() {
   // unique vainqueur + dernier. La détection se fait sur le format choisi à la création.
   const isAmericano = comp.format.toLowerCase().includes('americano');
 
-  // Clôture effective : vainqueur + (option) dernière équipe.
-  const doClose = (loser?: string) =>
-    closeCompetition(comp, winnerName, winnerName === myTeam && registered, loser, !!loser && loser === myTeam && registered);
+  // Clôture effective : vainqueur + (option) dernière équipe. Gardée (anti double-tap) + retour
+  // d'échec par toast, aligné sur le flux d'inscription de cet écran.
+  const doClose = async (loser?: string) => {
+    if (closing) return;
+    setClosing(true);
+    const ok = await closeCompetition(
+      comp,
+      winnerName,
+      winnerName === myTeam && registered,
+      loser,
+      !!loser && loser === myTeam && registered,
+    );
+    setClosing(false);
+    if (ok) hapticSuccess();
+    else hapticWarning();
+    setToast(ok ? 'Tournoi clôturé ✓' : 'Clôture impossible — réessaie.');
+    setTimeout(() => setToast(null), 2200);
+  };
   // Clôture americano : vainqueur + 2ᵉ/3ᵉ place (le niveau ne bouge que pour le 1ᵉ, comme ailleurs).
-  const doClosePodium = () =>
-    closeCompetition(comp, winnerName, winnerName === myTeam && registered, undefined, false, {
+  const doClosePodium = async () => {
+    if (closing) return;
+    setClosing(true);
+    const ok = await closeCompetition(comp, winnerName, winnerName === myTeam && registered, undefined, false, {
       second: secondName || undefined,
       third: thirdName || undefined,
     });
+    setClosing(false);
+    if (ok) hapticSuccess();
+    else hapticWarning();
+    setToast(ok ? 'Tournoi clôturé ✓' : 'Clôture impossible — réessaie.');
+    setTimeout(() => setToast(null), 2200);
+  };
 
   return (
     <Screen
@@ -468,7 +492,13 @@ export default function CompetitionDetail() {
                   })}
               </View>
               <View style={{ marginTop: spacing.md }}>
-                <Button label="Clôturer le tournoi" icon="trophy" onPress={doClosePodium} full />
+                <Button
+                  label={closing ? 'Clôture…' : 'Clôturer le tournoi'}
+                  icon="trophy"
+                  onPress={doClosePodium}
+                  disabled={closing}
+                  full
+                />
               </View>
             </>
           ) : (
@@ -499,13 +529,13 @@ export default function CompetitionDetail() {
               </View>
               <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
                 <Button
-                  label={loserName ? `Clôturer (fin de tableau : ${loserName})` : 'Clôturer'}
+                  label={closing ? 'Clôture…' : loserName ? `Clôturer (fin de tableau : ${loserName})` : 'Clôturer'}
                   icon="flag"
                   onPress={() => doClose(loserName || undefined)}
-                  disabled={!loserName}
+                  disabled={!loserName || closing}
                   full
                 />
-                <Button label="Passer (pas de fin de tableau)" variant="ghost" onPress={() => doClose(undefined)} full />
+                <Button label="Passer (pas de fin de tableau)" variant="ghost" onPress={() => doClose(undefined)} disabled={closing} full />
               </View>
             </>
           )}
