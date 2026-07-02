@@ -21,6 +21,7 @@ import { courtsFor, freeCourts, hasFullDayCompetition, openSlotsFor, type AvailC
 import { dateKeyLabel, nextDays, slotTimestamp, type DayOption } from '@/lib/days';
 import { fcfa, perPlayer } from '@/lib/format';
 import { minPrice, priceForSlot, priceTiersFor } from '@/lib/pricing';
+import { useTodayKey } from '@/lib/useTodayKey';
 import { MAX_UPCOMING, useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
@@ -31,7 +32,10 @@ export default function ReserverScreen() {
   const toast = useToast();
   const club = findClub(params.clubId, state.customClubs, state.clubInfo);
 
-  const dates = useMemo(() => nextDays(7), []);
+  // todayKey : la liste se recale après minuit (retour premier plan) — cf. reserver/index.tsx.
+  const todayKey = useTodayKey();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const dates = useMemo(() => nextDays(7), [todayKey]);
   // « Rejouer » passe l’heure habituelle SANS jour (?time=…) : on pré-sélectionne le premier
   // jour où ce créneau est encore à venir (aujourd’hui, sinon demain) — sans ça, le choix du
   // jour remettait le créneau à zéro et la pré-sélection promise n’était jamais tenue.

@@ -230,16 +230,19 @@ export async function setOperatorPayment(key: string, status: 'sent' | 'paid' | 
 
 // Opérateur : donne l’accès « Espace Club » à un joueur (par son numéro) pour un club donné —
 // n’importe quel club, y compris les 9 de base. Renvoie le nom du joueur promu si trouvé.
-export async function grantClubAccessByPhone(phone: string, clubId: string): Promise<{ ok: boolean; name?: string }> {
+// `error: true` = échec RÉSEAU (≠ ok:false seul = numéro vraiment inconnu, convention §8).
+export async function grantClubAccessByPhone(phone: string, clubId: string): Promise<{ ok: boolean; name?: string; error?: boolean }> {
   const { data, error } = await supabase.rpc('grant_club_access_by_phone', { p_phone: phone.trim(), p_club_id: clubId });
-  if (error || !data) return { ok: false };
+  if (error) return { ok: false, error: true };
+  if (!data) return { ok: false };
   return { ok: true, name: data as string };
 }
 
 // Opérateur : retire l’accès gérant d’un joueur (par son numéro). Renvoie son nom si trouvé.
-export async function revokeClubAccessByPhone(phone: string): Promise<{ ok: boolean; name?: string }> {
+export async function revokeClubAccessByPhone(phone: string): Promise<{ ok: boolean; name?: string; error?: boolean }> {
   const { data, error } = await supabase.rpc('revoke_club_access_by_phone', { p_phone: phone.trim() });
-  if (error || !data) return { ok: false };
+  if (error) return { ok: false, error: true };
+  if (!data) return { ok: false };
   return { ok: true, name: data as string };
 }
 

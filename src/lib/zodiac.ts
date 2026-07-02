@@ -7,10 +7,10 @@ const SIGNS: { until: [number, number]; sign: Zodiac }[] = [
   { until: [1, 19], sign: { name: 'Capricorne', emoji: '🐐', message: 'Discipliné — le lob parfait se travaille.' } },
   { until: [2, 18], sign: { name: 'Verseau', emoji: '🏺', message: 'Imprévisible — tes adversaires ne verront rien venir.' } },
   { until: [3, 20], sign: { name: 'Poissons', emoji: '🐟', message: 'Instinctif — tu sens les balles avant tout le monde.' } },
-  { until: [4, 19], sign: { name: 'Bélier', emoji: '🐏', message: "Fonceur — la bandeja n’a qu’à bien se tenir." } },
+  { until: [4, 19], sign: { name: 'Bélier', emoji: '🐏', message: 'Fonceur — la bandeja n’a qu’à bien se tenir.' } },
   { until: [5, 20], sign: { name: 'Taureau', emoji: '🐂', message: 'Solide au filet — rien ne passe.' } },
-  { until: [6, 20], sign: { name: 'Gémeaux', emoji: '👯', message: "Le double, c’est ton élément naturel." } },
-  { until: [7, 22], sign: { name: 'Cancer', emoji: '🦀', message: "Joueur d’équipe — ton partenaire a de la chance." } },
+  { until: [6, 20], sign: { name: 'Gémeaux', emoji: '👯', message: 'Le double, c’est ton élément naturel.' } },
+  { until: [7, 22], sign: { name: 'Cancer', emoji: '🦀', message: 'Joueur d’équipe — ton partenaire a de la chance.' } },
   { until: [8, 22], sign: { name: 'Lion', emoji: '🦁', message: 'Né pour briller au centre du court.' } },
   { until: [9, 22], sign: { name: 'Vierge', emoji: '🌾', message: 'Précis — chaque vitre est calculée.' } },
   { until: [10, 22], sign: { name: 'Balance', emoji: '⚖️', message: 'Élégant — ton jeu est un plaisir à regarder.' } },
@@ -33,39 +33,42 @@ export function maskBirthDate(next: string, prev: string): string {
   return out;
 }
 
-// « JJ/MM/AAAA » → Date, ou null si invalide.
+// « JJ/MM/AAAA » → Date, ou null si invalide. En UTC FIXE, comme toute la logique
+// « jours » du projet (dayKey…) : Abidjan = UTC, et le jour affiché (anniversaire, âge)
+// ne doit pas dépendre du fuseau de l’appareil d’un joueur en voyage.
 export function parseBirthDate(s: string): Date | null {
   const m = s.trim().match(/^(\d{1,2})[/\-.](\d{1,2})[/\-.](\d{4})$/);
   if (!m) return null;
   const [, d, mo, y] = m.map(Number);
-  const date = new Date(y, mo - 1, d);
-  if (date.getDate() !== d || date.getMonth() !== mo - 1) return null;
+  const date = new Date(Date.UTC(y, mo - 1, d));
+  if (date.getUTCDate() !== d || date.getUTCMonth() !== mo - 1) return null;
   if (y < 1920 || date.getTime() > Date.now()) return null;
   return date;
 }
 
 export function zodiacFor(date: Date): Zodiac {
-  const mo = date.getMonth() + 1;
-  const d = date.getDate();
+  const mo = date.getUTCMonth() + 1;
+  const d = date.getUTCDate();
   for (const { until, sign } of SIGNS) {
     if (mo < until[0] || (mo === until[0] && d <= until[1])) return sign;
   }
   return SIGNS[SIGNS.length - 1].sign;
 }
 
-// Vrai si la date de naissance tombe aujourd’hui (jour + mois).
+// Vrai si la date de naissance tombe aujourd’hui (jour + mois), au sens du jour d’Abidjan (UTC).
 export function isBirthdayToday(birthDate?: string): boolean {
   if (!birthDate) return false;
   const d = parseBirthDate(birthDate);
   if (!d) return false;
   const now = new Date();
-  return d.getDate() === now.getDate() && d.getMonth() === now.getMonth();
+  return d.getUTCDate() === now.getUTCDate() && d.getUTCMonth() === now.getUTCMonth();
 }
 
 export function ageFrom(date: Date): number {
   const now = new Date();
-  let age = now.getFullYear() - date.getFullYear();
-  const beforeBirthday = now.getMonth() < date.getMonth() || (now.getMonth() === date.getMonth() && now.getDate() < date.getDate());
+  let age = now.getUTCFullYear() - date.getUTCFullYear();
+  const beforeBirthday =
+    now.getUTCMonth() < date.getUTCMonth() || (now.getUTCMonth() === date.getUTCMonth() && now.getUTCDate() < date.getUTCDate());
   if (beforeBirthday) age -= 1;
   return age;
 }

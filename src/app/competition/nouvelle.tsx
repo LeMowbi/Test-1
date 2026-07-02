@@ -10,6 +10,7 @@ import { COMP_FORMATS } from '@/data/competitions';
 import { courtsFor, openSlotsFor } from '@/lib/availability';
 import { nextDays, type DayOption } from '@/lib/days';
 import { fcfa } from '@/lib/format';
+import { useTodayKey } from '@/lib/useTodayKey';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -70,7 +71,10 @@ export default function NouvelleCompetition() {
 
   // Tournois : planification jusqu’à ~6 semaines à l’avance (un tournoi s’organise bien plus
   // tôt qu’une simple réservation, limitée à la semaine).
-  const dates = useMemo(() => nextDays(42), []);
+  // todayKey : la liste se recale après minuit (retour premier plan) — cf. reserver/index.tsx.
+  const todayKey = useTodayKey();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const dates = useMemo(() => nextDays(42), [todayKey]);
   const [title, setTitle] = useState('');
   const [reward, setReward] = useState('');
   const [fee, setFee] = useState('');

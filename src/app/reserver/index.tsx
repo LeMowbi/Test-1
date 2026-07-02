@@ -16,6 +16,7 @@ import { hapticLight } from '@/lib/haptics';
 import { fcfa, perPlayer } from '@/lib/format';
 import { minPrice, priceForSlot } from '@/lib/pricing';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
+import { useTodayKey } from '@/lib/useTodayKey';
 import { useApp } from '@/store/AppContext';
 import { colors, radius, shadows, spacing } from '@/theme';
 
@@ -29,7 +30,11 @@ export default function ReserverScreen() {
   const { state, setReserverView } = useApp();
   const { refreshControl } = usePullToRefresh();
 
-  const days = useMemo(() => nextDays(7), []);
+  // todayKey : recalcule la liste après minuit (retour premier plan) — sinon « AUJ. »
+  // resterait collé à la veille et la journée paraîtrait terminée au réveil.
+  const todayKey = useTodayKey();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const days = useMemo(() => nextDays(7), [todayKey]);
   const visibleClubs = useMemo(
     () => activeClubs(state.customClubs, state.clubInfo),
     // state.clubStatus : dépendance indirecte (activeClubs lit clubStatusMap) — cf. clubs/index.tsx.
@@ -120,7 +125,7 @@ export default function ReserverScreen() {
                 style={[styles.dayPill, active && styles.dayPillActive]}
                 accessibilityRole="button"
                 accessibilityState={{ selected: active }}
-                accessibilityLabel={`${i === 0 ? "Aujourd’hui" : DOW[dd.getUTCDay()]} ${dd.getUTCDate()}`}
+                accessibilityLabel={`${i === 0 ? 'Aujourd’hui' : DOW[dd.getUTCDay()]} ${dd.getUTCDate()}`}
               >
                 <Txt variant="small" color={active ? colors.onSignature : colors.textFaint} style={{ fontSize: 10, fontWeight: '700' }}>
                   {i === 0 ? 'AUJ.' : DOW[dd.getUTCDay()]}

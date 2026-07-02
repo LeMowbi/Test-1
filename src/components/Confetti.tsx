@@ -17,14 +17,21 @@ const PIECES = Array.from({ length: 26 }, (_, i) => ({
 // Confettis de célébration (sans dépendance). Se joue au montage puis appelle onDone.
 export function Confetti({ onDone }: { onDone?: () => void }) {
   const progress = useRef(PIECES.map(() => new Animated.Value(0))).current;
+  // onDone lu via une ref : les appelants passent une flèche inline (identité neuve à chaque
+  // rendu) — sans ça, tout re-rendu du parent pendant la chute rejouerait l'animation et
+  // repousserait le démontage (même motif que RatingBar dans club/[id]).
+  const onDoneRef = useRef(onDone);
+  onDoneRef.current = onDone;
 
   useEffect(() => {
     Animated.parallel(
       PIECES.map((p, i) => Animated.timing(progress[i], { toValue: 1, duration: 1300, delay: p.delay, useNativeDriver: true })),
     ).start();
-    const t = setTimeout(() => onDone?.(), 1700);
+    const t = setTimeout(() => onDoneRef.current?.(), 1700);
     return () => clearTimeout(t);
-  }, [onDone, progress]);
+    // Une seule exécution, au montage — cf. commentaire de la ref ci-dessus.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return (
     <View pointerEvents="none" style={StyleSheet.absoluteFill}>

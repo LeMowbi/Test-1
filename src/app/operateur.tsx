@@ -202,10 +202,12 @@ export default function Operateur() {
   }, []);
 
   const markRequest = async (id: string, status: ServerClubRequest['status']) => {
-    const prev = requests;
+    // Rollback CIBLÉ (même motif que markSupport) : restaurer le tableau entier écraserait
+    // une autre mise à jour optimiste partie entre-temps.
+    const prev = requests.find((r) => r.id === id)?.status;
     setRequests((cur) => cur.map((r) => (r.id === id ? { ...r, status } : r)));
     const { ok } = await setClubRequestStatus(id, status);
-    if (!ok) setRequests(prev); // échec serveur → on annule l’affichage optimiste
+    if (!ok && prev) setRequests((cur) => cur.map((r) => (r.id === id ? { ...r, status: prev } : r)));
   };
   const pendingRequests = requests.filter((r) => r.status === 'new' || r.status === 'contacted').length;
 
@@ -232,42 +234,47 @@ export default function Operateur() {
 
   // La commission se calcule UNIQUEMENT sur les parties JOUÉES de la semaine
   // (une résa à venir peut encore être annulée — le club contesterait).
-  // Prix d’une résa — MÊME règle partout (hebdo et cumulé) pour que le chiffre vitrine
-  // ne sous-estime jamais la somme des semaines : prix figé, sinon tarif actuel du club.
-  const priceOf = (r: (typeof state.reservations)[number]) =>
-    r.price ?? findClub(r.clubId, state.customClubs, state.clubInfo)?.priceFrom ?? 0;
+  // TOUT le bloc dérivé des réservations est mémoïsé : le miroir opérateur contient les
+  // résas de TOUS les clubs, et sans useMemo chaque frappe dans un champ du formulaire
+  // ré-exécutait ces passes complètes (priceOf → findClub par résa) à chaque re-rendu.
+  const { reservations, clubCommission, customClubs, clubInfo } = state;
+  const { weekUpcoming, rows, allTimePlayed, allTimeCommission, thisWeekCommission } = useMemo(() => {
+    // Prix d’une résa — MÊME règle partout (hebdo et cumulé) pour que le chiffre vitrine
+    // ne sous-estime jamais la somme des semaines : prix figé, sinon tarif actuel du club.
+    const priceOf = (r: (typeof reservations)[number]) => r.price ?? findClub(r.clubId, customClubs, clubInfo)?.priceFrom ?? 0;
+    // Taux de commission PROPRE au club (accord négocié) — repli sur le taux par défaut (10 %).
+    const rateOf = (clubId: string) => clubCommission[clubId] ?? COMMISSION_RATE;
 
-  const weekAll = state.reservations.filter((r) => weekKeyOf(r.startsAt) === week);
-  const weekPlayed = weekAll.filter((r) => isPlayed(r));
-  const weekUpcoming = weekAll.length - weekPlayed.length;
-  const groups = new Map<string, { clubName: string; count: number; revenue: number; items: typeof state.reservations }>();
-  for (const r of weekPlayed) {
-    // Volume = somme des PRIX RÉELS des créneaux réservés (figés à la réservation).
-    const g = groups.get(r.clubId) ?? { clubName: r.clubName, count: 0, revenue: 0, items: [] };
-    g.count += 1;
-    g.revenue += priceOf(r);
-    g.items.push(r);
-    groups.set(r.clubId, g);
-  }
-  // Taux de commission PROPRE au club (accord négocié) — repli sur le taux par défaut (10 %).
-  const rateOf = (clubId: string) => state.clubCommission[clubId] ?? COMMISSION_RATE;
-  const rows = [...groups.entries()]
-    .map(([clubId, g]) => ({ clubId, ...g, rate: rateOf(clubId), commission: Math.round(g.revenue * rateOf(clubId)) }))
-    .sort((a, b) => b.revenue - a.revenue);
-
-  // Commission cumulée DEPUIS LE LANCEMENT (toutes semaines) — chiffre vitrine. Chaque résa est
-  // commissionnée au taux de SON club (pas un taux global), pour rester exact.
-  const allTimePlayedRes = state.reservations.filter((r) => isPlayed(r));
-  const allTimePlayed = allTimePlayedRes.length;
-  const allTimeCommission = Math.round(allTimePlayedRes.reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0));
-
-  // Commission de la semaine EN COURS (indépendante du sélecteur ‹ › de la « Santé plateforme »,
-  // qui est un aperçu stable) — sinon naviguer vers une semaine passée changerait ce chiffre.
-  const thisWeekCommission = Math.round(
-    state.reservations
-      .filter((r) => weekKeyOf(r.startsAt) === thisWeek && isPlayed(r))
-      .reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0),
-  );
+    const weekAll = reservations.filter((r) => weekKeyOf(r.startsAt) === week);
+    const played = weekAll.filter((r) => isPlayed(r));
+    const groups = new Map<string, { clubName: string; count: number; revenue: number; items: typeof reservations }>();
+    for (const r of played) {
+      // Volume = somme des PRIX RÉELS des créneaux réservés (figés à la réservation).
+      const g = groups.get(r.clubId) ?? { clubName: r.clubName, count: 0, revenue: 0, items: [] };
+      g.count += 1;
+      g.revenue += priceOf(r);
+      g.items.push(r);
+      groups.set(r.clubId, g);
+    }
+    // Commission cumulée DEPUIS LE LANCEMENT (toutes semaines) — chiffre vitrine. Chaque résa
+    // est commissionnée au taux de SON club (pas un taux global), pour rester exact.
+    const allPlayedRes = reservations.filter((r) => isPlayed(r));
+    return {
+      weekUpcoming: weekAll.length - played.length,
+      rows: [...groups.entries()]
+        .map(([clubId, g]) => ({ clubId, ...g, rate: rateOf(clubId), commission: Math.round(g.revenue * rateOf(clubId)) }))
+        .sort((a, b) => b.revenue - a.revenue),
+      allTimePlayed: allPlayedRes.length,
+      allTimeCommission: Math.round(allPlayedRes.reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0)),
+      // Commission de la semaine EN COURS (indépendante du sélecteur ‹ › de la « Santé
+      // plateforme », un aperçu stable) — sinon naviguer vers une semaine passée la changerait.
+      thisWeekCommission: Math.round(
+        reservations
+          .filter((r) => weekKeyOf(r.startsAt) === thisWeek && isPlayed(r))
+          .reduce((s, r) => s + priceOf(r) * rateOf(r.clubId), 0),
+      ),
+    };
+  }, [reservations, clubCommission, customClubs, clubInfo, week, thisWeek]);
 
   // Tournois JOUEURS publiés avec un frais fixe → à encaisser (Wave). Non réglés d’abord,
   // puis par date décroissante. On garde les réglés visibles (historique récent).
@@ -832,7 +839,7 @@ export default function Operateur() {
             <Txt variant="muted">
               {supportError
                 ? 'Impossible de charger les signalements — vérifie ta connexion, puis tire pour rafraîchir.'
-                : "Aucun message pour l’instant. Les signalements des joueurs (Profil → Aide & support) arrivent ici."}
+                : 'Aucun message pour l’instant. Les signalements des joueurs (Profil → Aide & support) arrivent ici.'}
             </Txt>
           </Card>
         ) : (

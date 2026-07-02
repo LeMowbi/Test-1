@@ -20,6 +20,7 @@ import { dateKeyLabel, nextDays, slotTimestamp, type DayOption } from '@/lib/day
 import { fcfa } from '@/lib/format';
 import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { priceForSlot } from '@/lib/pricing';
+import { useTodayKey } from '@/lib/useTodayKey';
 import { useApp } from '@/store/AppContext';
 import { colors, gradients, radius, shadows, spacing } from '@/theme';
 
@@ -56,7 +57,10 @@ export default function CoursScreen() {
     };
   }, [clubId]);
 
-  const dates = useMemo(() => nextDays(7), []);
+  // todayKey : la liste se recale après minuit (retour premier plan) — cf. reserver/index.tsx.
+  const todayKey = useTodayKey();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  const dates = useMemo(() => nextDays(7), [todayKey]);
   const [day, setDay] = useState<DayOption | null>(null);
   const [slot, setSlot] = useState<string | null>(null);
   const [court, setCourt] = useState<string | null>(null);

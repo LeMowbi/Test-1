@@ -4,7 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { Chip } from '@/components/Chip';
 import { Button, Card, Txt } from '@/components/ui';
 import { type Club, type PriceTier } from '@/data/clubs';
-import { validateTiers } from '@/lib/pricing';
+import { PRICE_MAX, PRICE_MIN, validateTiers } from '@/lib/pricing';
 import { type ClubInfo } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
@@ -40,6 +40,12 @@ export function ClubInfoCard({ club, onSave }: { club: Club & { contactPhone?: s
   const ready = name.trim().length >= 2 && area.trim().length >= 2 && Number(price) > 0;
   const save = () => {
     if (!ready) return;
+    // Tarif unique borné COMME LE SERVEUR (SQL 40) : hors bornes, il refuserait en silence
+    // et la page divergerait entre ce téléphone et ceux des joueurs.
+    if (Number(price) < PRICE_MIN || Number(price) > PRICE_MAX) {
+      setTierError(`Tarif unique invalide (${price} F) : entre 1 000 et 1 000 000 FCFA la session.`);
+      return;
+    }
     // On ne garde que les plages complètes (début, fin, prix > 0). Aucune → tarif unique.
     const built: PriceTier[] = tiers
       .filter((t) => t.start.trim() && t.end.trim() && Number(t.price) > 0)

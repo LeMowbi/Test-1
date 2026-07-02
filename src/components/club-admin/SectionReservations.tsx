@@ -31,6 +31,9 @@ export function SectionReservations({
   const toast = useToast();
   const [planDayKey, setPlanDayKey] = useState<string | null>(null);
   const [showBlockForm, setShowBlockForm] = useState(false);
+  // Historique paginé par SEMAINES : un club actif accumule vite des centaines de résas —
+  // tout rendre d'un coup gèle l'ouverture de l'onglet (même esprit que PAST_PREVIEW joueur).
+  const [weeksShown, setWeeksShown] = useState(4);
 
   // Annulations récentes du club (serveur) : un joueur a annulé → le créneau s’est libéré.
   // On garde la trace (status='cancelled') pour prévenir le club (cf. fonction serveur 09).
@@ -551,7 +554,7 @@ export function SectionReservations({
             />
           </Card>
         ) : (
-          pastByWeek.map((g) => (
+          pastByWeek.slice(0, weeksShown).map((g) => (
             <Card key={g.week} style={{ marginBottom: spacing.sm }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: spacing.sm }}>
                 <Txt variant="label" color={colors.textFaint}>
@@ -587,6 +590,16 @@ export function SectionReservations({
             </Card>
           ))
         )}
+        {pastByWeek.length > weeksShown ? (
+          <Button
+            size="sm"
+            variant="ghost"
+            label={`Voir plus de semaines (${pastByWeek.length - weeksShown} restantes)`}
+            icon="chevron-down"
+            onPress={() => setWeeksShown((n) => n + 4)}
+            full
+          />
+        ) : null}
         <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
           La commission PadelConnect se calcule sur cet historique — décompte transmis chaque fin de semaine, règlement par Wave.
         </Txt>

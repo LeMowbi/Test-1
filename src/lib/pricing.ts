@@ -62,6 +62,11 @@ export function groupTiersByLabel(tiers: PriceTier[]): { label: string; items: P
 const OPEN_MIN = 7 * 60; // 07:00
 const CLOSE_MIN = 24 * 60; // 24:00 (minuit, borne de fin exclusive des plages)
 
+// Bornes de vraisemblance d'un tarif de session — LES MÊMES que le serveur (SQL 40) :
+// un prix hors bornes y est refusé en silence, donc on bloque À LA SAISIE avec un message.
+export const PRICE_MIN = 1000;
+export const PRICE_MAX = 1000000;
+
 // « HH:MM » → minutes depuis minuit, ou null si le format est invalide.
 export function timeToMinutes(t: string): number | null {
   const m = /^(\d{1,2}):(\d{2})$/.exec((t ?? '').trim());
@@ -82,6 +87,9 @@ export function validateTiers(tiers: PriceTier[]): TierValidation {
     if (p.s === null) return { ok: false, error: `Heure de début invalide « ${p.t.start} » (format attendu HH:MM, ex. 07:00).` };
     if (p.e === null) return { ok: false, error: `Heure de fin invalide « ${p.t.end} » (format attendu HH:MM, ex. 16:00).` };
     if (p.s >= p.e) return { ok: false, error: `Plage incohérente : ${p.t.start} doit être avant ${p.t.end}.` };
+    if (p.t.price < PRICE_MIN || p.t.price > PRICE_MAX) {
+      return { ok: false, error: `Tarif invalide (${p.t.price} F) : entre 1 000 et 1 000 000 FCFA la session.` };
+    }
   }
 
   const sorted = parsed.slice().sort((a, b) => a.s! - b.s!);

@@ -51,6 +51,12 @@ export default function AmisScreen() {
     const res = await findPlayerByPhone(q);
     setSearching(false);
     if (q !== phone) return; // recherche périmée (le champ a changé pendant l’attente)
+    if (res === undefined) {
+      // Échec RÉSEAU ≠ « pas de compte » : on n'affirme pas qu'il n'est pas inscrit.
+      hapticWarning();
+      toast.show('Connexion impossible — réessaie', { icon: 'alert-circle' });
+      return;
+    }
     if (res) {
       setFound(res);
       setFoundPhone(q); // numéro EXACT ayant produit ce résultat, utilisé par sendRequest

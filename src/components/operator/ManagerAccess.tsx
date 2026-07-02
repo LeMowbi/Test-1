@@ -16,8 +16,8 @@ export function ManagerAccess({
   toast,
 }: {
   clubs: { id: string; name: string; area: string }[];
-  onGrant: (phone: string, clubId: string) => Promise<{ ok: boolean; name?: string }>;
-  onRevoke: (phone: string) => Promise<{ ok: boolean; name?: string }>;
+  onGrant: (phone: string, clubId: string) => Promise<{ ok: boolean; name?: string; error?: boolean }>;
+  onRevoke: (phone: string) => Promise<{ ok: boolean; name?: string; error?: boolean }>;
   toast: ReturnType<typeof useToast>;
 }) {
   const [phone, setPhone] = useState('');
@@ -30,12 +30,15 @@ export function ManagerAccess({
   const grant = async () => {
     if (busy || !clubId || digits.length < 8) return;
     setBusy('grant');
-    const { ok, name } = await onGrant(phone, clubId);
+    const { ok, name, error } = await onGrant(phone, clubId);
     setBusy(null);
     if (ok) {
       toast.show(`${name || 'Gérant'} → accès ${selected?.name ?? 'club'} ✅`);
       setPhone('');
       setClubId(null);
+    } else if (error) {
+      // Échec RÉSEAU ≠ « numéro inconnu » : ne pas envoyer le gérant recréer un compte pour rien.
+      toast.show('Connexion impossible — réessaie', { icon: 'alert-circle' });
     } else {
       toast.show('Aucun joueur avec ce numéro — il doit d’abord créer un compte', { icon: 'alert-circle' });
     }
@@ -44,11 +47,13 @@ export function ManagerAccess({
   const revoke = async () => {
     if (busy || digits.length < 8) return;
     setBusy('revoke');
-    const { ok, name } = await onRevoke(phone);
+    const { ok, name, error } = await onRevoke(phone);
     setBusy(null);
     if (ok) {
       toast.show(`Accès gérant retiré (${name || 'joueur'})`);
       setPhone('');
+    } else if (error) {
+      toast.show('Connexion impossible — réessaie', { icon: 'alert-circle' });
     } else {
       toast.show('Aucun joueur avec ce numéro', { icon: 'alert-circle' });
     }

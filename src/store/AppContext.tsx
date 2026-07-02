@@ -514,6 +514,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               pendingInvitationIds: [],
               occupancy: [],
               friends: [],
+              friendRequests: [],
               favoriteClubIds: [],
               userReviews: [],
               myCompetitions: [],
@@ -1023,7 +1024,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Anti-fuite de photo entre comptes sur le même appareil : une clé orpheline (inscription
         // jamais confirmée) ne doit pas être reprise par le PROCHAIN compte connecté ici.
         void AsyncStorage.removeItem(PENDING_AVATAR_KEY);
-        setState(loggedOutState);
+        // Purge disque IMMÉDIATE (sans attendre le persist débouncé de 500 ms) : un kill/crash
+        // juste après la déconnexion ne doit pas réhydrater le compte sortant au prochain
+        // lancement (getSession ne renverrait rien → l'état fantôme resterait affiché).
+        const cleared = loggedOutState(state);
+        void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(cleared)).catch(() => {});
+        setState(cleared);
       },
       // Réinitialisation du mot de passe : envoie un lien par e-mail qui rouvre l’app sur l’écran
       // DÉDIÉ « reset-password » (≠ auth-callback de la confirmation d’inscription) où l’utilisateur
@@ -1055,7 +1061,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         supabase.auth.signOut().catch(() => {});
         void syncMatchReminders([], false);
         void AsyncStorage.removeItem(PENDING_AVATAR_KEY); // anti-fuite de photo vers le prochain compte
-        setState(loggedOutState);
+        // Même purge disque immédiate que signOut (le compte n'existe PLUS : aucune trace à garder).
+        const cleared = loggedOutState(state);
+        void AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(cleared)).catch(() => {});
+        setState(cleared);
         return { ok: true };
       },
       // Clôture par l’ORGANISATEUR (ou le club hôte) : fige le vainqueur + podium. Le NIVEAU des
