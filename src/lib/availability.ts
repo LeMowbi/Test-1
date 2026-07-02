@@ -2,7 +2,7 @@
 // la fiche de réservation et la création de match. Tout est calculé terrain par terrain
 // et indexé sur la KEY stable du jour (AAAA-MM-JJ), jamais sur le libellé d'affichage.
 
-import { SAMPLE_SLOTS, defaultCourts, type Club } from '@/data/clubs';
+import { SAMPLE_SLOTS, compareClubs, defaultCourts, type Club } from '@/data/clubs';
 import { isTournamentPublic, type Competition } from '@/data/competitions';
 import type { BlockedSlot, Reservation } from '@/store/AppContext';
 
@@ -95,6 +95,7 @@ export function slotGrid(ctx: Pick<AvailCtx, 'clubs' | 'clubSlots'>): string[] {
 export type ClubAvail = { club: Club; free: number };
 
 // Clubs ayant ≥1 terrain libre à (jour, heure) — créneau ouvert, hors compétition, non passé.
+// Padelta d'abord puis alphabétique (compareClubs), comme toutes les listes joueurs.
 export function clubsFreeAt(dateKey: string, time: string, slotTs: number, ctx: AvailCtx): ClubAvail[] {
   if (slotTs <= Date.now()) return [];
   return ctx.clubs
@@ -102,5 +103,5 @@ export function clubsFreeAt(dateKey: string, time: string, slotTs: number, ctx: 
     .filter((club) => openSlotsFor(club, ctx.clubSlots).includes(time))
     .map((club) => ({ club, free: freeCourts(club, dateKey, time, ctx).length }))
     .filter((x) => x.free > 0)
-    .sort((a, b) => a.club.name.localeCompare(b.club.name));
+    .sort((a, b) => compareClubs(a.club, b.club));
 }

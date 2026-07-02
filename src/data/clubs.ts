@@ -262,6 +262,18 @@ function applyInfo(club: Club, overrides?: ClubOverrides): Club & { contactPhone
   return merged;
 }
 
+// Club mis en avant : Padelta s'affiche EN PREMIER partout où les joueurs voient les clubs
+// (décision du porteur). Les tris « sponsorisé d'abord » des écrans restent prioritaires —
+// ils sont stables, donc l'ordre ci-dessous est préservé à égalité de boost.
+const FEATURED_CLUB_ID = 'padelta';
+export function compareClubs(a: Club, b: Club): number {
+  if (a.id !== b.id) {
+    if (a.id === FEATURED_CLUB_ID) return -1;
+    if (b.id === FEATURED_CLUB_ID) return 1;
+  }
+  return a.name.localeCompare(b.name);
+}
+
 // Clubs visibles par les JOUEURS : clubs de base + clubs serveur activés OU « Bientôt »
 // (ces derniers s'affichent avec un badge et ne sont pas réservables). On exclut les demandes
 // locales « pending » ET les clubs que l'opérateur a masqués (statut 'hidden').
@@ -269,7 +281,7 @@ export function activeClubs(custom: CustomClub[], overrides?: ClubOverrides): Cl
   return [...clubs, ...custom.filter((c) => c.status === 'active' || c.status === 'coming_soon')]
     .filter((c) => clubStatusMap[c.id] !== 'hidden')
     .map((c) => applyInfo(c, overrides))
-    .sort((a, b) => a.name.localeCompare(b.name));
+    .sort(compareClubs);
 }
 
 // Clubs gérables dans l'Espace Club : tous, y compris en attente (le gérant prépare sa page).
