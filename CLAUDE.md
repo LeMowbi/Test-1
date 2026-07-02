@@ -79,8 +79,8 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
   l'écrire dans le dépôt).
 - Lancer : `EXPO_TOKEN=… npx eas-cli@latest build --platform ios --profile production
   --auto-submit --non-interactive --no-wait`.
-- **Dernier build : #36** (= #35 + audit complet final : 7 corrections joueur, 9 pro/serveur,
-  typographie ’, accessibilité, contrastes ; SQL 40 garde-fou prix).
+- **Dernier build : #37** (= #36 + audit n°3 complet « ultracode » : SQL 41, corrections
+  réseau/temps/perf/hydratation, quick wins UX joueur + gérant + onboarding, tablette).
 - Un module natif nouveau (ex. `expo-contacts`) ⇒ **nouveau build requis** + config plugin dans
   `app.json` avec la chaîne de permission.
 
@@ -93,7 +93,7 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 - Policies **UPDATE de Storage** : toujours `using` **ET** `with check` (sinon on peut déplacer un
   objet dans le dossier d'autrui).
 - Les migrations sont des fichiers numérotés dans `supabase/` — l'opérateur les colle dans
-  **SQL Editor → Run**. Migrations actuelles : `02` → `40` (voir dossier `supabase/`).
+  **SQL Editor → Run**. Migrations actuelles : `02` → `41` (voir dossier `supabase/`).
 - **Edge Function** `supabase/functions/notify-club/index.ts` (Deno) : envoie les push via
   l'API Expo. Déclenchée par des **Database Webhooks** (INSERT + UPDATE). Redéploiement **sans
   terminal** : Dashboard → Edge Functions → notify-club → Edit → coller le code → Deploy.
@@ -160,9 +160,17 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
   `34_level_integrity` anti-triche et `36_audit_hardening` : niveau borné [1,7] à l'inscription
   + anti-collision de noms à la clôture), webhook `friend_requests`, notify-club redéployé
   (push des demandes d'ami renvoyées).
-- **Reste à faire par le porteur (docs/AUDIT-SERVEUR.md §1)** : coller SQL `37` + `38` + `39` + `40`,
-  redéployer notify-club, créer le **webhook `lessons`** (INSERT + UPDATE). Optionnel plus
-  tard : `WEBHOOK_SECRET` + en-tête `x-webhook-secret` sur les webhooks (§3).
+- **Audit n°3 (2026-07-02, ultracode)** : 4 agents spécialisés (matrice serveur↔app 31 RPC +
+  21 tables, designer, testeur, planner) + workflow 50 agents (8 angles × sceptiques). Résultat :
+  SQL `41_reservations_hardening` (plus de DELETE direct d'une résa + insertion forcée
+  'booked'/non confirmée), tri-états réseau (ami introuvable ≠ hors-ligne), tarifs bornés à la
+  saisie, `useTodayKey` (listes de jours recalées après minuit), zodiac en UTC, purge disque
+  immédiate à la déconnexion, perfs (agrégats opérateur mémoïsés, tunnel de résa, planning club,
+  historiques paginés), quick wins UX (guide gérant « 4 gestes », « Chercher des joueurs »,
+  preuves de confiance, skeletons, EmptyState actionnables, maxWidth tablette 640/480).
+- **Reste à faire par le porteur (docs/AUDIT-SERVEUR.md §1)** : coller SQL `37` + `38` + `39` +
+  `40` + `41`, redéployer notify-club, créer les **webhooks `lessons` et `coaches`** (INSERT +
+  UPDATE). Optionnel plus tard : `WEBHOOK_SECRET` + en-tête `x-webhook-secret` sur les webhooks (§3).
 
 ### Feuille de route (décidée avec le porteur le 2026-07-01)
 
