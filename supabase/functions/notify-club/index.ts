@@ -225,11 +225,13 @@ Deno.serve(async (req) => {
       });
     } else if (table === 'lessons' && type === 'UPDATE' && record.status === 'declined' && oldRecord.status === 'pending') {
       // Le coach a REFUSÉ → prévenir l'élève (aucun terrain n'a été réservé).
+      // kind 'reservation' (→ « Mes réservations », où l'élève voit ses cours) : 'lesson'
+      // routerait vers l'Espace Coach, verrouillé pour un simple joueur.
       notifs.push({
         targets: await userToken(record.student_id),
         title: 'Cours non disponible',
         body: `${await userName(record.coach_id)} ne peut pas assurer le cours du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''}. Aucun terrain n’a été réservé.`,
-        data: { kind: 'lesson' },
+        data: { kind: 'reservation' },
       });
     } else if (table === 'lessons' && type === 'UPDATE' && record.status === 'cancelled' && oldRecord.status === 'accepted') {
       // L'élève a ANNULÉ la réservation née du cours (trigger lessons_follow_reservation) →

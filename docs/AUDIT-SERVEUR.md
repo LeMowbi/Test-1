@@ -13,7 +13,7 @@ et la **réservation de cours avec un coach** (le club déclare ses coachs ; le 
 réservé que quand le coach accepte ; le club confirme ensuite comme d'habitude — ta commission
 sur le terrain ne change pas).
 
-### a. Coller les migrations `37`, `38` puis `39`
+### a. Coller les migrations `37`, `38`, `39` puis `40` (dans cet ordre)
 
 1. Dashboard Supabase → **SQL Editor** → **New query**.
 2. Ouvre `supabase/37_audit2_hardening.sql` du dépôt, copie **tout** → colle → **Run**.
@@ -21,6 +21,8 @@ sur le terrain ne change pas).
 3. Même chose avec `supabase/38_coaches_lessons.sql` : copie **tout** → colle → **Run**.
 4. Même chose avec `supabase/39_ratings_diagnostics.sql` (notes moyennes sur les cartes +
    carte « Santé de l'app » de ton Espace opérateur) : copie **tout** → colle → **Run**.
+5. Même chose avec `supabase/40_price_guard.sql` (garde-fou anti-falsification du prix des
+   réservations — protège ta commission) : copie **tout** → colle → **Run**.
    Attendu à chaque fois : « Success. No rows returned ».
 
 ### b. Redéployer la fonction `notify-club` (push des cours)

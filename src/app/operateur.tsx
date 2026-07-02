@@ -330,6 +330,9 @@ export default function Operateur() {
       `À régler par Wave 🙏\n\n` +
       `Détail :\n${lines}`;
     const phone = (findClub(row.clubId, state.customClubs, state.clubInfo) as { contactPhone?: string } | undefined)?.contactPhone ?? '';
+    // Sans numéro connu, WhatsApp s'ouvre quand même (message prêt) mais SANS destinataire :
+    // on le dit à l'opérateur pour qu'il choisisse le bon contact au lieu de croire à un envoi.
+    if (!phone) toast.show('Numéro du club inconnu — choisis le contact dans WhatsApp', { icon: 'information-circle' });
     openWhatsApp(phone, message);
     // Ne JAMAIS rétrograder un statut déjà « payé » : un renvoi du décompte (justificatif,
     // relance) à un club déjà réglé ne doit pas faire regonfler « Reste à encaisser ».

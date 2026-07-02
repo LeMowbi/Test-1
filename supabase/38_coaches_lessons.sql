@@ -233,6 +233,7 @@ declare
   new_id uuid;
   sname text;
   cname text;
+  cfg record;
 begin
   if auth.uid() is null or auth.uid() = p_coach then return null; end if;
   -- Le coach doit être ACTIF dans CE club et proposer CE créneau.
@@ -242,6 +243,12 @@ begin
   ) then
     return null;
   end if;
+  -- Créneau/terrain validés contre la CONFIG DU CLUB quand elle existe (un horaire fermé par
+  -- le club ou un terrain inexistant ne doivent pas passer). Les clubs sans config gardent
+  -- leurs valeurs par défaut côté app — rien à vérifier ici.
+  select slots, courts into cfg from public.club_config where club_id = p_club_id;
+  if cfg.slots is not null and not (p_time = any (cfg.slots)) then return null; end if;
+  if cfg.courts is not null and not (p_court = any (cfg.courts)) then return null; end if;
   if p_starts_at <= (extract(epoch from now()) * 1000)::bigint then return null; end if;
   -- Pas deux demandes actives identiques (même élève, même coach, même créneau).
   if exists (
@@ -276,12 +283,24 @@ as $$
 declare
   l record;
   s record;
+  cfg record;
   res_id uuid;
 begin
   -- « for update » : deux réponses simultanées ne peuvent pas créer deux réservations.
   select * into l from public.lessons where id = p_id and status = 'pending' for update;
   if l.id is null then return 'gone'; end if;
   if l.coach_id <> auth.uid() then return 'forbidden'; end if;
+
+  -- Le club a pu FERMER ce créneau (ou retirer ce terrain) entre la demande et la réponse :
+  -- on refuse proprement plutôt que de réserver un horaire fermé.
+  select slots, courts into cfg from public.club_config where club_id = l.club_id;
+  if (cfg.slots is not null and not (l."time" = any (cfg.slots)))
+     or (cfg.courts is not null and not (l.court = any (cfg.courts))) then
+    if p_accept then
+      update public.lessons set status = 'declined', responded_at = now() where id = p_id;
+      return 'conflict';
+    end if;
+  end if;
 
   if not p_accept then
     update public.lessons set status = 'declined', responded_at = now() where id = p_id;
@@ -363,7 +382,9 @@ security definer
 set search_path = public
 as $$
 begin
-  if new.status = 'cancelled' and old.status = 'booked' then
+  -- Annulation par l'élève OU « pas venu » marqué par le club : dans les deux cas le cours
+  -- n'a plus lieu — l'Espace Coach doit le montrer « Annulé », pas « Terrain réservé ✓ ».
+  if new.status in ('cancelled', 'no_show') and old.status = 'booked' then
     update public.lessons
       set status = 'cancelled', responded_at = now()
       where reservation_id = new.id and status = 'accepted';

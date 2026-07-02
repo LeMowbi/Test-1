@@ -24,6 +24,10 @@ export function BarChart({
   while (heightsRef.current.length < data.length) heightsRef.current.push(new Animated.Value(0));
   const heights = heightsRef.current;
 
+  // Clé STABLE dérivée des valeurs : `data` est souvent un tableau recréé à chaque rendu du
+  // parent — sans ça, l'animation rejouait à chaque re-render de la section (sélection d'un
+  // jour, confirmation…) au lieu de ne rejouer que quand les CHIFFRES changent vraiment.
+  const dataKey = data.map((d) => `${d.label}:${d.value}`).join('|');
   useEffect(() => {
     const anim = Animated.parallel(
       data.map((d, i) => {
@@ -40,7 +44,7 @@ export function BarChart({
     anim.start();
     return () => anim.stop();
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [data]);
+  }, [dataKey]);
 
   return (
     <View style={styles.row}>

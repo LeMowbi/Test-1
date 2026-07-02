@@ -520,6 +520,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
               compRegistrations: {},
               compResults: {},
               officialResults: [],
+              // Fiche coach et cours = données du COMPTE : jamais héritées du précédent
+              // (sinon, si le fetch qui suit échoue, l'« Espace Coach » de l'ancien compte
+              // resterait visible pour le nouveau).
+              coachProfile: null,
+              myLessons: [],
               level: initialState.level,
             },
       );
@@ -1324,6 +1329,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // l'invitation des « à confirmer » ; si refus, on retire aussi la résa de ma liste), puis
       // on confirme côté serveur — en cas d'échec on rejoue l'état précédent.
       respondInvitation: async (reservationId, accept) => {
+        const epoch = sessionEpochRef.current;
         const prevPending = state.pendingInvitationIds;
         const prevParts = state.participantReservationIds;
         setState((s) => ({
@@ -1334,18 +1340,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             : s.participantReservationIds.filter((id) => id !== reservationId),
         }));
         const ok = await respondInvitationRpc(reservationId, accept);
-        if (!ok) {
+        // Garde d'époque : une déconnexion pendant l'appel a déjà vidé ces tranches — la
+        // restauration tardive réinjecterait les données du compte sorti.
+        if (!ok && sessionEpochRef.current === epoch) {
           setState((s) => ({ ...s, pendingInvitationIds: prevPending, participantReservationIds: prevParts }));
         }
         return ok;
       },
       confirmReservationByClub: async (id) => {
+        const epoch = sessionEpochRef.current;
         const res = state.reservations.find((r) => r.id === id);
         const next = !res?.clubConfirmed;
         if (state.serverUserId && res) {
           const ok = await setClubConfirmedRow(id, next);
           if (!ok) return false; // RLS/réseau a refusé → on ne bascule pas l'affichage
         }
+        if (sessionEpochRef.current !== epoch) return false; // déconnexion entre-temps
         setState((s) => ({
           ...s,
           reservations: s.reservations.map((r) => (r.id === id ? { ...r, clubConfirmed: next } : r)),
@@ -1570,11 +1580,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Boost piloté côté SERVEUR → visible par tous les joueurs. On écrit d'abord au serveur
       // (réservé à l'opérateur), puis on met à jour le miroir local au succès.
       setBoost: async (clubId, days) => {
+        const epoch = sessionEpochRef.current;
         const expiry = days > 0 ? Date.now() + days * 86400000 : null;
         if (state.serverUserId) {
           const ok = await setClubBoostRpc(clubId, expiry);
           if (!ok) return { ok: false };
         }
+        if (sessionEpochRef.current !== epoch) return { ok: false }; // déconnexion entre-temps
         setState((s) => {
           if (!expiry) {
             const exp = { ...s.boostExpiry };
@@ -1720,8 +1732,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       // Opérateur : fixe la commission propre à un club (taux 0–1). Met à jour l'état local
       // pour que le décompte se recalcule aussitôt avec le bon pourcentage.
       operatorSetClubCommission: async (clubId, rate) => {
+        const epoch = sessionEpochRef.current;
         const ok = await setClubCommissionRpc(clubId, rate);
-        if (ok) setState((s) => ({ ...s, clubCommission: { ...s.clubCommission, [clubId]: rate } }));
+        // Garde d'époque : clubCommission est purgée à la déconnexion — pas d'écriture tardive.
+        if (ok && sessionEpochRef.current === epoch) setState((s) => ({ ...s, clubCommission: { ...s.clubCommission, [clubId]: rate } }));
         return { ok };
       },
       // Opérateur : supprime définitivement un club serveur. On retire le club du miroir local

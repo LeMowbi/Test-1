@@ -79,8 +79,8 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
   l'écrire dans le dépôt).
 - Lancer : `EXPO_TOKEN=… npx eas-cli@latest build --platform ios --profile production
   --auto-submit --non-interactive --no-wait`.
-- **Dernier build : #34** (audit complet : bugs, WCAG, animations, durcissements ; amis-demande, contacts, badge Partenaire, actu serveur, diagnostics,
-  Universal Links actifs, etc.).
+- **Dernier build : #35** (audit n°2 complet + coachs & cours + photos club + Padelta d'abord +
+  inscription 3 étapes + notes réelles + santé de l'app opérateur).
 - Un module natif nouveau (ex. `expo-contacts`) ⇒ **nouveau build requis** + config plugin dans
   `app.json` avec la chaîne de permission.
 
@@ -93,7 +93,7 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 - Policies **UPDATE de Storage** : toujours `using` **ET** `with check` (sinon on peut déplacer un
   objet dans le dossier d'autrui).
 - Les migrations sont des fichiers numérotés dans `supabase/` — l'opérateur les colle dans
-  **SQL Editor → Run**. Migrations actuelles : `02` → `39` (voir dossier `supabase/`).
+  **SQL Editor → Run**. Migrations actuelles : `02` → `40` (voir dossier `supabase/`).
 - **Edge Function** `supabase/functions/notify-club/index.ts` (Deno) : envoie les push via
   l'API Expo. Déclenchée par des **Database Webhooks** (INSERT + UPDATE). Redéploiement **sans
   terminal** : Dashboard → Edge Functions → notify-club → Edit → coller le code → Deploy.
@@ -160,7 +160,7 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
   `34_level_integrity` anti-triche et `36_audit_hardening` : niveau borné [1,7] à l'inscription
   + anti-collision de noms à la clôture), webhook `friend_requests`, notify-club redéployé
   (push des demandes d'ami renvoyées).
-- **Reste à faire par le porteur (docs/AUDIT-SERVEUR.md §1)** : coller SQL `37` + `38` + `39`,
+- **Reste à faire par le porteur (docs/AUDIT-SERVEUR.md §1)** : coller SQL `37` + `38` + `39` + `40`,
   redéployer notify-club, créer le **webhook `lessons`** (INSERT + UPDATE). Optionnel plus
   tard : `WEBHOOK_SECRET` + en-tête `x-webhook-secret` sur les webhooks (§3).
 
