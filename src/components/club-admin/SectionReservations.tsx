@@ -382,6 +382,12 @@ export function SectionReservations({
                       {r.bookedBy.phone ? ` · ${r.bookedBy.phone}` : ''}
                     </Txt>
                   ) : null}
+                  {r.coachName ? (
+                    // Réservation née d'un cours accepté par le coach (double validation).
+                    <Txt variant="small" color={colors.purple} style={{ fontWeight: '600' }}>
+                      Cours avec {r.coachName}
+                    </Txt>
+                  ) : null}
                   {reliabilityNote(r.userId)}
                 </View>
                 {r.clubConfirmed ? <Tag label="Confirmée ✓" tone="green" /> : <Tag label="À confirmer" tone="amber" />}

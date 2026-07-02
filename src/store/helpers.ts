@@ -42,12 +42,16 @@ export const initialState: AppState = {
   // et la relance « 0 ami » seraient faux dès l'inscription.
   friends: [],
   friendRequests: [],
+  coachProfile: null, // fiche coach du compte connecté (promu par son club)
+  myLessons: [],
   officialResults: [],
   compRegistrations: {},
   compResults: {},
   clubPhotos: {},
   clubOffers: {},
   clubCoaches: {},
+  clubCovers: {}, // photo « de profil » par club (carte des listes)
+  clubCourtPhotos: {}, // une photo par terrain, par club
   clubInfo: {},
   hiddenCoachIds: [],
   boostedClubIds: [],
@@ -85,14 +89,20 @@ export function clubConfigSlices(s: AppState, configs: Record<string, ClubConfig
   const clubOffers = { ...s.clubOffers };
   const clubCoaches = { ...s.clubCoaches };
   const clubPhotos = { ...s.clubPhotos };
+  const clubCovers = { ...s.clubCovers };
+  const clubCourtPhotos = { ...s.clubCourtPhotos };
   for (const [id, c] of Object.entries(configs ?? {})) {
     if (c.slots) clubSlots[id] = c.slots;
     if (c.courts) clubCourts[id] = c.courts;
     if (c.offers) clubOffers[id] = c.offers;
     if (c.coaches) clubCoaches[id] = c.coaches;
     if (c.photos) clubPhotos[id] = c.photos;
+    if (c.coverUrl) clubCovers[id] = c.coverUrl;
+    // Cover retirée par le gérant (serveur la renvoie absente) → on retire aussi le miroir.
+    else if (id in clubCovers) delete clubCovers[id];
+    if (c.courtPhotos) clubCourtPhotos[id] = c.courtPhotos;
   }
-  return { clubSlots, clubCourts, clubOffers, clubCoaches, clubPhotos };
+  return { clubSlots, clubCourts, clubOffers, clubCoaches, clubPhotos, clubCovers, clubCourtPhotos };
 }
 
 // État ramené à « déconnecté » : identité + données serveur ET tout le périmètre personnel
@@ -117,6 +127,8 @@ export function loggedOutState(s: AppState): AppState {
     level: initialState.level,
     friends: [],
     friendRequests: [],
+    coachProfile: null, // fiche coach = liée au compte → purgée à la déconnexion
+    myLessons: [],
     favoriteClubIds: [],
     userReviews: [],
     myCompetitions: [],

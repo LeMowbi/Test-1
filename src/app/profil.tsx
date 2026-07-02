@@ -82,6 +82,8 @@ export default function ProfilScreen() {
   // compte lui-même, validé par le serveur, qui fait foi.)
   const showOperator = state.role === 'operator';
   const showClub = state.role === 'club' || state.role === 'operator';
+  // Espace Coach : visible dès qu'un club a déclaré ce compte comme coach (fiche serveur).
+  const showCoach = !!state.coachProfile;
 
   const changePhoto = async () => {
     const uri = await pickImage({ square: true });
@@ -348,8 +350,18 @@ export default function ProfilScreen() {
       {/* Espaces pro — affichés UNIQUEMENT selon le rôle vérifié côté serveur (state.role) :
           « club » → Espace Club, « operator » → Espace opérateur. Aucun geste secret ; la
           vraie barrière reste la Row Level Security Supabase. */}
-      {showClub || showOperator ? (
+      {showClub || showOperator || showCoach ? (
         <View style={{ marginTop: spacing.xl, gap: spacing.sm }}>
+          {showCoach ? (
+            <Card onPress={() => router.push('/coach-admin')} style={styles.cta}>
+              <IconCircle icon="school" color={colors.purple} bg={colors.purpleSoft} />
+              <View style={{ flex: 1 }}>
+                <Txt variant="h3">Espace Coach</Txt>
+                <Txt variant="muted">Demandes de cours, cours à venir, ta fiche.</Txt>
+              </View>
+              <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
+            </Card>
+          ) : null}
           {showClub ? (
             <Card onPress={() => router.push('/club-admin')} style={styles.cta}>
               <IconCircle icon="business" />

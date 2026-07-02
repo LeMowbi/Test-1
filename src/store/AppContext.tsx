@@ -28,6 +28,15 @@ import {
 } from '@/lib/clubsServer';
 import { removeClubPhotoFile, uploadClubPhoto } from '@/lib/clubPhotos';
 import {
+  cancelLessonRequest,
+  fetchMyCoachProfile,
+  fetchMyLessons,
+  requestLesson,
+  updateCoachProfile,
+  type CoachProfile,
+  type Lesson,
+} from '@/lib/coachesServer';
+import {
   approveCompetition as approveCompetitionRpc,
   closeCompetition as closeCompetitionRpc,
   createCompetition as createCompetitionRpc,
@@ -138,6 +147,7 @@ export type Reservation = {
   players: number;
   invited: Invited[];
   bookedBy?: { name: string; phone: string }; // qui a réservé — visible côté club
+  coachName?: string; // cours : nom du coach (créée par respond_lesson à son acceptation)
   clubConfirmed?: boolean; // le gérant a confirmé la réservation (visible par le joueur)
   createdAt: number;
 };
@@ -198,12 +208,16 @@ export type AppState = {
   favoriteClubIds: string[];
   friends: Friend[];
   friendRequests: IncomingFriendRequest[]; // demandes d'ami REÇUES en attente (Accepter / Refuser)
+  coachProfile: CoachProfile | null; // MA fiche coach (null = pas coach) → entrée « Espace Coach »
+  myLessons: Lesson[]; // mes cours côté ÉLÈVE (demandes + acceptés/refusés)
   officialResults: OfficialResult[];
   compRegistrations: Record<string, { partner: string; at: number }>;
   compResults: Record<string, CompResult>; // tournoi clôturé → équipe vainqueure
   clubPhotos: Record<string, string[]>;
   clubOffers: Record<string, { id: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string }[]>;
   clubCoaches: Record<string, { id: string; name: string; specialty: string; phone?: string }[]>;
+  clubCovers: Record<string, string>; // photo « de profil » du club (celle de la carte, avant d'ouvrir la fiche)
+  clubCourtPhotos: Record<string, Record<string, string>>; // clubId → { nom du terrain: photo }
   clubInfo: Record<string, ClubInfo>; // surcharges gérant (nom, tarif, WhatsApp…)
   hiddenCoachIds: string[]; // coachs (de démo) retirés par leur club
   boostedClubIds: string[];
@@ -322,6 +336,29 @@ type AppContextType = {
   removeClubOffer: (clubId: string, id: string) => void;
   addClubCoach: (clubId: string, name: string, specialty: string, phone: string) => void;
   removeClubCoach: (clubId: string, id: string) => void;
+  // Photo « de profil » du club (celle de la carte) — null = la retirer. false = échec upload/serveur.
+  setClubCover: (clubId: string, uri: string | null) => Promise<boolean>;
+  // Une photo PAR TERRAIN (montre le terrain sur la fiche) — null = la retirer.
+  setClubCourtPhoto: (clubId: string, court: string, uri: string | null) => Promise<boolean>;
+  // L'ÉLÈVE demande un cours à un coach. Le terrain n'est PAS réservé ici : il le sera quand
+  // le coach acceptera (puis le club confirmera la réservation — double validation).
+  requestCoachLesson: (input: {
+    coachId: string;
+    clubId: string;
+    clubName: string;
+    dateKey: string;
+    dateLabel: string;
+    time: string;
+    court: string;
+    startsAt: number;
+    price: number;
+  }) => Promise<boolean>;
+  // L'élève annule sa demande de cours EN ATTENTE (un cours accepté = une réservation normale).
+  cancelMyLesson: (id: string) => Promise<boolean>;
+  // Le COACH règle sa fiche : spécialité, tarif indicatif (null = non affiché), disponibilités.
+  saveCoachSettings: (specialty: string, price: number | null, slots: string[]) => Promise<boolean>;
+  // Recharge fiche coach + mes cours (pull-to-refresh de l'Espace Coach / « Mes réservations »).
+  refreshLessons: () => Promise<void>;
   setClubInfo: (clubId: string, patch: ClubInfo) => void;
   setBoost: (clubId: string, days: number) => Promise<{ ok: boolean }>; // days > 0 active (expiration), 0 désactive — serveur
   setPaymentStatus: (clubId: string, weekKey: string, status: 'tofacture' | 'sent' | 'paid') => void;
@@ -543,6 +580,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         blocked,
         opPayments,
         news,
+        coachProfile,
+        myLessons,
       ] = await Promise.all([
         fetchReservations(),
         fetchOccupancy(),
@@ -561,6 +600,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         fetchBlockedSlots(),
         fetchOperatorPayments(),
         fetchOperatorNews(),
+        fetchMyCoachProfile(),
+        fetchMyLessons(userId),
       ]);
       if (!stillCurrent()) return; // déconnexion survenue pendant le chargement → on n'écrit rien
       // null = échec réseau → on garde les invitations existantes (≠ tableau vide = « aucune »).
@@ -604,6 +645,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         // Actu d'accueil publiée par l'opérateur (visible par TOUS). undefined = échec réseau →
         // on garde l'existant ; null = aucune actu publiée → bandeau retiré.
         operatorNews: news === undefined ? s.operatorNews : news,
+        // Ma fiche coach : undefined = échec réseau → on garde ; null = pas (ou plus) coach.
+        coachProfile: coachProfile === undefined ? s.coachProfile : coachProfile,
+        // Mes cours côté élève. null = échec réseau → on garde le miroir.
+        myLessons: myLessons ?? s.myLessons,
       }));
       // Resynchronise les rappels locaux (résas créées sur un autre appareil incluses). isOwner
       // distingue MES résas (je peux annuler) d'une invitation d'ami (rappels adaptés, cf.
@@ -678,6 +723,9 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       void fetchFriends().then((friends) => friends && ok() && setState((s) => ({ ...s, friends })));
       // Nouvelles demandes d'ami reçues (retour au premier plan) → badge/section à jour.
       void fetchFriendRequests().then((reqs) => reqs && ok() && setState((s) => ({ ...s, friendRequests: reqs })));
+      // Fiche coach (le club a pu me promouvoir/retirer) + mes cours (le coach a pu répondre).
+      void fetchMyCoachProfile().then((cp) => cp !== undefined && ok() && setState((s) => ({ ...s, coachProfile: cp })));
+      void fetchMyLessons(userId).then((ls) => ls && ok() && setState((s) => ({ ...s, myLessons: ls })));
       // Actu d'accueil de l'opérateur : publiée/retirée sur un autre appareil → bandeau à jour.
       void fetchOperatorNews().then((n) => n !== undefined && ok() && setState((s) => ({ ...s, operatorNews: n })));
       // Créneaux fermés par un club (sur un autre appareil) → dispo à jour partout.
@@ -1420,6 +1468,88 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           if (s.serverUserId) void upsertClubConfig(clubId, { coaches: next });
           return { ...s, clubCoaches: { ...s.clubCoaches, [clubId]: next } };
         }),
+      // Photo « de profil » du club : uploadée si locale (comme addClubPhoto), puis enregistrée
+      // dans la config serveur. null = retirer ('' côté serveur — cf. 38_coaches_lessons.sql).
+      setClubCover: async (clubId, uri) => {
+        const previous = state.clubCovers[clubId];
+        let finalUrl = uri;
+        if (uri && state.serverUserId && !/^https?:\/\//.test(uri)) {
+          finalUrl = await uploadClubPhoto(clubId, uri);
+          if (!finalUrl) return false; // échec d'upload : on n'enregistre JAMAIS une URI locale
+        }
+        if (state.serverUserId) {
+          const ok = await upsertClubConfig(clubId, { coverUrl: finalUrl ?? '' });
+          if (!ok) return false;
+          // L'ancienne cover uploadée ne sert plus à rien → suppression best-effort du fichier.
+          if (previous && previous !== finalUrl) void removeClubPhotoFile(previous);
+        }
+        setState((s) => {
+          const covers = { ...s.clubCovers };
+          if (finalUrl) covers[clubId] = finalUrl;
+          else delete covers[clubId];
+          return { ...s, clubCovers: covers };
+        });
+        return true;
+      },
+      // Une photo PAR TERRAIN : la carte complète { terrain: url } est réécrite côté serveur
+      // (retirer un terrain = renvoyer la carte sans lui).
+      setClubCourtPhoto: async (clubId, court, uri) => {
+        const current = state.clubCourtPhotos[clubId] ?? {};
+        const previous = current[court];
+        let finalUrl = uri;
+        if (uri && state.serverUserId && !/^https?:\/\//.test(uri)) {
+          finalUrl = await uploadClubPhoto(clubId, uri);
+          if (!finalUrl) return false; // échec d'upload : on n'enregistre JAMAIS une URI locale
+        }
+        const next = { ...current };
+        if (finalUrl) next[court] = finalUrl;
+        else delete next[court];
+        if (state.serverUserId) {
+          const ok = await upsertClubConfig(clubId, { courtPhotos: next });
+          if (!ok) return false;
+          if (previous && previous !== finalUrl) void removeClubPhotoFile(previous);
+        }
+        setState((s) => ({ ...s, clubCourtPhotos: { ...s.clubCourtPhotos, [clubId]: next } }));
+        return true;
+      },
+      // Demande de cours (élève). Fonctionnalité 100 % serveur : hors session → false (l'UI
+      // invite à se connecter). Le miroir « mes cours » est rechargé au succès.
+      requestCoachLesson: async (input) => {
+        if (!state.serverUserId) return false;
+        const epoch = sessionEpochRef.current;
+        const id = await requestLesson(input);
+        if (!id || sessionEpochRef.current !== epoch) return false;
+        const lessons = await fetchMyLessons(state.serverUserId);
+        if (lessons && sessionEpochRef.current === epoch) setState((s) => ({ ...s, myLessons: lessons }));
+        return true;
+      },
+      cancelMyLesson: async (id) => {
+        const epoch = sessionEpochRef.current;
+        const ok = await cancelLessonRequest(id);
+        if (!ok || sessionEpochRef.current !== epoch) return false;
+        setState((s) => ({ ...s, myLessons: s.myLessons.map((l) => (l.id === id ? { ...l, status: 'cancelled' } : l)) }));
+        return true;
+      },
+      // Réglages de MA fiche coach — au succès, le miroir local reflète la fiche serveur.
+      saveCoachSettings: async (specialty, price, slots) => {
+        const epoch = sessionEpochRef.current;
+        const ok = await updateCoachProfile(specialty, price, slots);
+        if (!ok || sessionEpochRef.current !== epoch) return false;
+        setState((s) => (s.coachProfile ? { ...s, coachProfile: { ...s.coachProfile, specialty, price: price ?? undefined, slots } } : s));
+        return true;
+      },
+      refreshLessons: async () => {
+        const userId = state.serverUserId;
+        if (!userId) return;
+        const epoch = sessionEpochRef.current;
+        const [cp, lessons] = await Promise.all([fetchMyCoachProfile(), fetchMyLessons(userId)]);
+        if (sessionEpochRef.current !== epoch) return;
+        setState((s) => ({
+          ...s,
+          coachProfile: cp === undefined ? s.coachProfile : cp, // undefined = échec réseau → on garde
+          myLessons: lessons ?? s.myLessons,
+        }));
+      },
       setClubInfo: (clubId, patch) =>
         setState((s) => {
           const merged = { ...s.clubInfo[clubId], ...patch };

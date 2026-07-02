@@ -24,6 +24,7 @@ type Row = {
   invited: Invited[] | null;
   booked_by_name: string | null;
   booked_by_phone: string | null;
+  coach_name: string | null; // cours : réservation créée par respond_lesson (acceptation coach)
   club_confirmed: boolean | null;
   created_at: string | null;
 };
@@ -50,6 +51,7 @@ export function rowToReservation(row: Row): Reservation {
     players: row.players ?? 1,
     invited: row.invited ?? [],
     bookedBy: row.booked_by_name ? { name: row.booked_by_name, phone: row.booked_by_phone ?? '' } : undefined,
+    coachName: row.coach_name ?? undefined,
     clubConfirmed: row.club_confirmed ?? false,
     createdAt: Number.isFinite(createdTs) ? createdTs : Date.now(),
   };

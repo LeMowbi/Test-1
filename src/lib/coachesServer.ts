@@ -22,6 +22,7 @@ export type CoachProfile = { clubId: string; specialty: string; price?: number; 
 export type Lesson = {
   id: string;
   coachId: string;
+  coachName: string; // figé à la demande (« Cours avec X » côté élève)
   clubId: string;
   clubName: string;
   studentId: string;
@@ -39,6 +40,7 @@ export type Lesson = {
 type LessonRow = {
   id: string;
   coach_id: string;
+  coach_name: string;
   club_id: string;
   club_name: string;
   student_id: string;
@@ -57,6 +59,7 @@ function toLesson(r: LessonRow): Lesson {
   return {
     id: r.id,
     coachId: r.coach_id,
+    coachName: r.coach_name || 'Coach',
     clubId: r.club_id,
     clubName: r.club_name,
     studentId: r.student_id,
@@ -162,22 +165,14 @@ export async function cancelLessonRequest(id: string): Promise<boolean> {
 
 // Mes cours côté ÉLÈVE (RLS : student_id = moi). Plus récents d'abord.
 export async function fetchMyLessons(userId: string): Promise<Lesson[] | null> {
-  const { data, error } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('student_id', userId)
-    .order('starts_at', { ascending: false });
+  const { data, error } = await supabase.from('lessons').select('*').eq('student_id', userId).order('starts_at', { ascending: false });
   if (error) return null;
   return ((data ?? []) as LessonRow[]).map(toLesson);
 }
 
 // Les cours côté COACH (RLS : coach_id = moi). Demandes en attente d'abord, puis par date.
 export async function fetchCoachLessons(userId: string): Promise<Lesson[] | null> {
-  const { data, error } = await supabase
-    .from('lessons')
-    .select('*')
-    .eq('coach_id', userId)
-    .order('starts_at', { ascending: false });
+  const { data, error } = await supabase.from('lessons').select('*').eq('coach_id', userId).order('starts_at', { ascending: false });
   if (error) return null;
   return ((data ?? []) as LessonRow[]).map(toLesson);
 }

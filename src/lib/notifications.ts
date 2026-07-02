@@ -118,6 +118,9 @@ function routeForNotification(data: NotificationData | null | undefined): string
     case 'match-reminder':
       // Pas d'écran par réservation individuelle : on amène à la liste, où elle est visible.
       return '/reservations';
+    case 'lesson':
+      // Demande de cours reçue → l'Espace Coach (Accepter / Refuser).
+      return '/coach-admin';
     case 'tournament':
       return data.id ? `/competition/${data.id}` : '/competitions';
     default:

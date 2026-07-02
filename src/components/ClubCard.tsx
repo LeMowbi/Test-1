@@ -17,7 +17,8 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const { state, toggleFavorite } = useApp();
   const fav = state.favoriteClubIds.includes(club.id);
   const boosted = state.boostedClubIds.includes(club.id);
-  const photo = clubGallery(club, state.clubPhotos[club.id] ?? [])[0];
+  // Photo « de profil » choisie par le club en priorité, sinon la 1ʳᵉ de la galerie.
+  const photo = state.clubCovers[club.id] ?? clubGallery(club, state.clubPhotos[club.id] ?? [])[0];
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
   // Les avis sont VÉRIFIÉS et serveur, affichés sur la fiche club (`4.x ★ (n)`). La carte ne
   // les charge pas (pas de fetch dédié) : elle ne peut donc pas savoir si un club a des avis

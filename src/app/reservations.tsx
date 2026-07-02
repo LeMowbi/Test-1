@@ -23,12 +23,13 @@ const MONTHS = ['JANV.', 'FÉVR.', 'MARS', 'AVR.', 'MAI', 'JUIN', 'JUIL.', 'AOÛ
 
 export default function ReservationsScreen() {
   const router = useRouter();
-  const { state, myReservations, cancelReservation, respondInvitation } = useApp();
+  const { state, myReservations, cancelReservation, respondInvitation, cancelMyLesson, refreshLessons } = useApp();
   const toast = useToast();
   const [showAllPast, setShowAllPast] = useState(false);
   const [cancelTarget, setCancelTarget] = useState<Reservation | null>(null); // confirmation avant annulation
-  // Tirer pour rafraîchir : resynchronise mes réservations depuis le serveur.
-  const { refreshControl } = usePullToRefresh();
+  const [cancellingLesson, setCancellingLesson] = useState<string | null>(null); // garde anti double-tap
+  // Tirer pour rafraîchir : resynchronise mes réservations (et mes demandes de cours).
+  const { refreshControl } = usePullToRefresh(refreshLessons);
 
   const now = Date.now();
   // « Mes réservations » = celles que j'ai créées + celles où un ami m'a invité (résa
@@ -47,6 +48,21 @@ export default function ReservationsScreen() {
   const upcoming = upcomingAll.filter((r) => !isPending(r));
   const past = mine.filter((r) => isPlayed(r, now)).sort((a, b) => b.startsAt - a.startsAt);
   const pastShown = showAllPast ? past : past.slice(0, PAST_PREVIEW);
+
+  // Mes demandes de COURS (coach) encore vivantes : en attente de réponse du coach, ou refusées
+  // à venir (pour que le refus laisse une trace ici, pas seulement une notification). Un cours
+  // ACCEPTÉ devient une réservation normale — il apparaît déjà dans « À venir » (badge coach).
+  const lessonRequests = state.myLessons
+    .filter((l) => (l.status === 'pending' || l.status === 'declined') && l.startsAt > now)
+    .sort((a, b) => a.startsAt - b.startsAt);
+
+  const cancelLesson = async (id: string) => {
+    if (cancellingLesson) return;
+    setCancellingLesson(id);
+    const ok = await cancelMyLesson(id);
+    setCancellingLesson(null);
+    toast.show(ok ? 'Demande de cours annulée' : 'Annulation impossible — réessaie', ok ? undefined : { icon: 'alert-circle' });
+  };
 
   // Mes tournois : ceux où mon équipe est inscrite ET ceux que J'AI créés (dédupliqués),
   // pour qu'un défi créé sans s'y inscrire reste retrouvable ici (et clôturable).
@@ -120,6 +136,53 @@ export default function ReservationsScreen() {
         </View>
       ) : null}
 
+      {/* Mes cours — demandes envoyées aux coachs (le terrain n'est réservé qu'à l'acceptation) */}
+      {lessonRequests.length > 0 ? (
+        <View style={{ marginTop: spacing.sm }}>
+          <SectionHeader title={`Mes cours · ${lessonRequests.length}`} />
+          {lessonRequests.map((l) => (
+            <Card key={l.id} style={{ marginBottom: spacing.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm }}>
+                <View style={{ flex: 1 }}>
+                  <Txt variant="h3" style={{ fontSize: 15 }} numberOfLines={1}>
+                    Cours avec {l.coachName}
+                  </Txt>
+                  <Txt variant="muted">
+                    {l.clubName} · {l.dateLabel} à {l.time} · {l.court}
+                  </Txt>
+                </View>
+                {l.status === 'pending' ? (
+                  <Tag label="Attente coach" tone="purple" icon="hourglass-outline" />
+                ) : (
+                  <Tag label="Refusé" tone="coral" icon="close-circle" />
+                )}
+              </View>
+              {l.status === 'pending' ? (
+                <>
+                  <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+                    Le terrain sera réservé dès que {l.coachName} accepte — tu recevras une notification.
+                  </Txt>
+                  <View style={{ marginTop: spacing.sm, alignSelf: 'flex-start' }}>
+                    <Button
+                      size="sm"
+                      label={cancellingLesson === l.id ? 'Annulation…' : 'Annuler ma demande'}
+                      icon="close"
+                      variant="ghost"
+                      onPress={() => void cancelLesson(l.id)}
+                      disabled={cancellingLesson !== null}
+                    />
+                  </View>
+                </>
+              ) : (
+                <Txt variant="small" color={colors.textFaint} style={{ marginTop: spacing.sm }}>
+                  {l.coachName} n'était pas disponible sur ce créneau — tu peux redemander un autre horaire.
+                </Txt>
+              )}
+            </Card>
+          ))}
+        </View>
+      ) : null}
+
       {/* À venir */}
       <View style={{ marginTop: spacing.sm }}>
         <SectionHeader title={`À venir · ${upcoming.length}`} />
@@ -172,6 +235,15 @@ export default function ReservationsScreen() {
                   )}
                 </View>
 
+                {r.coachName ? (
+                  // Réservation née d'un COURS accepté par le coach (respond_lesson).
+                  <View style={styles.participants}>
+                    <Ionicons name="school-outline" size={14} color={colors.purple} />
+                    <Txt variant="small" color={colors.textMuted} style={{ flex: 1 }}>
+                      Cours avec {r.coachName}
+                    </Txt>
+                  </View>
+                ) : null}
                 {!owner && r.bookedBy?.name ? (
                   <View style={styles.participants}>
                     <Ionicons name="person-circle-outline" size={14} color={colors.signature} />

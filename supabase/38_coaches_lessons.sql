@@ -41,14 +41,18 @@ begin
     return false;
   end if;
   insert into public.club_config (club_id, slots, courts, offers, coaches, photos, cover_url, court_photos)
-    values (p_club_id, p_slots, p_courts, p_offers, p_coaches, p_photos, p_cover_url, p_court_photos)
+    values (p_club_id, p_slots, p_courts, p_offers, p_coaches, p_photos, nullif(p_cover_url, ''), p_court_photos)
     on conflict (club_id) do update set
       slots = coalesce(excluded.slots, public.club_config.slots),
       courts = coalesce(excluded.courts, public.club_config.courts),
       offers = coalesce(excluded.offers, public.club_config.offers),
       coaches = coalesce(excluded.coaches, public.club_config.coaches),
       photos = coalesce(excluded.photos, public.club_config.photos),
-      cover_url = coalesce(excluded.cover_url, public.club_config.cover_url),
+      -- '' = « retirer la cover » (null = champ non fourni → on garde l'existante).
+      cover_url = case
+        when p_cover_url = '' then null
+        else coalesce(p_cover_url, public.club_config.cover_url)
+      end,
       court_photos = coalesce(excluded.court_photos, public.club_config.court_photos),
       updated_at = now();
   return true;
@@ -187,6 +191,7 @@ grant execute on function public.my_coach_profile() to authenticated;
 create table if not exists public.lessons (
   id uuid primary key default gen_random_uuid(),
   coach_id uuid not null references auth.users (id) on delete cascade,
+  coach_name text not null default '', -- figé à la demande (affichage « Cours avec X » côté élève)
   club_id text not null,
   club_name text not null default '', -- fourni à la demande (les 9 clubs de base ne sont pas en table clubs)
   student_id uuid not null references auth.users (id) on delete cascade,
@@ -227,6 +232,7 @@ as $$
 declare
   new_id uuid;
   sname text;
+  cname text;
 begin
   if auth.uid() is null or auth.uid() = p_coach then return null; end if;
   -- Le coach doit être ACTIF dans CE club et proposer CE créneau.
@@ -247,8 +253,10 @@ begin
   end if;
   select coalesce(nullif(trim(coalesce(first_name, '') || ' ' || coalesce(last_name, '')), ''), 'Un joueur')
     into sname from public.profiles where id = auth.uid();
-  insert into public.lessons (coach_id, club_id, club_name, student_id, student_name, date_key, date_label, "time", court, starts_at, price)
-    values (p_coach, p_club_id, coalesce(p_club_name, ''), auth.uid(), sname, p_date_key, coalesce(p_date_label, ''), p_time, p_court, p_starts_at, p_price)
+  select coalesce(nullif(trim(coalesce(first_name, '') || ' ' || coalesce(last_name, '')), ''), 'Coach')
+    into cname from public.profiles where id = p_coach;
+  insert into public.lessons (coach_id, coach_name, club_id, club_name, student_id, student_name, date_key, date_label, "time", court, starts_at, price)
+    values (p_coach, cname, p_club_id, coalesce(p_club_name, ''), auth.uid(), sname, p_date_key, coalesce(p_date_label, ''), p_time, p_court, p_starts_at, p_price)
     returning id into new_id;
   return new_id;
 end;
@@ -299,8 +307,9 @@ begin
            1, '[]'::jsonb,
            coalesce(nullif(trim(coalesce(s.first_name, '') || ' ' || coalesce(s.last_name, '')), ''), 'Un joueur'),
            s.phone,
-           (select coalesce(nullif(trim(coalesce(p.first_name, '') || ' ' || coalesce(p.last_name, '')), ''), 'Coach')
-              from public.profiles p where p.id = l.coach_id),
+           -- Nom du coach figé à la demande ; repli sur le profil si vide (anciennes lignes).
+           coalesce(nullif(l.coach_name, ''), (select coalesce(nullif(trim(coalesce(p.first_name, '') || ' ' || coalesce(p.last_name, '')), ''), 'Coach')
+              from public.profiles p where p.id = l.coach_id)),
            false, 'booked'
     returning id into res_id;
   exception when others then

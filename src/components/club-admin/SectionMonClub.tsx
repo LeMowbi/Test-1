@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, Share, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { ClubPhoto } from '@/components/ClubPhoto';
@@ -8,6 +8,7 @@ import { Button, Card, IconCircle, SectionHeader, Tag, Txt } from '@/components/
 import { ClubInfoCard } from '@/components/club-admin/ClubInfoCard';
 import { type Club } from '@/data/clubs';
 import { courtsFor, openSlotsFor } from '@/lib/availability';
+import { clubAddCoach, clubRemoveCoach, fetchClubCoaches, type ServerCoach } from '@/lib/coachesServer';
 import { MAX_CLUB_PHOTOS, useApp } from '@/store/AppContext';
 import { fcfa, initials } from '@/lib/format';
 import { pickImage } from '@/lib/pickImage';
@@ -23,6 +24,8 @@ export function SectionMonClub({ club }: { club: Club }) {
     setClubCourts,
     addClubPhoto,
     removeClubPhoto,
+    setClubCover,
+    setClubCourtPhoto,
     addClubOffer,
     removeClubOffer,
     addClubCoach,
@@ -48,6 +51,84 @@ export function SectionMonClub({ club }: { club: Club }) {
   const offers = state.clubOffers[club.id] ?? [];
   const coaches = state.clubCoaches[club.id] ?? [];
   const boosted = state.boostedClubIds.includes(club.id);
+  const cover = state.clubCovers[club.id];
+  const courtPhotos = state.clubCourtPhotos[club.id] ?? {};
+
+  // ── Coachs RÉSERVABLES (comptes promus, serveur) — nécessite une session gérant ──
+  const [bookableCoaches, setBookableCoaches] = useState<ServerCoach[]>([]);
+  const [promotePhone, setPromotePhone] = useState('');
+  const [promoteSpec, setPromoteSpec] = useState('');
+  const [promoting, setPromoting] = useState(false);
+  const connected = !!state.serverUserId;
+  const clubId = club.id;
+  useEffect(() => {
+    if (!connected) return;
+    let alive = true;
+    void fetchClubCoaches(clubId).then((cs) => {
+      if (alive && cs) setBookableCoaches(cs); // null = échec réseau → on garde l'existant
+    });
+    return () => {
+      alive = false;
+    };
+  }, [clubId, connected]);
+
+  const promoteCoach = async () => {
+    if (promoting || promotePhone.trim().length < 8) return;
+    setPromoting(true);
+    const res = await clubAddCoach(club.id, promotePhone, promoteSpec.trim());
+    if (res.status === 'ok') {
+      toast.show(`${res.name ?? 'Ce joueur'} est maintenant coach de ${club.name} ✓`);
+      setPromotePhone('');
+      setPromoteSpec('');
+      const cs = await fetchClubCoaches(club.id);
+      if (cs) setBookableCoaches(cs);
+    } else if (res.status === 'already') {
+      toast.show(`${res.name ?? 'Ce joueur'} est déjà coach`, { icon: 'information-circle' });
+    } else if (res.status === 'not_found') {
+      toast.show('Aucun compte PadelConnect avec ce numéro — il doit d’abord créer son compte', { icon: 'alert-circle' });
+    } else if (res.status === 'forbidden') {
+      toast.show('Action réservée au gérant du club', { icon: 'alert-circle' });
+    } else {
+      toast.show('Connexion impossible — réessaie', { icon: 'cloud-offline-outline' });
+    }
+    setPromoting(false);
+  };
+
+  const demoteCoach = async (c: ServerCoach) => {
+    const ok = await clubRemoveCoach(c.userId);
+    if (ok) {
+      setBookableCoaches((cur) => cur.filter((x) => x.userId !== c.userId));
+      toast.show(`${c.name} n'est plus coach du club`);
+    } else {
+      toast.show('Retrait impossible — réessaie', { icon: 'alert-circle' });
+    }
+  };
+
+  // ── Photos : cover (photo « de profil ») + une photo par terrain ──
+  const [uploadingCover, setUploadingCover] = useState(false);
+  const changeCover = async () => {
+    const uri = await pickImage();
+    if (!uri) return;
+    setUploadingCover(true);
+    const ok = await setClubCover(club.id, uri);
+    setUploadingCover(false);
+    toast.show(
+      ok ? 'Photo de profil enregistrée ✓' : 'Photo non envoyée — vérifie ta connexion',
+      ok ? undefined : { icon: 'alert-circle' },
+    );
+  };
+  const [uploadingCourt, setUploadingCourt] = useState<string | null>(null);
+  const changeCourtPhoto = async (courtName: string) => {
+    const uri = await pickImage();
+    if (!uri) return;
+    setUploadingCourt(courtName);
+    const ok = await setClubCourtPhoto(club.id, courtName, uri);
+    setUploadingCourt(null);
+    toast.show(
+      ok ? `Photo du ${courtName} enregistrée ✓` : 'Photo non envoyée — vérifie ta connexion',
+      ok ? undefined : { icon: 'alert-circle' },
+    );
+  };
 
   const toggleSlot = (t: string) => {
     const set = new Set(openSlots);
@@ -136,11 +217,48 @@ export function SectionMonClub({ club }: { club: Club }) {
         </Card>
       </View>
 
-      {/* Photos du terrain */}
+      {/* Photos du club : photo de profil (carte des listes) + galerie générale */}
       <View style={{ marginTop: spacing.xl }}>
-        <SectionHeader title="Photos du terrain" />
+        <SectionHeader title="Photos du club" />
         <Card>
-          <Txt variant="muted">Ajoute les vraies photos de ton club (visibles par les joueurs). Jusqu'à {MAX_CLUB_PHOTOS} photos.</Txt>
+          <Txt variant="label" color={colors.textFaint}>
+            Photo de profil
+          </Txt>
+          <Txt variant="muted" style={{ marginTop: 2 }}>
+            C'est elle que les joueurs voient sur ta carte, avant d'ouvrir ta fiche.
+          </Txt>
+          <View style={styles.coverRow}>
+            <ClubPhoto uri={cover} accent={club.accent} initials={initials(club.name)} height={90} width={120} rounded={radius.md} />
+            <View style={{ flex: 1, gap: spacing.sm }}>
+              <Button
+                size="sm"
+                label={uploadingCover ? 'Envoi…' : cover ? 'Changer' : 'Choisir une photo'}
+                icon="camera-outline"
+                variant="secondary"
+                onPress={changeCover}
+                disabled={uploadingCover}
+              />
+              {cover ? (
+                <Button
+                  size="sm"
+                  label="Retirer"
+                  icon="trash-outline"
+                  variant="ghost"
+                  onPress={async () => {
+                    const ok = await setClubCover(club.id, null);
+                    toast.show(ok ? 'Photo de profil retirée' : 'Retrait impossible — réessaie', ok ? undefined : { icon: 'alert-circle' });
+                  }}
+                />
+              ) : null}
+            </View>
+          </View>
+          <View style={styles.coverDivider} />
+          <Txt variant="label" color={colors.textFaint}>
+            Galerie
+          </Txt>
+          <Txt variant="muted" style={{ marginTop: 2 }}>
+            Ajoute les vraies photos de ton club (visibles par les joueurs). Jusqu'à {MAX_CLUB_PHOTOS} photos.
+          </Txt>
           {state.storageFull ? (
             <View style={styles.storageWarn}>
               <Ionicons name="warning-outline" size={16} color={colors.danger} />
@@ -245,11 +363,87 @@ export function SectionMonClub({ club }: { club: Club }) {
         </Card>
       </View>
 
-      {/* Coachs du club */}
+      {/* Coachs RÉSERVABLES : un compte joueur promu coach reçoit son « Espace Coach » et les
+          joueurs lui demandent un cours dans l'app (terrain réservé à son acceptation). */}
       <View style={{ marginTop: spacing.xl }}>
-        <SectionHeader title="Coachs du club" />
+        <SectionHeader title="Coachs réservables" />
         <Card>
-          <Txt variant="muted">Ajoute les coachs de ton club.</Txt>
+          <Txt variant="muted">
+            Le coach crée d'abord un compte PadelConnect normal, puis tu le déclares ici avec son numéro. Il choisit ensuite ses créneaux
+            dans son Espace Coach, et les joueurs réservent leurs cours dans l'app.
+          </Txt>
+          {!connected ? (
+            <Txt variant="small" color={colors.amberDark} style={{ marginTop: spacing.sm }}>
+              Connecte-toi pour déclarer tes coachs.
+            </Txt>
+          ) : (
+            <>
+              <TextInput
+                value={promotePhone}
+                onChangeText={setPromotePhone}
+                placeholder="Numéro du coach (+225…)"
+                placeholderTextColor={colors.textFaint}
+                keyboardType="phone-pad"
+                style={styles.input}
+                accessibilityLabel="Numéro de téléphone du coach"
+              />
+              <TextInput
+                value={promoteSpec}
+                onChangeText={setPromoteSpec}
+                placeholder="Spécialité (ex. Initiation, Compétition — optionnel)"
+                placeholderTextColor={colors.textFaint}
+                style={styles.input}
+                accessibilityLabel="Spécialité du coach"
+              />
+              <View style={{ marginTop: spacing.sm }}>
+                <Button
+                  size="sm"
+                  label={promoting ? 'Vérification…' : 'Déclarer ce coach'}
+                  icon="person-add"
+                  onPress={() => void promoteCoach()}
+                  disabled={promoting || promotePhone.trim().length < 8}
+                />
+              </View>
+              <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
+                {bookableCoaches.length === 0 ? (
+                  <Txt variant="small" color={colors.textFaint}>
+                    Aucun coach réservable pour le moment.
+                  </Txt>
+                ) : (
+                  bookableCoaches.map((c) => (
+                    <View key={c.userId} style={styles.listRow}>
+                      <IconCircle icon="school" color={colors.purple} bg={colors.purpleSoft} size={36} />
+                      <View style={{ flex: 1 }}>
+                        <Txt variant="body" style={{ fontWeight: '600' }}>
+                          {c.name}
+                        </Txt>
+                        <Txt variant="muted" numberOfLines={1}>
+                          {c.specialty || 'Coach'}
+                          {c.slots.length ? ` · ${c.slots.length} créneau${c.slots.length > 1 ? 'x' : ''}` : ' · pas encore de créneau'}
+                        </Txt>
+                      </View>
+                      <Pressable
+                        onPress={() => void demoteCoach(c)}
+                        hitSlop={8}
+                        accessibilityRole="button"
+                        accessibilityLabel={`Retirer le coach ${c.name}`}
+                      >
+                        <Ionicons name="trash-outline" size={18} color={colors.danger} />
+                      </Pressable>
+                    </View>
+                  ))
+                )}
+              </View>
+            </>
+          )}
+        </Card>
+      </View>
+
+      {/* Coachs « fiche simple » (sans compte) — simple annuaire de contact sur la fiche club */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Coachs (fiche simple)" />
+        <Card>
+          <Txt variant="muted">Pour un coach sans compte : simple fiche de contact (appel/WhatsApp) sur ta page.</Txt>
           <TextInput
             value={coachName}
             onChangeText={setCoachName}
@@ -297,20 +491,51 @@ export function SectionMonClub({ club }: { club: Club }) {
         </Card>
       </View>
 
-      {/* Terrains (courts) */}
+      {/* Terrains (courts) — avec une photo par terrain (montrée sur la fiche du club) */}
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title={`Terrains · ${courts.length}`} />
         <Card>
-          <Txt variant="muted">Ajoute ou retire les terrains de ton club. La disponibilité se calcule terrain par terrain.</Txt>
+          <Txt variant="muted">
+            Ajoute ou retire les terrains de ton club, et mets une photo par terrain pour le montrer aux joueurs. La disponibilité se
+            calcule terrain par terrain.
+          </Txt>
           <View style={{ marginTop: spacing.md, gap: spacing.sm }}>
             {courts.map((c) => (
               <View key={c} style={styles.listRow}>
-                <IconCircle icon="tennisball" color={colors.green} bg={colors.greenSoft} size={36} />
+                {courtPhotos[c] ? (
+                  <View>
+                    <ClubPhoto uri={courtPhotos[c]} accent={club.accent} height={40} width={54} rounded={radius.sm} />
+                    {/* « × » sur la vignette = retirer la photo (même idiome que la galerie) */}
+                    <Pressable
+                      onPress={async () => {
+                        const ok = await setClubCourtPhoto(club.id, c, null);
+                        if (!ok) toast.show('Retrait impossible — réessaie', { icon: 'alert-circle' });
+                      }}
+                      style={styles.courtPhotoRemove}
+                      hitSlop={6}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Retirer la photo du ${c}`}
+                    >
+                      <Ionicons name="close" size={11} color={colors.white} />
+                    </Pressable>
+                  </View>
+                ) : (
+                  <IconCircle icon="tennisball" color={colors.green} bg={colors.greenSoft} size={36} />
+                )}
                 <Txt variant="body" style={{ flex: 1, fontWeight: '600' }}>
                   {c}
                 </Txt>
+                <Pressable
+                  onPress={() => void changeCourtPhoto(c)}
+                  hitSlop={8}
+                  disabled={uploadingCourt !== null}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${courtPhotos[c] ? 'Changer' : 'Ajouter'} la photo du ${c}`}
+                >
+                  <Ionicons name={uploadingCourt === c ? 'cloud-upload-outline' : 'camera-outline'} size={18} color={colors.signature} />
+                </Pressable>
                 {courts.length > 1 ? (
-                  <Pressable onPress={() => removeCourt(c)} hitSlop={8}>
+                  <Pressable onPress={() => removeCourt(c)} hitSlop={8} accessibilityRole="button" accessibilityLabel={`Retirer ${c}`}>
                     <Ionicons name="trash-outline" size={18} color={colors.danger} />
                   </Pressable>
                 ) : null}
@@ -394,6 +619,19 @@ const styles = StyleSheet.create({
   },
   inlineRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.md },
   listRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
+  coverRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.md, marginTop: spacing.md },
+  coverDivider: { height: 1, backgroundColor: colors.border, marginVertical: spacing.md },
+  courtPhotoRemove: {
+    position: 'absolute',
+    top: -5,
+    right: -5,
+    width: 17,
+    height: 17,
+    borderRadius: radius.pill,
+    backgroundColor: colors.overlay,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   input: {
     backgroundColor: colors.bg,
     borderWidth: 1,

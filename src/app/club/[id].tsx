@@ -16,6 +16,7 @@ import { clubGallery, defaultCourts, findClub, offersForClub } from '@/data/club
 import { coaches } from '@/data/coaches';
 import { isTournamentPublic, seedCompetitions } from '@/data/competitions';
 import { isPlayed, useApp } from '@/store/AppContext';
+import { fetchClubCoaches, type ServerCoach } from '@/lib/coachesServer';
 import { deleteMyReview, fetchClubReviews, replyToReview, submitReview, type ServerReview } from '@/lib/reviewsServer';
 import { openWhatsApp } from '@/lib/contact';
 import { hapticSuccess } from '@/lib/haptics';
@@ -55,6 +56,7 @@ export default function ClubDetail() {
   const [submitting, setSubmitting] = useState(false); // garde anti double-tap : publier l'avis
   const [replying, setReplying] = useState(false); // garde anti double-tap : publier la réponse
   const [removing, setRemoving] = useState(false); // garde anti double-tap : supprimer mon avis
+  const [serverCoaches, setServerCoaches] = useState<ServerCoach[]>([]); // coachs réservables (serveur)
   const { width: winW } = useWindowDimensions();
 
   // Avis VÉRIFIÉS du serveur : chargés à l'ouverture (effet) et rechargés après chaque action
@@ -69,6 +71,8 @@ export default function ClubDetail() {
           setReviewsError(false);
         }
       });
+    // Coachs réservables (comptes promus par le club) — même convention (null = on garde).
+    if (clubId) void fetchClubCoaches(clubId).then((cs) => cs && setServerCoaches(cs));
   };
   // Réessayer après un échec réseau au 1er chargement (bouton dédié, avec squelette pendant l'attente).
   const retryReviews = () => {
@@ -95,6 +99,8 @@ export default function ClubDetail() {
         else setReviewsError(true); // 1er chargement en échec → distinct de « club sans avis »
         setReviewsLoading(false);
       });
+    // Coachs réservables du club (serveur) : chargés à l'ouverture, comme les avis.
+    if (clubId) void fetchClubCoaches(clubId).then((cs) => alive && cs && setServerCoaches(cs));
     return () => {
       alive = false;
     };
@@ -110,7 +116,14 @@ export default function ClubDetail() {
 
   const fav = state.favoriteClubIds.includes(club.id);
   const boosted = state.boostedClubIds.includes(club.id);
-  const gallery = clubGallery(club, state.clubPhotos[club.id] ?? []);
+  // La photo « de profil » choisie par le club ouvre la galerie (héros) ; les photos par
+  // terrain la complètent en fin de visionneuse (chaque vignette porte le nom du terrain).
+  const cover = state.clubCovers[club.id];
+  const baseGallery = clubGallery(club, state.clubPhotos[club.id] ?? []);
+  const gallery = cover ? [cover, ...baseGallery.filter((u) => u !== cover)] : baseGallery;
+  const courtPhotoMap = state.clubCourtPhotos[club.id] ?? {};
+  const courtsWithPhoto = (state.clubCourts[club.id] ?? defaultCourts(club)).filter((c) => courtPhotoMap[c]);
+  const viewerPhotos = [...gallery, ...courtsWithPhoto.map((c) => courtPhotoMap[c])];
   const posts = state.clubOffers[club.id] ?? [];
   const offers = offersForClub(
     club,
@@ -283,6 +296,25 @@ export default function ClubDetail() {
             </Pressable>
           ))}
         </ScrollView>
+      ) : null}
+
+      {/* Les terrains en photo — une vignette étiquetée par terrain (choisies par le club) */}
+      {courtsWithPhoto.length > 0 ? (
+        <View style={{ marginTop: spacing.md }}>
+          <Txt variant="label" color={colors.textFaint}>
+            Les terrains en photo
+          </Txt>
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: spacing.sm, marginTop: spacing.sm }}>
+            {courtsWithPhoto.map((c, i) => (
+              <Pressable key={c} onPress={() => setViewer(gallery.length + i)} accessibilityLabel={`Photo du ${c}`}>
+                <ClubPhoto uri={courtPhotoMap[c]} accent={club.accent} height={84} width={128} rounded={radius.md} />
+                <Txt variant="small" color={colors.textMuted} style={{ marginTop: 4, textAlign: 'center' }} numberOfLines={1}>
+                  {c}
+                </Txt>
+              </Pressable>
+            ))}
+          </ScrollView>
+        </View>
       ) : null}
 
       <View style={styles.tags}>
@@ -479,20 +511,47 @@ export default function ClubDetail() {
         </Card>
       ) : null}
 
-      {/* Coachs du club */}
-      {clubCoaches.length > 0 ? (
+      {/* Coachs du club — les coachs SERVEUR (comptes promus par le club) sont réservables
+          dans l'app ; les fiches saisies à la main restent joignables par téléphone/WhatsApp. */}
+      {serverCoaches.length > 0 || clubCoaches.length > 0 ? (
         <Card style={{ marginTop: spacing.lg }}>
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
             <Ionicons name="school-outline" size={18} color={colors.signature} />
             <Txt variant="h3">Coachs du club</Txt>
           </View>
           <Txt variant="small" color={colors.textFaint}>
-            La réservation d'un cours se fait directement avec le coach.
+            {serverCoaches.length > 0
+              ? 'Réserve ton cours dans l’app : le coach accepte, le terrain est réservé, le club confirme.'
+              : "La réservation d'un cours se fait directement avec le coach."}
           </Txt>
+          {serverCoaches.map((c, i) => (
+            <View key={c.userId}>
+              {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
+              <View style={[styles.coachRow, { marginTop: i === 0 ? spacing.md : 0 }]}>
+                <IconCircle icon="school" color={colors.purple} bg={colors.purpleSoft} size={38} />
+                <View style={{ flex: 1 }}>
+                  <Txt variant="body" style={{ fontWeight: '600' }}>
+                    {c.name}
+                  </Txt>
+                  <Txt variant="muted" numberOfLines={1}>
+                    {c.specialty || 'Coach du club'}
+                    {c.price ? ` · cours ${fcfa(c.price)}` : ''}
+                  </Txt>
+                </View>
+                <Button
+                  size="sm"
+                  label="Réserver un cours"
+                  icon="calendar-outline"
+                  onPress={() => router.push(`/cours/${c.userId}?clubId=${club.id}`)}
+                />
+              </View>
+            </View>
+          ))}
+          {serverCoaches.length > 0 && clubCoaches.length > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
           {clubCoaches.map((c, i) => (
             <View key={c.id}>
               {i > 0 ? <Divider style={{ marginVertical: spacing.sm }} /> : null}
-              <View style={[styles.coachRow, { marginTop: i === 0 ? spacing.md : 0 }]}>
+              <View style={[styles.coachRow, { marginTop: i === 0 && serverCoaches.length === 0 ? spacing.md : 0 }]}>
                 <IconCircle icon="person" color={colors.signature} bg={colors.signatureSoft} size={38} />
                 <View style={{ flex: 1 }}>
                   <Txt variant="body" style={{ fontWeight: '600' }}>
@@ -770,7 +829,7 @@ export default function ClubDetail() {
               // callback inline re-scrollait à chaque rendu et empêchait de faire défiler.
               contentOffset={{ x: viewer * winW, y: 0 }}
             >
-              {gallery.map((uri, i) => (
+              {viewerPhotos.map((uri, i) => (
                 <View key={`${uri}-${i}`} style={{ width: winW, justifyContent: 'center' }}>
                   <Image source={{ uri }} contentFit="contain" transition={150} style={{ width: winW, height: '80%' }} />
                 </View>
@@ -781,7 +840,7 @@ export default function ClubDetail() {
             </Pressable>
             <View style={styles.viewerHint}>
               <Txt variant="small" color={colors.onPhoto}>
-                {gallery.length} photo{gallery.length > 1 ? 's — fais défiler' : ''}
+                {viewerPhotos.length} photo{viewerPhotos.length > 1 ? 's — fais défiler' : ''}
               </Txt>
             </View>
           </View>
