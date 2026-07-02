@@ -23,9 +23,10 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
   const gallery = clubGallery(club, state.clubPhotos[club.id] ?? []);
   const photo = state.clubCovers[club.id] ?? gallery[0];
   const courtCount = (state.clubCourts[club.id] ?? defaultCourts(club)).length;
-  // Les avis sont VÉRIFIÉS et serveur, affichés sur la fiche club (`4.x ★ (n)`). La carte ne
-  // les charge pas (pas de fetch dédié) : elle ne peut donc pas savoir si un club a des avis
-  // ou non — on n'affiche ici aucun tag « Nouveau »/note qui deviendrait faux dès le premier avis.
+  // Note RÉELLE (avis vérifiés, agrégat serveur state.clubRatings — un seul appel pour tous
+  // les clubs). Absente tant qu'un club n'a aucun avis : on n'affiche alors rien (jamais de
+  // note inventée). Même donnée que la fiche club → liste et détail restent cohérents.
+  const rating = state.clubRatings[club.id];
   const comingSoon = !!club.comingSoon; // club pré-chargé, pas encore réservable
   const partner = !!club.partner && !comingSoon; // club fondateur (partenaire officiel)
   const go = () => router.push(`/club/${club.id}`);
@@ -96,7 +97,22 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
           ) : null}
         </View>
         <View style={styles.compactFooter}>
-          {comingSoon ? <Tag label="Pas encore réservable" tone="neutral" /> : null}
+          {comingSoon ? (
+            <Tag label="Pas encore réservable" tone="neutral" />
+          ) : rating ? (
+            // Note RÉELLE (mêmes avis vérifiés que la fiche) — rien tant qu'il n'y a aucun avis.
+            <View style={styles.ratingRow}>
+              <Ionicons name="star" size={12} color={colors.amber} />
+              <Txt variant="small" style={{ fontWeight: '700' }}>
+                {rating.avg.toFixed(1)}
+              </Txt>
+              <Txt variant="small" color={colors.textFaint}>
+                ({rating.count})
+              </Txt>
+            </View>
+          ) : (
+            <View />
+          )}
           {/* Prix tronqué + flexShrink : sur une carte étroite (250px), il ne se colle plus à
               la note et ne déborde plus (« …· session » coupé). */}
           {comingSoon ? null : (
@@ -161,6 +177,18 @@ export function ClubCard({ club, compact }: { club: Club; compact?: boolean }) {
               dès {fcfa(minPrice(club))} · session
             </Txt>
           )}
+          {!comingSoon && rating ? (
+            // Note RÉELLE (mêmes avis vérifiés que la fiche) — rien tant qu'il n'y a aucun avis.
+            <View style={styles.ratingRow}>
+              <Ionicons name="star" size={12} color={colors.amber} />
+              <Txt variant="small" style={{ fontWeight: '700' }}>
+                {rating.avg.toFixed(1)}
+              </Txt>
+              <Txt variant="small" color={colors.textFaint}>
+                ({rating.count})
+              </Txt>
+            </View>
+          ) : null}
         </View>
       </View>
     </Card>
@@ -188,6 +216,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   boostBadge: { position: 'absolute', top: spacing.sm, left: spacing.sm },
+  ratingRow: { flexDirection: 'row', alignItems: 'center', gap: 3 },
   photosBadge: { position: 'absolute', bottom: spacing.sm, right: spacing.sm },
   titleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm },
   areaRow: { flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 4 },

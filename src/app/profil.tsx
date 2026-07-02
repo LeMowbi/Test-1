@@ -85,6 +85,12 @@ export default function ProfilScreen() {
   const showClub = state.role === 'club' || state.role === 'operator';
   // Espace Coach : visible dès qu'un club a déclaré ce compte comme coach (fiche serveur).
   const showCoach = !!state.coachProfile;
+  // Pastille gérant : réservations à venir de SON club en attente de confirmation (un compte
+  // opérateur voit trop de clubs pour qu'un total ait du sens — réservé au rôle club).
+  const clubPending =
+    state.role === 'club' && state.serverManagedClubId
+      ? state.reservations.filter((r) => r.clubId === state.serverManagedClubId && !r.clubConfirmed && r.startsAt > Date.now()).length
+      : 0;
 
   const changePhoto = async () => {
     const uri = await pickImage({ square: true });
@@ -376,6 +382,8 @@ export default function ProfilScreen() {
                 <Txt variant="h3">Tu gères un club ?</Txt>
                 <Txt variant="muted">Espace Club : réservations, page, créneaux, tournois.</Txt>
               </View>
+              {/* Pastille : réservations à venir en attente de confirmation du gérant. */}
+              {clubPending > 0 ? <Tag label={`${clubPending} à confirmer`} tone="amber" icon="hourglass-outline" /> : null}
               <Ionicons name="chevron-forward" size={20} color={colors.textMuted} />
             </Card>
           ) : null}

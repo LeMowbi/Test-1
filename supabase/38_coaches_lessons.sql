@@ -352,3 +352,27 @@ grant execute on function public.cancel_lesson_request(uuid) to authenticated;
 
 -- ── 4) Réservations : trace du cours (affichage « Cours avec X ») ───────────────
 alter table public.reservations add column if not exists coach_name text;
+
+-- ── 5) Le cours SUIT sa réservation : si l'élève annule la réservation née d'un cours
+--    accepté (règle des 5 h habituelle), le cours passe « cancelled » automatiquement →
+--    le webhook lessons (UPDATE) prévient le COACH par push, et son Espace Coach est juste.
+create or replace function public.lessons_follow_reservation()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if new.status = 'cancelled' and old.status = 'booked' then
+    update public.lessons
+      set status = 'cancelled', responded_at = now()
+      where reservation_id = new.id and status = 'accepted';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists lessons_follow_reservation on public.reservations;
+create trigger lessons_follow_reservation
+  after update on public.reservations
+  for each row execute function public.lessons_follow_reservation();

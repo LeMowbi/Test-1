@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, StyleSheet, TextInput, View } from 'react-native';
+import { Animated, Easing, Pressable, StyleSheet, TextInput, View } from 'react-native';
 import { Chip } from '@/components/Chip';
 import { Confetti } from '@/components/Confetti';
 import { PopIn } from '@/components/PopIn';
@@ -400,6 +400,21 @@ export default function ReserverScreen() {
             <Chip key={n} label={n} icon="checkmark" active onPress={() => setExtraNames((cur) => cur.filter((x) => x !== n))} />
           ))}
         </View>
+        {/* Tout nouveau joueur (0 ami) : on l'amorce vers l'ajout d'amis au moment le plus
+            pertinent — le padel se joue à 4 (même lien que la réservation rapide). */}
+        {state.friends.length === 0 ? (
+          <Pressable
+            onPress={() => router.push('/amis')}
+            style={styles.inviteLink}
+            accessibilityRole="button"
+            accessibilityLabel="Inviter un ami sur PadelConnect"
+          >
+            <Ionicons name="person-add-outline" size={14} color={colors.signature} />
+            <Txt variant="small" color={colors.signature} style={{ fontWeight: '700' }}>
+              Invite tes amis sur PadelConnect pour les ajouter ici
+            </Txt>
+          </Pressable>
+        ) : null}
         {participantCount < 3 ? (
           <View style={styles.extraRow}>
             <TextInput
@@ -471,6 +486,7 @@ const styles = StyleSheet.create({
   wrap: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   periodHeader: { flexDirection: 'row', alignItems: 'center', gap: spacing.xs, marginTop: spacing.md },
   extraRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginTop: spacing.sm },
+  inviteLink: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: spacing.sm, paddingVertical: spacing.xs },
   extraInput: {
     flex: 1,
     backgroundColor: colors.bg,

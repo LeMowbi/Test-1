@@ -231,6 +231,23 @@ Deno.serve(async (req) => {
         body: `${await userName(record.coach_id)} ne peut pas assurer le cours du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''}. Aucun terrain n’a été réservé.`,
         data: { kind: 'lesson' },
       });
+    } else if (table === 'lessons' && type === 'UPDATE' && record.status === 'cancelled' && oldRecord.status === 'accepted') {
+      // L'élève a ANNULÉ la réservation née du cours (trigger lessons_follow_reservation) →
+      // prévenir le COACH : son créneau se libère, il ne doit pas se déplacer pour rien.
+      notifs.push({
+        targets: await userToken(record.coach_id),
+        title: 'Cours annulé',
+        body: `${record.student_name ?? 'Un joueur'} a annulé le cours du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''} — le terrain est libéré.`,
+        data: { kind: 'lesson' },
+      });
+    } else if (table === 'lessons' && type === 'UPDATE' && record.status === 'cancelled' && oldRecord.status === 'pending') {
+      // L'élève a retiré sa DEMANDE avant la réponse → petit mot au coach (sa liste se met à jour).
+      notifs.push({
+        targets: await userToken(record.coach_id),
+        title: 'Demande de cours retirée',
+        body: `${record.student_name ?? 'Un joueur'} a retiré sa demande du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''}.`,
+        data: { kind: 'lesson' },
+      });
     }
 
     // Aplatis toutes les notifs en messages Expo (une entrée par destinataire).

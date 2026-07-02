@@ -10,6 +10,7 @@ import { findClub } from '@/data/clubs';
 import { seedCompetitions } from '@/data/competitions';
 import { useToast } from '@/components/Toast';
 import { isPlayed, useApp, type Reservation } from '@/store/AppContext';
+import { addReservationToCalendar } from '@/lib/calendar';
 import { openWhatsApp } from '@/lib/contact';
 import { hapticSuccess } from '@/lib/haptics';
 import { dateKeyLabel, dayKey } from '@/lib/days';
@@ -94,6 +95,21 @@ export default function ReservationsScreen() {
       if (accept) hapticSuccess();
       toast.show(accept ? 'Invitation acceptée ✓' : 'Invitation refusée');
     } else toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
+  };
+
+  // Synchronise une résa À VENIR dans le calendrier du téléphone (même helper que l'écran de
+  // succès — l'habitué réserve plusieurs jours à l'avance et veut la retrouver dans son agenda).
+  const addToCalendar = async (r: Reservation) => {
+    const club = findClub(r.clubId, state.customClubs, state.clubInfo);
+    const res = await addReservationToCalendar({ clubName: r.clubName, startsAt: r.startsAt, court: r.court, area: club?.area ?? '' });
+    toast.show(
+      res === 'added'
+        ? 'Ajouté à ton calendrier ✓'
+        : res === 'denied'
+          ? 'Autorise le calendrier dans les réglages.'
+          : 'Calendrier indisponible sur cet appareil.',
+      res === 'added' ? undefined : { icon: 'alert-circle' },
+    );
   };
 
   return (
@@ -265,7 +281,7 @@ export default function ReservationsScreen() {
                   ) : null}
 
                   <Divider style={{ marginVertical: spacing.md }} />
-                  {/* Raccourcis contextuels : club + itinéraire */}
+                  {/* Raccourcis contextuels : club + itinéraire + calendrier */}
                   <View style={{ flexDirection: 'row', gap: spacing.sm, marginBottom: spacing.sm }}>
                     <Button
                       size="sm"
@@ -285,6 +301,15 @@ export default function ReservationsScreen() {
                         const club = findClub(r.clubId, state.customClubs, state.clubInfo);
                         if (club) openMaps(club);
                       }}
+                      pill
+                      full
+                    />
+                    <Button
+                      size="sm"
+                      label="Calendrier"
+                      icon="calendar-outline"
+                      variant="secondary"
+                      onPress={() => void addToCalendar(r)}
                       pill
                       full
                     />
@@ -395,8 +420,13 @@ export default function ReservationsScreen() {
                     </View>
                     <Tag label="Jouée" tone="blue" />
                   </View>
-                  {/* A-R7 : bouton discret « Rejouer ici » → écran de réservation du club */}
-                  <Pressable onPress={() => router.push(`/reserver/${r.clubId}`)} style={styles.replayBtn}>
+                  {/* A-R7 : « Rejouer ici » → réservation du club, avec l'HEURE habituelle
+                      pré-remplie (l'habitué rejoue souvent au même créneau — il ne reste que
+                      le jour et le terrain à choisir). */}
+                  <Pressable
+                    onPress={() => router.push(`/reserver/${r.clubId}?time=${encodeURIComponent(r.time)}`)}
+                    style={styles.replayBtn}
+                  >
                     <Ionicons name="refresh-outline" size={13} color={colors.signature} />
                     <Txt variant="small" color={colors.signature} style={{ fontWeight: '600' }}>
                       Rejouer ici

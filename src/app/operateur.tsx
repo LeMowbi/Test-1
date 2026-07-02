@@ -10,6 +10,7 @@ import { CommissionRates } from '@/components/operator/CommissionRates';
 import { ManagerAccess } from '@/components/operator/ManagerAccess';
 import { TournamentFee } from '@/components/operator/TournamentFee';
 import { TournamentFees } from '@/components/operator/TournamentFees';
+import { DiagnosticsCard } from '@/components/operator/DiagnosticsCard';
 import { NewsEditor } from '@/components/operator/NewsEditor';
 import { opStyles } from '@/components/operator/styles';
 import { activeClubs, clubs as baseClubs, findClub, manageableClubs } from '@/data/clubs';
@@ -283,17 +284,24 @@ export default function Operateur() {
   const totalCommission = rows.reduce((s, r) => s + r.commission, 0);
   const totalDue = rows.filter((r) => state.operatorPayments[`${r.clubId}:${week}`] !== 'paid').reduce((s, r) => s + r.commission, 0);
 
-  // Relance : la SEMAINE PRÉCÉDENTE contient-elle des parties jouées non payées ?
-  const prevWeek = addWeeks(thisWeek, -1);
-  const prevUnpaidClubs = useMemo(() => {
-    const ids = new Set<string>();
+  // Relance : impayés TOUTES SEMAINES PASSÉES confondues (pas seulement la précédente — une
+  // commission oubliée il y a 3 semaines restait sinon invisible à jamais). Total estimé au
+  // taux de chaque club + semaine la plus ancienne à traiter (le tap y amène directement).
+  // La semaine EN COURS est exclue : elle se facture à sa clôture.
+  const unpaid = useMemo(() => {
+    let total = 0;
+    const weeks = new Set<string>();
     for (const r of state.reservations) {
-      if (weekKeyOf(r.startsAt) === prevWeek && isPlayed(r) && state.operatorPayments[`${r.clubId}:${prevWeek}`] !== 'paid') {
-        ids.add(r.clubId);
-      }
+      if (!isPlayed(r)) continue;
+      const wk = weekKeyOf(r.startsAt);
+      if (wk >= thisWeek) continue;
+      if (state.operatorPayments[`${r.clubId}:${wk}`] === 'paid') continue;
+      const price = r.price ?? findClub(r.clubId, state.customClubs, state.clubInfo)?.priceFrom ?? 0;
+      total += Math.round(price * (state.clubCommission[r.clubId] ?? COMMISSION_RATE));
+      weeks.add(wk);
     }
-    return ids.size;
-  }, [state.reservations, state.operatorPayments, prevWeek]);
+    return { total, weeksCount: weeks.size, oldest: [...weeks].sort()[0] ?? null };
+  }, [state.reservations, state.operatorPayments, state.clubCommission, state.customClubs, state.clubInfo, thisWeek]);
 
   // Santé plateforme (3 chiffres).
   const now = Date.now();
@@ -366,12 +374,13 @@ export default function Operateur() {
         <NewsEditor news={state.operatorNews} onPublish={setOperatorNews} onRemove={removeOperatorNews} />
       </View>
 
-      {/* Relance : semaine précédente prête à facturer */}
-      {prevUnpaidClubs > 0 ? (
-        <Pressable onPress={() => setWeek(prevWeek)} style={styles.reminder}>
+      {/* Relance : reste à encaisser TOUTES semaines passées (tap → la plus ancienne à traiter) */}
+      {unpaid.total > 0 && unpaid.oldest ? (
+        <Pressable onPress={() => setWeek(unpaid.oldest!)} style={styles.reminder}>
           <Ionicons name="alarm-outline" size={16} color={colors.coral} />
           <Txt variant="small" color={colors.text} style={{ flex: 1, fontWeight: '600' }}>
-            La semaine {weekLabel(prevWeek)} est prête à facturer — {prevUnpaidClubs} club{prevUnpaidClubs > 1 ? 's' : ''}.
+            Reste à encaisser : {fcfa(unpaid.total)} sur {unpaid.weeksCount} semaine{unpaid.weeksCount > 1 ? 's' : ''} passée
+            {unpaid.weeksCount > 1 ? 's' : ''}.
           </Txt>
           <Ionicons name="chevron-forward" size={15} color={colors.coral} />
         </Pressable>
@@ -804,6 +813,12 @@ export default function Operateur() {
       <View style={{ marginTop: spacing.xl }}>
         <SectionHeader title="Accès gérant" />
         <ManagerAccess clubs={manageableList} onGrant={operatorGrantClubAccess} onRevoke={operatorRevokeClubAccess} toast={toast} />
+      </View>
+
+      {/* Santé de l'app — diagnostics self-hosted (erreurs + usage), lecture opérateur */}
+      <View style={{ marginTop: spacing.xl }}>
+        <SectionHeader title="Santé de l'app" />
+        <DiagnosticsCard />
       </View>
 
       {/* Signalements / messages d'aide envoyés par les joueurs (serveur). */}

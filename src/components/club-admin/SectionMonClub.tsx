@@ -148,6 +148,8 @@ export function SectionMonClub({ club }: { club: Club }) {
       club.id,
       courts.filter((c) => c !== n),
     );
+    // Sa photo ne sert plus à rien (et resterait orpheline en base/Storage) → on la retire aussi.
+    if (courtPhotos[n]) void setClubCourtPhoto(club.id, n, null);
   };
 
   const shareBoost = () =>

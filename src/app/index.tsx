@@ -124,6 +124,10 @@ export default function HomeScreen() {
     : null;
   const lastPlayedClub = lastPlayed ? findClub(lastPlayed.clubId, state.customClubs, state.clubInfo) : null;
 
+  // Invitations partagées encore À CONFIRMER (résas à venir) : l'accueil est le hub — sans ce
+  // bandeau, un invité qui n'ouvre pas « Mes réservations » peut rater une partie où on l'attend.
+  const pendingInviteCount = state.reservations.filter((r) => state.pendingInvitationIds.includes(r.id) && r.startsAt > now).length;
+
   // B-R5 : tournoi inscrit à venir (≤ 7 jours).
   // Tournois où je suis inscrit OU que j'ai créés (mes engagements personnels).
   const myTournamentIds = new Set([
@@ -274,6 +278,24 @@ export default function HomeScreen() {
             <Avatar uri={state.account?.photoUri} name={fullName} size={42} />
           </Pressable>
         </View>
+
+        {/* Invitations partagées à confirmer — prioritaire (on t'attend sur un terrain) */}
+        {pendingInviteCount > 0 ? (
+          <PopIn delay={50}>
+            <Pressable
+              onPress={() => go('/reservations')}
+              style={styles.inviteBanner}
+              accessibilityRole="button"
+              accessibilityLabel={`${pendingInviteCount} invitation${pendingInviteCount > 1 ? 's' : ''} à confirmer`}
+            >
+              <Ionicons name="mail-unread" size={18} color={colors.signature} />
+              <Txt variant="body" style={{ flex: 1, fontWeight: '700' }}>
+                {pendingInviteCount > 1 ? `${pendingInviteCount} invitations à confirmer` : 'Une invitation à confirmer'}
+              </Txt>
+              <Ionicons name="chevron-forward" size={16} color={colors.signature} />
+            </Pressable>
+          </PopIn>
+        ) : null}
 
         {/* Actu opérateur — fermable */}
         {showNews && news ? (
@@ -679,9 +701,10 @@ export default function HomeScreen() {
             </Card>
           </View>
         ) : lastPlayedClub ? (
-          /* A-L1 : Rejouer au dernier club (seulement si 0 réservation à venir) */
+          /* A-L1 : Rejouer au dernier club (seulement si 0 réservation à venir) — l'heure de la
+             dernière partie est pré-remplie (l'habitué rejoue souvent au même créneau). */
           <View style={styles.section}>
-            <Card onPress={() => go(`/reserver/${lastPlayedClub.id}`)}>
+            <Card onPress={() => go(`/reserver/${lastPlayedClub.id}?time=${encodeURIComponent(lastPlayed?.time ?? '')}`)}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.md }}>
                 <View style={[styles.replayIcon, { backgroundColor: colors.signatureSoft }]}>
                   <Ionicons name="refresh" size={22} color={colors.signature} />
@@ -814,6 +837,15 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     backgroundColor: colors.purpleSoft,
+    borderRadius: radius.md,
+    padding: spacing.md,
+    marginBottom: spacing.md,
+  },
+  inviteBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    backgroundColor: colors.signatureSoft,
     borderRadius: radius.md,
     padding: spacing.md,
     marginBottom: spacing.md,

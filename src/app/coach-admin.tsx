@@ -109,9 +109,10 @@ export default function CoachAdmin() {
   const all = lessons ?? [];
   const pending = all.filter((l) => l.status === 'pending' && l.startsAt > now).sort((a, b) => a.startsAt - b.startsAt);
   const upcoming = all.filter((l) => l.status === 'accepted' && l.startsAt + SESSION_MS > now).sort((a, b) => a.startsAt - b.startsAt);
-  // Historique compact : cours donnés + demandes passées/refusées, les plus récents d'abord.
+  // Historique compact : cours donnés, demandes passées/refusées ET cours annulés par l'élève
+  // après acceptation (reservationId présent) — une demande retirée avant réponse n'y figure pas.
   const history = all
-    .filter((l) => !pending.includes(l) && !upcoming.includes(l) && l.status !== 'cancelled')
+    .filter((l) => !pending.includes(l) && !upcoming.includes(l) && (l.status !== 'cancelled' || !!l.reservationId))
     .sort((a, b) => b.startsAt - a.startsAt)
     .slice(0, 10);
 
@@ -232,6 +233,8 @@ export default function CoachAdmin() {
                     <Tag label="Donné" tone="green" />
                   ) : l.status === 'declined' ? (
                     <Tag label="Refusé" tone="neutral" />
+                  ) : l.status === 'cancelled' ? (
+                    <Tag label="Annulé" tone="coral" />
                   ) : (
                     <Tag label="Expirée" tone="neutral" />
                   )}

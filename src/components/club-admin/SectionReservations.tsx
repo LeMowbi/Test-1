@@ -411,15 +411,33 @@ export function SectionReservations({
                     label={r.clubConfirmed ? 'Annuler la confirmation' : 'Confirmer la réservation'}
                     icon={r.clubConfirmed ? 'close' : 'checkmark'}
                     variant={r.clubConfirmed ? 'ghost' : 'primary'}
-                    onPress={() =>
+                    onPress={() => {
+                      const wasConfirmed = r.clubConfirmed;
                       void confirmReservationByClub(r.id).then((ok) => {
-                        if (ok) hapticSuccess();
-                        else {
+                        if (!ok) {
                           hapticWarning();
                           toast.show('Action impossible — réessaie', { icon: 'alert-circle' });
+                          return;
                         }
-                      })
-                    }
+                        hapticSuccess();
+                        // Confirmation posée + numéro connu → on PROPOSE de prévenir le joueur
+                        // dans la foulée (boucle fermée « confirmée → joueur prévenu », sans
+                        // dépendre d'un second tap que le gérant oublie souvent).
+                        if (!wasConfirmed && r.bookedBy?.phone) {
+                          Alert.alert('Réservation confirmée ✓', `Prévenir ${r.bookedBy.name} par WhatsApp ?`, [
+                            { text: 'Plus tard', style: 'cancel' },
+                            {
+                              text: 'Envoyer',
+                              onPress: () =>
+                                openWhatsApp(
+                                  r.bookedBy!.phone,
+                                  `Bonjour ${r.bookedBy!.name}, votre réservation du ${dateKeyLabel(r.dateKey)} à ${r.time} (${r.court}) à ${club.name} est bien confirmée ✅`,
+                                ),
+                            },
+                          ]);
+                        }
+                      });
+                    }}
                     full
                   />
                 </View>
