@@ -324,7 +324,7 @@ export default function HomeScreen() {
             <PopIn delay={300}>
               <View style={styles.heroCta}>
                 <Txt variant="body" color={colors.signature} style={{ fontWeight: '700' }}>
-                  Trouver un créneau
+                  Créneaux disponibles
                 </Txt>
                 <Ionicons name="arrow-forward" size={16} color={colors.signature} />
               </View>
@@ -511,6 +511,24 @@ export default function HomeScreen() {
           </Pressable>
         ) : null}
 
+        {/* Clubs près de vous (C-S4 : carrousel en lecture seule, lien « Tout voir » discret en
+            SectionHeader) — placé AVANT « Ton prochain match » (demande du porteur : la découverte
+            des clubs prime sur le suivi du match). Entrée légèrement décalée (cascade). */}
+        <Reveal delay={80}>
+          <View style={styles.section}>
+            <SectionHeader title="Clubs près de toi" actionLabel="Explorer" onAction={() => go('/clubs')} />
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}
+            >
+              {nearbyClubs.map((c) => (
+                <ClubCard key={c.id} club={c} compact />
+              ))}
+            </ScrollView>
+          </View>
+        </Reveal>
+
         {/* ── Carte contextuelle « continuer » ──────────────────────────────
             Prochain match (B-R2) si à venir, sinon Rejouer dernier club (A-L1).
             Ces deux cartes sont SÉPARÉES du nudge unique. */}
@@ -677,23 +695,6 @@ export default function HomeScreen() {
             </Card>
           </View>
         ) : null}
-
-        {/* Clubs près de vous (C-S4 : carrousel en lecture seule, lien « Tout voir » discret en SectionHeader) */}
-        {/* Entrée légèrement décalée (cascade) pour guider l'œil du hero vers le contenu. */}
-        <Reveal delay={80}>
-          <View style={styles.section}>
-            <SectionHeader title="Clubs près de toi" actionLabel="Explorer" onAction={() => go('/clubs')} />
-            <ScrollView
-              horizontal
-              showsHorizontalScrollIndicator={false}
-              contentContainerStyle={{ gap: spacing.md, paddingRight: spacing.lg }}
-            >
-              {nearbyClubs.map((c) => (
-                <ClubCard key={c.id} club={c} compact />
-              ))}
-            </ScrollView>
-          </View>
-        </Reveal>
 
         {/* Tournois */}
         <Reveal delay={140}>
