@@ -92,6 +92,15 @@ export function BookingSheet({ club, day, time, onClose }: { club: Club; day: Da
       // Même barrière anti-blocage que la fiche club (règle centralisée dans addReservation).
       hapticWarning();
       toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d'abord 😊`, { icon: 'alert-circle' });
+    } else if (res.reason === 'network') {
+      // Échec réseau/serveur : le terrain n'est PAS pris — réessayer suffit, on garde le choix.
+      hapticWarning();
+      toast.show('Connexion impossible — vérifie ton réseau et réessaie', { icon: 'cloud-offline-outline' });
+    } else if (res.reason === 'past') {
+      // Le créneau est devenu passé pendant que la feuille restait ouverte : réessayer est vain.
+      hapticWarning();
+      toast.show('Ce créneau vient de passer — choisis un autre horaire.', { icon: 'alert-circle' });
+      onClose();
     } else {
       // Terrain pris entre-temps (autre joueur / conflit serveur) : on repropose un autre
       // terrain libre et on prévient (retour tactile comme sur la fiche club).

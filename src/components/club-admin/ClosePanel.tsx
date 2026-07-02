@@ -68,7 +68,7 @@ export function ClosePanel({
   return (
     <View style={{ marginTop: spacing.sm }}>
       {comp.official ? (
-        <Txt variant="small" color={colors.amber} style={{ fontWeight: '600' }}>
+        <Txt variant="small" color={colors.amberDark} style={{ fontWeight: '600' }}>
           {isAmericano
             ? 'Tournoi officiel — l’équipe vainqueure gagne +0.50 de niveau.'
             : 'Tournoi officiel — vainqueur +0.50, fin de tableau −0.25 de niveau.'}

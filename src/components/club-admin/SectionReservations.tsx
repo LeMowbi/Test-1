@@ -398,8 +398,11 @@ export function SectionReservations({
                 ) : null}
               </View>
               {/* Le joueur n'est pas venu (y c. annulation tardive par téléphone) : libère le
-                  créneau et compte l'absence. S'il est venu, rien à faire. */}
-              <Button size="sm" label="Pas venu" icon="person-remove-outline" variant="ghost" onPress={() => onMarkNoShow(r)} full />
+                  créneau et compte l'absence. Proposé seulement une fois le créneau COMMENCÉ —
+                  avant, un tap par erreur compterait une absence injuste des jours à l'avance. */}
+              {r.startsAt <= now ? (
+                <Button size="sm" label="Pas venu" icon="person-remove-outline" variant="ghost" onPress={() => onMarkNoShow(r)} full />
+              ) : null}
             </Card>
           ))
         )}
@@ -506,6 +509,11 @@ export function SectionReservations({
                         </Txt>
                       ) : null}
                     </View>
+                    {/* Une absence se traite souvent APRÈS le créneau : on laisse 48 h au gérant
+                        pour la signaler depuis l'historique (le serveur accepte une résa passée). */}
+                    {now - r.startsAt <= 48 * 3600 * 1000 ? (
+                      <Button size="sm" label="Pas venu" icon="person-remove-outline" variant="ghost" onPress={() => onMarkNoShow(r)} />
+                    ) : null}
                   </View>
                 </View>
               ))}

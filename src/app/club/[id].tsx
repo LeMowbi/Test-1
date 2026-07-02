@@ -369,22 +369,24 @@ export default function ClubDetail() {
         Tarif à confirmer auprès du club.
       </Txt>
 
-      {/* Offres & actus (gérées par le club) */}
-      <Card style={{ marginTop: spacing.lg }}>
-        <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
-          <Ionicons name="megaphone-outline" size={18} color={colors.signature} />
-          <Txt variant="h3">Offres & actus</Txt>
-        </View>
-        {offers.map((o, i) => (
-          <View key={o.id ?? o.title} style={{ marginTop: i === 0 ? 0 : spacing.md }}>
-            <Tag label={o.kind === 'actu' ? 'Actu' : 'Offre'} tone={o.kind === 'actu' ? 'green' : 'signature'} />
-            <Txt variant="body" style={{ fontWeight: '700', marginTop: 4 }}>
-              {o.title}
-            </Txt>
-            {o.detail ? <Txt variant="muted">{o.detail}</Txt> : null}
+      {/* Offres & actus (gérées par le club) — la carte n'apparaît que s'il y a du VRAI contenu. */}
+      {offers.length > 0 ? (
+        <Card style={{ marginTop: spacing.lg }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, marginBottom: spacing.sm }}>
+            <Ionicons name="megaphone-outline" size={18} color={colors.signature} />
+            <Txt variant="h3">Offres & actus</Txt>
           </View>
-        ))}
-      </Card>
+          {offers.map((o, i) => (
+            <View key={o.id ?? o.title} style={{ marginTop: i === 0 ? 0 : spacing.md }}>
+              <Tag label={o.kind === 'actu' ? 'Actu' : 'Offre'} tone={o.kind === 'actu' ? 'green' : 'signature'} />
+              <Txt variant="body" style={{ fontWeight: '700', marginTop: 4 }}>
+                {o.title}
+              </Txt>
+              {o.detail ? <Txt variant="muted">{o.detail}</Txt> : null}
+            </View>
+          ))}
+        </Card>
+      ) : null}
 
       {/* Événements & tournois du club */}
       {events.length > 0 || clubComps.length > 0 ? (

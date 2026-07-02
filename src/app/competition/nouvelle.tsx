@@ -136,7 +136,13 @@ export default function NouvelleCompetition() {
     });
     setSubmitting(false);
     if (!res.ok) {
-      toast.show('Création impossible — réessaie dans un instant.', { icon: 'alert-circle' });
+      // Club : le serveur refuse aussi quand des réservations occupent déjà la plage choisie (37).
+      toast.show(
+        asClub
+          ? 'Création impossible — des réservations occupent peut-être déjà ces créneaux.'
+          : 'Création impossible — réessaie dans un instant.',
+        { icon: 'alert-circle' },
+      );
       return;
     }
     toast.show(asClub ? 'Tournoi publié ✓' : 'Demande envoyée au club ✓');

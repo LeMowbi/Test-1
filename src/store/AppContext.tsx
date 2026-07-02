@@ -150,13 +150,16 @@ export function isPlayed(r: Reservation, now = Date.now()): boolean {
 }
 
 // Palmarès du joueur : une entrée par tournoi joué (vainqueur, dernière place, ou participant).
+// `levelAfter` n'est renseigné QUE pour les défis locaux (niveau calculé sur l'appareil au moment
+// de la clôture). Pour les tournois SERVEUR, le niveau est attribué côté serveur et relu ensuite :
+// on n'affiche que le delta (+0.50 / −0.25) pour ne jamais montrer un « niveau après » périmé.
 export type OfficialResult = {
   id: string;
   compId?: string;
   title: string;
   result: 'win' | 'played' | 'last';
   at: number;
-  levelAfter: number;
+  levelAfter?: number;
 };
 
 // Résultat d'un tournoi clôturé par son ORGANISATEUR (club ou créateur du défi).
@@ -241,7 +244,7 @@ export const MAX_UPCOMING = 6; // réservations À VENIR max par joueur (anti-bl
 // Résultat d'addReservation : soit un succès, soit un échec avec sa raison (traduite en toast
 // par l'appelant). La règle vit ici → elle s'applique à TOUS les points d'entrée (fiche club
 // ET fiche rapide), impossible à contourner.
-export type AddReservationResult = { ok: true } | { ok: false; reason: 'past' | 'conflict' | 'limit' };
+export type AddReservationResult = { ok: true } | { ok: false; reason: 'past' | 'conflict' | 'limit' | 'network' };
 
 type AppContextType = {
   state: AppState;
@@ -292,8 +295,8 @@ type AppContextType = {
   setRemindersOn: (on: boolean) => void;
   setReserverView: (v: 'Par heure' | 'Par club') => void;
   addCompetition: (c: Omit<Competition, 'id' | 'createdByMe'>) => Promise<{ ok: boolean }>;
-  approveCompetition: (id: string) => Promise<void>; // le club hôte valide un tournoi créé par un joueur
-  rejectCompetition: (id: string) => Promise<void>; // le club hôte refuse un tournoi créé par un joueur
+  approveCompetition: (id: string) => Promise<boolean>; // le club hôte valide un tournoi joueur (false = échec serveur)
+  rejectCompetition: (id: string) => Promise<boolean>; // le club hôte refuse un tournoi joueur (false = échec serveur)
   deleteCompetition: (id: string) => Promise<void>; // annulation / suppression (créateur ou club hôte)
   registerCompetition: (id: string, partner: string) => Promise<boolean>; // false = échec serveur
   unregisterCompetition: (id: string) => Promise<boolean>; // false = échec serveur
@@ -1051,14 +1054,16 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         return { ok: true };
       },
       // Le club hôte (ou l'opérateur) valide un tournoi créé par un joueur (« en attente » → visible).
+      // Renvoie false si le serveur a refusé (réseau/droits) → l'UI affiche l'échec au lieu de se taire.
       approveCompetition: async (id) => {
         const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
         if (serverComp) {
           const ok = await approveCompetitionRpc(id);
           if (ok && state.serverUserId) await refreshCompetitions(state.serverUserId);
-          return;
+          return ok;
         }
         setState((s) => ({ ...s, myCompetitions: s.myCompetitions.map((c) => (c.id === id ? { ...c, status: 'approved' } : c)) }));
+        return true;
       },
       // Le club hôte refuse un tournoi joueur « en attente » → « refusé » (jamais publié).
       rejectCompetition: async (id) => {
@@ -1066,9 +1071,10 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         if (serverComp) {
           const ok = await rejectCompetitionRpc(id);
           if (ok && state.serverUserId) await refreshCompetitions(state.serverUserId);
-          return;
+          return ok;
         }
         setState((s) => ({ ...s, myCompetitions: s.myCompetitions.map((c) => (c.id === id ? { ...c, status: 'rejected' } : c)) }));
+        return true;
       },
       deleteCompetition: async (id) => {
         const serverComp = state.myCompetitions.find((c) => c.id === id && c.server);
@@ -1145,8 +1151,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             if (res.conflict) {
               const fresh = await fetchOccupancy();
               if (fresh) setState((s) => ({ ...s, occupancy: fresh }));
+              return { ok: false, reason: 'conflict' };
             }
-            return { ok: false, reason: 'conflict' };
+            // Échec réseau/serveur (≠ conflit) : le terrain n'est PAS pris — le message doit
+            // inviter à réessayer, pas à changer de terrain.
+            return { ok: false, reason: 'network' };
           }
           const created = res.reservation;
           setState((s) => ({

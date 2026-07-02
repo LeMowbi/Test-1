@@ -279,7 +279,7 @@ export default function CompetitionDetail() {
               <Txt variant="label" color={colors.textFaint}>
                 Vainqueur
               </Txt>
-              <Txt variant="h3" color={colors.amber}>
+              <Txt variant="h3" color={colors.amberDark}>
                 {result.winner}
               </Txt>
             </View>
@@ -311,14 +311,20 @@ export default function CompetitionDetail() {
               Fin de tableau : {result.loser}
             </Txt>
           ) : null}
+          {/* levelAfter n'existe que pour les défis locaux ; pour un tournoi serveur on annonce
+              le DELTA (toujours juste) — jamais un « niveau après » potentiellement périmé. */}
           {mine?.result === 'win' && comp.official ? (
             <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
-              Tournoi officiel gagné : ton niveau passe à {mine.levelAfter.toFixed(2)} (+0.50).
+              {mine.levelAfter != null
+                ? `Tournoi officiel gagné : ton niveau passe à ${mine.levelAfter.toFixed(2)} (+0.50).`
+                : 'Tournoi officiel gagné : ton niveau gagne +0.50 🎉'}
             </Txt>
           ) : null}
           {mine?.result === 'last' && comp.official ? (
             <Txt variant="small" color={colors.textMuted} style={{ marginTop: spacing.sm }}>
-              Fin de tableau : ton niveau passe à {mine.levelAfter.toFixed(2)} (−0.25).
+              {mine.levelAfter != null
+                ? `Fin de tableau : ton niveau passe à ${mine.levelAfter.toFixed(2)} (−0.25).`
+                : 'Fin de tableau : ton niveau perd −0.25.'}
             </Txt>
           ) : null}
         </Card>

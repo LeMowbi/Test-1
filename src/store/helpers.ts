@@ -182,7 +182,10 @@ export function competitionSlices(
         : c.official && close.loser && myTeam === close.loser
           ? 'last'
           : 'played';
-    // id déterministe + `at`/`levelAfter` stables → aucune churn de re-render d'un fetch à l'autre.
+    // id déterministe + `at` stable → aucune churn de re-render d'un fetch à l'autre.
+    // PAS de `levelAfter` pour un tournoi serveur : au moment de la dérivation, s.level est
+    // encore l'ANCIEN niveau (le +0.50 serveur n'est relu qu'après) → on afficherait un
+    // « niveau après » périmé. L'UI ne montre que le delta, toujours juste.
     const prev = s.officialResults.find((o) => o.compId === c.id);
     serverResults.push({
       id: `srv-${c.id}`,
@@ -190,7 +193,6 @@ export function competitionSlices(
       title: c.title,
       result,
       at: prev?.at ?? Date.now(),
-      levelAfter: prev?.levelAfter ?? s.level,
     });
   }
   // On conserve les palmarès locaux éventuels (compId absent des tournois serveur) et on

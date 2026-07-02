@@ -135,9 +135,18 @@ export default function ReserverScreen() {
       // Limite anti-blocage (appliquée dans addReservation) : trop de créneaux à venir.
       hapticWarning();
       toast.show(`Tu as déjà ${MAX_UPCOMING} réservations à venir — joue-les d'abord 😊`, { icon: 'alert-circle' });
+    } else if (res.reason === 'network') {
+      // Échec réseau/serveur : le terrain n'est PAS pris — on invite à réessayer, sans toucher au choix.
+      hapticWarning();
+      toast.show('Connexion impossible — vérifie ton réseau et réessaie', { icon: 'cloud-offline-outline' });
+    } else if (res.reason === 'past') {
+      // Le créneau est devenu passé pendant que l'écran restait ouvert.
+      hapticWarning();
+      setSlot(null);
+      toast.show('Ce créneau vient de passer — choisis-en un autre.', { icon: 'alert-circle' });
     } else {
-      // Terrain pris entre-temps (autre joueur / conflit serveur) ou créneau passé : on prévient
-      // et on réinitialise la pré-sélection pour en choisir un autre.
+      // Terrain pris entre-temps (autre joueur / conflit serveur) : on prévient et on
+      // réinitialise la pré-sélection pour en choisir un autre.
       hapticWarning();
       setCourt(null);
       toast.show('Ce terrain vient d’être pris — choisis-en un autre', { icon: 'alert-circle' });
@@ -285,11 +294,12 @@ export default function ReserverScreen() {
           if (periodSlots.length === 0) return null;
           return (
             <View key={period.id}>
+              {/* Pas de prix dans l'en-tête de période : une période peut chevaucher plusieurs
+                  plages tarifaires (ex. Padelta) → le prix exact est porté par chaque créneau. */}
               <View style={styles.periodHeader}>
                 <Ionicons name={period.icon} size={15} color={period.color} />
                 <Txt variant="label" color={colors.textMuted}>
                   {period.label}
-                  {hasTiers && periodSlots[0] ? ` · ${fcfa(priceForSlot(club, periodSlots[0]))}` : ''}
                 </Txt>
               </View>
               <View style={styles.wrap}>

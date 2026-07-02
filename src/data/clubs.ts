@@ -319,20 +319,15 @@ export function defaultCourts(club: Club): string[] {
   return Array.from({ length: Math.max(1, club.courts) }, (_, i) => `Terrain ${i + 1}`);
 }
 
-export const DEFAULT_OFFERS = [
-  { title: 'Happy hour', detail: '-20% en semaine de 12h à 15h.' },
-  { title: 'Initiation offerte', detail: '1ʳᵉ séance découverte gratuite.' },
-];
-
 // Publication d'un club (offre ou actualité) — texte libre géré par le club.
 export type ClubPost = { id?: string; kind: 'offre' | 'actu' | 'evenement'; title: string; detail: string };
 
-// Offres/actus à afficher : celles publiées par le club (store) EN PLUS de ses offres
-// de base — les offres génériques par défaut ne servent que si tout est vide.
+// Offres/actus à afficher : celles publiées par le club (store) EN PLUS de ses offres de base.
+// AUCUNE offre générique par défaut : une promo que le club n'a jamais accordée serait une
+// donnée factice (règle du projet) — sans offre réelle, la fiche n'affiche pas la carte.
 export function offersForClub(club: Club, managed: ClubPost[] = []): ClubPost[] {
   const seeds = (club.offers ?? []).map((o) => ({ kind: 'offre' as const, title: o.title, detail: o.detail }));
-  if (managed.length || seeds.length) return [...managed, ...seeds];
-  return DEFAULT_OFFERS.map((o) => ({ kind: 'offre' as const, title: o.title, detail: o.detail }));
+  return [...managed, ...seeds];
 }
 
 // Galerie d'un club = UNIQUEMENT ses vraies photos (celles ajoutées par le gérant via

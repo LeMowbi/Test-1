@@ -1,15 +1,40 @@
 import { useRouter } from 'expo-router';
+import { useState } from 'react';
 import { View } from 'react-native';
+import { useToast } from '@/components/Toast';
 import { Button, Card, EmptyState, IconCircle, SectionHeader, Tag, Txt } from '@/components/ui';
 import { type Club } from '@/data/clubs';
 import { isTournamentPublic, teamCount, type Competition } from '@/data/competitions';
 import { dayKey } from '@/lib/days';
+import { hapticSuccess, hapticWarning } from '@/lib/haptics';
 import { useApp } from '@/store/AppContext';
 import { colors, spacing } from '@/theme';
 
 export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comps: Competition[]; onCloseComp: (id: string) => void }) {
   const router = useRouter();
   const { state, approveCompetition, rejectCompetition } = useApp();
+  const toast = useToast();
+  const [busyId, setBusyId] = useState<string | null>(null); // demande en cours de traitement (anti double-tap)
+
+  // Valider/refuser une demande : on ATTEND le serveur et on confirme (ou signale l'échec) —
+  // avant, un échec réseau était totalement silencieux et le gérant croyait avoir publié.
+  const decide = async (id: string, approve: boolean) => {
+    if (busyId) return;
+    setBusyId(id);
+    const ok = approve ? await approveCompetition(id) : await rejectCompetition(id);
+    setBusyId(null);
+    if (ok) {
+      hapticSuccess();
+      toast.show(approve ? 'Tournoi validé — il est maintenant visible ✓' : 'Demande refusée.');
+    } else {
+      hapticWarning();
+      // Deux causes possibles côté serveur : réseau, ou des réservations occupent déjà la plage (37).
+      toast.show(
+        approve ? 'Publication impossible — des réservations occupent peut-être déjà ces créneaux.' : 'Action impossible — réessaie.',
+        { icon: 'alert-circle' },
+      );
+    }
+  };
 
   // Demandes de tournoi : créés par un joueur, en attente de validation de CE club.
   const tournamentRequests = state.myCompetitions.filter(
@@ -42,9 +67,23 @@ export function SectionTournois({ club, comps, onCloseComp }: { club: Club; comp
                 </View>
               </View>
               <View style={{ flexDirection: 'row', gap: spacing.sm, marginTop: spacing.md }}>
-                <Button size="sm" label="Refuser" icon="close" variant="danger" onPress={() => rejectCompetition(c.id)} />
+                <Button
+                  size="sm"
+                  label="Refuser"
+                  icon="close"
+                  variant="danger"
+                  disabled={busyId === c.id}
+                  onPress={() => decide(c.id, false)}
+                />
                 <View style={{ flex: 1 }}>
-                  <Button size="sm" label="Valider & publier" icon="checkmark" onPress={() => approveCompetition(c.id)} full />
+                  <Button
+                    size="sm"
+                    label={busyId === c.id ? 'Publication…' : 'Valider & publier'}
+                    icon="checkmark"
+                    disabled={busyId === c.id}
+                    onPress={() => decide(c.id, true)}
+                    full
+                  />
                 </View>
               </View>
             </Card>

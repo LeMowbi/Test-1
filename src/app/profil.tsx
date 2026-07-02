@@ -196,7 +196,7 @@ export default function ProfilScreen() {
                   <Txt variant="small" color={colors.textMuted}>
                     Prochain trophée : « {nextTrophy.label} »
                   </Txt>
-                  <Txt variant="small" color={colors.amber} style={{ fontWeight: '700' }}>
+                  <Txt variant="small" color={colors.amberDark} style={{ fontWeight: '700' }}>
                     {nextTrophy.current}/{nextTrophy.target}
                   </Txt>
                 </View>
@@ -222,7 +222,10 @@ export default function ProfilScreen() {
                       tone={o.result === 'win' ? 'amber' : o.result === 'last' ? 'coral' : 'blue'}
                     />
                     <Txt variant="muted" style={{ flex: 1 }}>
-                      {o.title} → Niveau {o.levelAfter.toFixed(2)}
+                      {/* Tournoi serveur : delta seul (le « niveau après » serait périmé). */}
+                      {o.levelAfter != null
+                        ? `${o.title} → Niveau ${o.levelAfter.toFixed(2)}`
+                        : `${o.title}${o.result === 'win' ? ' → +0.50' : o.result === 'last' ? ' → −0.25' : ''}`}
                     </Txt>
                   </View>
                 ))}
@@ -285,7 +288,7 @@ export default function ProfilScreen() {
                         </Txt>
                       </>
                     ) : (
-                      <Txt variant="small" color={colors.amber} style={{ marginTop: 4, fontWeight: '600' }}>
+                      <Txt variant="small" color={colors.amberDark} style={{ marginTop: 4, fontWeight: '600' }}>
                         Palier maximal atteint 🏆
                       </Txt>
                     )}
