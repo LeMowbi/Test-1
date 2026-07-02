@@ -361,6 +361,9 @@ type AppContextType = {
   saveCoachSettings: (specialty: string, price: number | null, slots: string[]) => Promise<boolean>;
   // Recharge fiche coach + mes cours (pull-to-refresh de l’Espace Coach / « Mes réservations »).
   refreshLessons: () => Promise<void>;
+  // Recharge les notes moyennes (après dépôt/suppression d’un avis — sinon les cartes des
+  // listes garderaient l’ancienne moyenne jusqu’au prochain retour au premier plan).
+  refreshClubRatings: () => Promise<void>;
   setClubInfo: (clubId: string, patch: ClubInfo) => void;
   setBoost: (clubId: string, days: number) => Promise<{ ok: boolean }>; // days > 0 active (expiration), 0 désactive — serveur
   setPaymentStatus: (clubId: string, weekKey: string, status: 'tofacture' | 'sent' | 'paid') => void;
@@ -1583,6 +1586,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           coachProfile: cp === undefined ? s.coachProfile : cp, // undefined = échec réseau → on garde
           myLessons: lessons ?? s.myLessons,
         }));
+      },
+      refreshClubRatings: async () => {
+        const epoch = sessionEpochRef.current;
+        const rt = await fetchClubRatings();
+        if (!rt || sessionEpochRef.current !== epoch) return; // null = échec réseau → on garde
+        setState((s) => ({ ...s, clubRatings: rt }));
       },
       setClubInfo: (clubId, patch) =>
         setState((s) => {

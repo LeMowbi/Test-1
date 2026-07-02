@@ -18,7 +18,7 @@ import { competitionBlockedCourts, courtsFor, hasFullDayCompetition } from '@/li
 import { openWhatsApp } from '@/lib/contact';
 import { dateKeyLabel, slotTimestamp } from '@/lib/days';
 import { usePullToRefresh } from '@/lib/usePullToRefresh';
-import { useApp } from '@/store/AppContext';
+import { isPlayed, useApp } from '@/store/AppContext';
 import { colors, radius, spacing } from '@/theme';
 
 const SECTIONS = ['Réservations', 'Mon club', 'Tournois'] as const;
@@ -93,7 +93,9 @@ export default function ClubAdmin() {
   const now = Date.now();
   const clubRes = state.reservations.filter((r) => r.clubId === club.id);
   // Réservations à venir en attente de confirmation → rappel visible depuis tous les onglets.
-  const pendingConfirm = clubRes.filter((r) => !r.clubConfirmed && r.startsAt > now).length;
+  // MÊME règle que la liste de l'onglet Réservations (!isPlayed) : une partie en cours non
+  // confirmée reste confirmable — la pastille doit la compter comme la liste l'affiche.
+  const pendingConfirm = clubRes.filter((r) => !r.clubConfirmed && !isPlayed(r, now)).length;
   const clubBlocked = state.blockedSlots.filter((b) => b.clubId === club.id);
   // Repli sur les terrains par défaut : la fiche détail d’un créneau doit lister les terrains
   // même si le gérant n’a pas encore personnalisé sa configuration.

@@ -50,7 +50,7 @@ function RatingBar({ pct, delay }: { pct: number; delay: number }) {
 export default function ClubDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
-  const { state, toggleFavorite, myReservations } = useApp();
+  const { state, toggleFavorite, myReservations, refreshClubRatings } = useApp();
   const club = findClub(id, state.customClubs, state.clubInfo);
 
   const [rating, setRating] = useState(0);
@@ -200,6 +200,9 @@ export default function ClubDetail() {
     setSent(true);
     hapticSuccess();
     loadReviews();
+    // La note moyenne des CARTES (listes) vient de l'agrégat serveur : on le rafraîchit
+    // aussi, sinon elle resterait périmée jusqu'au prochain retour au premier plan.
+    void refreshClubRatings();
   };
 
   // Modifier mon avis : on repré-remplit le formulaire avec ma note/mon texte, hors champ de vision
@@ -219,6 +222,7 @@ export default function ClubDetail() {
     setRemoving(false);
     if (ok) {
       loadReviews();
+      void refreshClubRatings(); // même raison qu'au dépôt : moyenne des cartes à jour
       setToast({ text: 'Avis supprimé', tone: 'success' });
     } else {
       setToast({ text: 'Suppression impossible — réessaie.', tone: 'error' });
@@ -548,7 +552,7 @@ export default function ClubDetail() {
           <Txt variant="small" color={colors.textFaint}>
             {serverCoaches.length > 0
               ? 'Réserve ton cours dans l’app : le coach accepte, le terrain est réservé, le club confirme.'
-              : "La réservation d’un cours se fait directement avec le coach."}
+              : 'La réservation d’un cours se fait directement avec le coach.'}
           </Txt>
           {serverCoaches.map((c, i) => (
             <View key={c.userId}>
@@ -690,7 +694,7 @@ export default function ClubDetail() {
                 style={styles.input}
               />
               <Button
-                label={submitting ? 'Envoi…' : myReview ? 'Mettre à jour mon avis' : "Publier l’avis"}
+                label={submitting ? 'Envoi…' : myReview ? 'Mettre à jour mon avis' : 'Publier l’avis'}
                 icon="send"
                 onPress={submit}
                 disabled={submitting}

@@ -131,7 +131,8 @@ export default function HomeScreen() {
 
   // Invitations partagées encore À CONFIRMER (résas à venir) : l’accueil est le hub — sans ce
   // bandeau, un invité qui n’ouvre pas « Mes réservations » peut rater une partie où on l’attend.
-  const pendingInviteCount = state.reservations.filter((r) => state.pendingInvitationIds.includes(r.id) && r.startsAt > now).length;
+  // MÊME règle (!isPlayed) que la section de « Mes réservations » : les deux comptent pareil.
+  const pendingInviteCount = state.reservations.filter((r) => state.pendingInvitationIds.includes(r.id) && !isPlayed(r, now)).length;
 
   // B-R5 : tournoi inscrit à venir (≤ 7 jours).
   // Tournois où je suis inscrit OU que j’ai créés (mes engagements personnels).
