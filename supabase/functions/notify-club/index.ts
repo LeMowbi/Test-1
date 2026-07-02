@@ -234,12 +234,13 @@ Deno.serve(async (req) => {
         data: { kind: 'reservation' },
       });
     } else if (table === 'lessons' && type === 'UPDATE' && record.status === 'cancelled' && oldRecord.status === 'accepted') {
-      // L'élève a ANNULÉ la réservation née du cours (trigger lessons_follow_reservation) →
-      // prévenir le COACH : son créneau se libère, il ne doit pas se déplacer pour rien.
+      // La réservation née du cours n'a plus lieu (annulation de l'élève OU « pas venu »
+      // marqué par le club — trigger lessons_follow_reservation) → prévenir le COACH.
+      // Formulation NEUTRE : on ne sait pas ici lequel des deux cas s'est produit.
       notifs.push({
         targets: await userToken(record.coach_id),
         title: 'Cours annulé',
-        body: `${record.student_name ?? 'Un joueur'} a annulé le cours du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''} — le terrain est libéré.`,
+        body: `Le cours avec ${record.student_name ?? 'un joueur'} du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''} n’aura pas lieu — le créneau est libéré.`,
         data: { kind: 'lesson' },
       });
     } else if (table === 'lessons' && type === 'UPDATE' && record.status === 'cancelled' && oldRecord.status === 'pending') {
@@ -249,6 +250,19 @@ Deno.serve(async (req) => {
         title: 'Demande de cours retirée',
         body: `${record.student_name ?? 'Un joueur'} a retiré sa demande du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''}.`,
         data: { kind: 'lesson' },
+      });
+    } else if (
+      table === 'coaches' &&
+      ((type === 'INSERT' && record.active === true) || (type === 'UPDATE' && record.active === true && oldRecord.active !== true))
+    ) {
+      // Un club vient de PROMOUVOIR (ou re-promouvoir) ce compte en coach → on le lui annonce,
+      // sinon il ne découvre son Espace Coach que par hasard en rouvrant son profil.
+      const { data: clubRow } = await supabase.from('clubs').select('name').eq('id', record.club_id).maybeSingle();
+      notifs.push({
+        targets: await userToken(record.user_id),
+        title: 'Tu es maintenant coach 🎾',
+        body: `${clubRow?.name ?? 'Ton club'} t’a déclaré coach — règle tes disponibilités dans ton Espace Coach.`,
+        data: { kind: 'lesson' }, // route vers /coach-admin (même écran que les demandes de cours)
       });
     }
 

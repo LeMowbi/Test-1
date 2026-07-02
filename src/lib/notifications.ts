@@ -133,6 +133,15 @@ function routeForNotification(data: NotificationData | null | undefined): string
   }
 }
 
+// Push reçu pendant que l'app est OUVERTE au premier plan : la bannière système s'affiche,
+// mais rien ne rechargeait l'écran (seul le retour d'arrière-plan rafraîchit). Ce petit
+// abonnement permet à AppContext de resynchroniser le miroir dès réception. No-op sur le web.
+export function onPushReceivedInForeground(cb: () => void): () => void {
+  if (!isNative) return () => {};
+  const sub = Notifications.addNotificationReceivedListener(() => cb());
+  return () => sub.remove();
+}
+
 // Hook à monter UNE FOIS à la racine (RootNav) : gère le tap en premier plan/arrière-plan
 // ET le démarrage « à froid » depuis une notification (getLastNotificationResponseAsync).
 export function useNotificationTapRouter(push: (route: string) => void): void {

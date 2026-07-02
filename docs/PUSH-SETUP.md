@@ -72,7 +72,13 @@ Dashboard Supabase → **Database → Webhooks** → *Create a new hook* :
   - INSERT d'une demande (`pending`) → notifie le **coach** (« Nouvelle demande de cours 🎾 »).
   - UPDATE `→ accepted` (le coach accepte, le terrain est réservé) → notifie l'**élève**
     (« Cours accepté ✅ »).
-  - UPDATE `→ declined` (le coach refuse) → notifie l'**élève** (« Cours non disponible »).
+  - UPDATE `→ declined` (le coach refuse — ou est retiré par son club avec des demandes en
+    attente, refusées d'office) → notifie l'**élève** (« Cours non disponible »).
+  - UPDATE `→ cancelled` → notifie le **coach** (cours annulé par l'élève / demande retirée).
+- **Promotion coach** : table `coaches`, événements **INSERT _et_ UPDATE** (coche les deux) →
+  même fonction `notify-club`.
+  - INSERT (le club déclare un coach) ou UPDATE `active → true` (re-promotion) → notifie le
+    **joueur promu** (« Tu es maintenant coach 🎾 » — le tap ouvre son Espace Coach).
 
 La fonction lit la table + le type d'événement et envoie au bon destinataire (gérant du club,
 joueur, auteur de la réservation, opérateur, organisateur du tournoi, ami invité, coach ou élève).

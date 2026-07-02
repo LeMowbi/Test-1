@@ -32,14 +32,18 @@ sur le terrain ne change pas).
 3. **Deploy**. (La fonction envoie maintenant aussi : « Nouvelle demande de cours 🎾 » au coach,
    « Cours accepté ✅ » / « Cours non disponible » à l'élève.)
 
-### c. Créer le webhook « lessons »
+### c. Créer les webhooks « lessons » et « coaches »
 
 1. Dashboard → **Database** → **Webhooks** → **Create a new hook**.
 2. **Name** : `lessons` · **Table** : `public.lessons` · **Events** : coche **Insert** ET **Update**.
 3. **Type** : Supabase Edge Functions → **notify-club** (mêmes réglages que les webhooks
-   existants `reservations`, `friend_requests`…).
-4. **Create**. (Si tu as déjà posé `WEBHOOK_SECRET` (§3), ajoute aussi l'en-tête
-   `x-webhook-secret` à ce webhook.)
+   existants `reservations`, `friend_requests`…). → **Create**.
+4. Recommence pour le second : **Name** : `coaches` · **Table** : `public.coaches` ·
+   **Events** : **Insert** ET **Update** → **notify-club** → **Create**.
+   (Il annonce au joueur promu « Tu es maintenant coach 🎾 » — sinon il ne découvre son
+   Espace Coach que par hasard.)
+5. (Si tu as déjà posé `WEBHOOK_SECRET` (§3), ajoute aussi l'en-tête `x-webhook-secret`
+   à ces deux webhooks.)
 
 ### d. Vérifier (2 min)
 

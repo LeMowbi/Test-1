@@ -78,3 +78,59 @@ end;
 $$;
 
 grant execute on function public.request_lesson(uuid, text, text, text, text, text, text, bigint, integer) to authenticated;
+
+-- ── Cohérence : les TARIFS saisis par un gérant respectent les mêmes bornes ────────
+-- Sans ça, un tarif enregistré à 500 F rendrait le club IRRÉSERVABLE (chaque tentative
+-- refusée par reservations_price_guard, sans explication pour le joueur).
+-- upsert_club_override (18) est remplacée à l'identique + validation des tarifs.
+create or replace function public.upsert_club_override(
+  p_club_id text,
+  p_name text,
+  p_area text,
+  p_blurb text,
+  p_type text,
+  p_price_from integer,
+  p_price_tiers jsonb,
+  p_contact_phone text
+)
+returns boolean
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if not exists (
+    select 1 from public.profiles p
+    where p.id = auth.uid() and (p.managed_club_id = p_club_id or p.role = 'operator')
+  ) then
+    return false; -- seul le gérant de CE club (ou l'opérateur) peut modifier sa page
+  end if;
+  -- Bornes de vraisemblance (mêmes que reservations_price_guard) sur le tarif de base…
+  if p_price_from is not null and (p_price_from < 1000 or p_price_from > 1000000) then
+    return false;
+  end if;
+  -- …et sur chaque plage tarifaire fournie.
+  if p_price_tiers is not null and exists (
+    select 1 from jsonb_array_elements(p_price_tiers) t
+    where coalesce((t->>'price')::integer, 0) < 1000 or (t->>'price')::integer > 1000000
+  ) then
+    return false;
+  end if;
+  insert into public.club_overrides (club_id, name, area, blurb, type, price_from, price_tiers, contact_phone, updated_at)
+    values (p_club_id, nullif(p_name, ''), nullif(p_area, ''), nullif(p_blurb, ''), nullif(p_type, ''),
+            p_price_from, p_price_tiers, nullif(p_contact_phone, ''), now())
+    on conflict (club_id) do update set
+      name = excluded.name, area = excluded.area, blurb = excluded.blurb, type = excluded.type,
+      price_from = excluded.price_from, price_tiers = excluded.price_tiers,
+      contact_phone = excluded.contact_phone, updated_at = now();
+  return true;
+end;
+$$;
+
+grant execute on function public.upsert_club_override(text, text, text, text, text, integer, jsonb, text) to authenticated;
+
+-- ── Ménage : fonctions mortes encore exposées (remplacées depuis longtemps) ────────
+-- claim_referral (04) → le lien parrain/filleul est créé par handle_new_user à l'inscription.
+-- grant_club_access (11) → remplacée par grant_club_access_by_phone (19/29).
+drop function if exists public.claim_referral(text);
+drop function if exists public.grant_club_access(uuid, text);

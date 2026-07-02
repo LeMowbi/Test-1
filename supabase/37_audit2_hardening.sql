@@ -74,6 +74,12 @@ $$;
 -- create_competition : identique à 26, MAIS la branche CLUB (publiée immédiatement) refuse si
 -- des réservations occupent déjà la plage → renvoie null (l'app affiche l'échec, rien n'est créé).
 -- Un tournoi JOUEUR reste créé en « pending » : le conflit est contrôlé à la VALIDATION du club.
+-- L'ORDRE des paramètres change par rapport à la 26 → on SUPPRIME l'ancienne signature d'abord,
+-- sinon deux surcharges coexistent et l'appel par paramètres nommés devient AMBIGU (PGRST203) :
+-- plus aucun tournoi ne pourrait être créé.
+drop function if exists public.create_competition(
+  text, text, text, text, text, text, text, text, text[], text[], int, text, text, text, text
+);
 create or replace function public.create_competition(
   p_organizer_type text, p_organizer_name text, p_organizer_phone text, p_club_id text, p_club_name text,
   p_title text, p_format text, p_level text, p_date_key text, p_end_date_key text,

@@ -96,6 +96,12 @@ begin
   if length(regexp_replace(coalesce(p_phone, ''), '\D', '', 'g')) < 8 then
     return query select 'not_found'::text, null::uuid, null::text; return;
   end if;
+  -- Anti-ambiguïté (même règle que grant_club_access_by_phone, 29) : si le numéro correspond
+  -- à ZÉRO ou PLUSIEURS comptes, on refuse — on ne promeut jamais un compte indéterminé.
+  if (select count(*) from public.profiles p
+      where right(regexp_replace(p.phone, '\D', '', 'g'), 10) = right(regexp_replace(p_phone, '\D', '', 'g'), 10)) <> 1 then
+    return query select 'not_found'::text, null::uuid, null::text; return;
+  end if;
   select p.id, trim(coalesce(p.first_name, '') || ' ' || coalesce(p.last_name, ''))
     into cid, cname
     from public.profiles p
@@ -130,6 +136,12 @@ begin
   select club_id into v_club from public.coaches where user_id = p_user_id;
   if v_club is null or not public.can_manage_club(v_club) then return false; end if;
   update public.coaches set active = false where user_id = p_user_id;
+  -- Ses demandes de cours EN ATTENTE sont refusées d'office : sans ça, l'élève restait
+  -- « Attente coach » à jamais (l'ex-coach n'a plus d'Espace Coach pour répondre).
+  -- Le webhook lessons (UPDATE pending→declined) prévient chaque élève par push.
+  update public.lessons
+    set status = 'declined', responded_at = now()
+    where coach_id = p_user_id and status = 'pending';
   return true;
 end;
 $$;

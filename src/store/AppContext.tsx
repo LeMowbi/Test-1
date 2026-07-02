@@ -77,7 +77,7 @@ import {
   setClubConfirmedRow,
   type SlotOccupancy,
 } from '@/lib/reservations';
-import { cancelMatchReminder, scheduleMatchReminder, syncMatchReminders } from '@/lib/notifications';
+import { cancelMatchReminder, onPushReceivedInForeground, scheduleMatchReminder, syncMatchReminders } from '@/lib/notifications';
 import { registerPushToken } from '@/lib/push';
 import { uploadAvatar } from '@/lib/avatar';
 import { clearOperatorNewsServer, fetchOperatorNews, setOperatorNewsServer } from '@/lib/operatorNews';
@@ -711,13 +711,13 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => data.subscription.unsubscribe();
   }, []);
 
-  // Retour au premier plan : on rafraîchit l’occupation (et mes résas) pour que la
-  // disponibilité affichée ne reste pas figée si d’autres joueurs ont réservé entre-temps.
+  // Retour au premier plan OU push reçu APP OUVERTE : on rafraîchit l’occupation (et mes
+  // résas) pour que l’écran ne reste pas figé — sans le second déclencheur, une bannière
+  // « Réservation confirmée » pouvait s’afficher au-dessus d’un écran encore périmé.
   useEffect(() => {
     if (!state.serverUserId) return;
     const userId = state.serverUserId;
-    const sub = RNAppState.addEventListener('change', (st) => {
-      if (st !== 'active') return;
+    const refreshMirror = () => {
       // On capture l’époque au déclenchement : si une déconnexion survient pendant les
       // requêtes, leurs résultats tardifs ne réécriront pas les données du compte sortant.
       const epoch = sessionEpochRef.current;
@@ -789,8 +789,14 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
             level: clampLevel(Number(prof.level ?? s.level)),
           }));
         });
-    });
-    return () => sub.remove();
+    };
+    const sub = RNAppState.addEventListener('change', (st) => st === 'active' && refreshMirror());
+    // Même resynchronisation quand un push arrive alors que l’app est déjà au premier plan.
+    const offPush = onPushReceivedInForeground(refreshMirror);
+    return () => {
+      sub.remove();
+      offPush();
+    };
   }, [state.serverUserId, refreshCompetitions]);
 
   // Expiration AUTOMATIQUE des boosts « Sponsorisé » : à l’ouverture et à chaque retour au
@@ -1430,7 +1436,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
           // Échec d’upload sur un club serveur : on N’ENREGISTRE PAS une URI locale (file:// ou
           // data-URI) — elle serait illisible pour les autres appareils/joueurs. On prévient.
           if (!uploaded) {
-            Alert.alert('Photo non envoyée', "L’envoi de la photo a échoué. Vérifie ta connexion et réessaie.");
+            Alert.alert('Photo non envoyée', 'L’envoi de la photo a échoué. Vérifie ta connexion et réessaie.');
             return;
           }
           finalUrl = uploaded;
