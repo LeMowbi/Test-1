@@ -93,12 +93,12 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
 - Policies **UPDATE de Storage** : toujours `using` **ET** `with check` (sinon on peut déplacer un
   objet dans le dossier d'autrui).
 - Les migrations sont des fichiers numérotés dans `supabase/` — l'opérateur les colle dans
-  **SQL Editor → Run**. Migrations actuelles : `02` → `36` (voir dossier `supabase/`).
+  **SQL Editor → Run**. Migrations actuelles : `02` → `38` (voir dossier `supabase/`).
 - **Edge Function** `supabase/functions/notify-club/index.ts` (Deno) : envoie les push via
   l'API Expo. Déclenchée par des **Database Webhooks** (INSERT + UPDATE). Redéploiement **sans
   terminal** : Dashboard → Edge Functions → notify-club → Edit → coller le code → Deploy.
   Webhooks à brancher (voir `docs/PUSH-SETUP.md`) : `reservations`, `reservation_participants`,
-  `competitions`, **`friend_requests`**.
+  `competitions`, **`friend_requests`**, **`lessons`**.
 - **Convention réseau** : un fetch serveur renvoie `null` en cas d'échec réseau (≠ `[]`/`{}` =
   succès vide). Les appelants font `x ?? s.existant` ou `if (!x) return` pour ne pas écraser le
   miroir local hors-ligne.
@@ -130,17 +130,37 @@ Tout doit passer AVANT de commit. Commiter par lot cohérent, puis pousser.
   `src/app/coachs/[id].tsx` (fiche + contact WhatsApp/appel direct). Accès depuis la fiche club et
   l'accueil. **Aucun profil fictif** : `coaches: Coach[] = []` au lancement (comme les tournois),
   les vrais coachs sont ajoutés par les gérants (`clubCoaches`) ou en dur ici quand ils existent.
+- **Coachs & cours (serveur, 38)** : le club **promeut un compte joueur** en coach (par téléphone,
+  `club_add_coach`) → le compte gagne son **Espace Coach** (`src/app/coach-admin.tsx` : demandes,
+  cours à venir, fiche/dispos). L'élève demande un cours (`src/app/cours/[coachId].tsx`,
+  `request_lesson`) : **le terrain n'est réservé QUE quand le coach accepte** — `respond_lesson`
+  crée alors une réservation STANDARD (mêmes barrières anti double-résa, commission inchangée),
+  que le club confirme ensuite = **double validation coach + club**. Client :
+  `src/lib/coachesServer.ts` ; état : `coachProfile` + `myLessons` (session + premier plan) ;
+  push via webhook `lessons` (INSERT + UPDATE). Le tarif du cours se règle au coach, hors app.
+- **Photos club (38)** : `cover_url` = photo « de profil » (carte ClubCard + héros fiche ;
+  `''` = retrait côté serveur) et `court_photos` = **une photo par terrain** (vignettes étiquetées
+  sur la fiche, gérées ligne par ligne dans l'Espace Club). Store : `clubCovers`/`clubCourtPhotos`.
+- **Padelta d'abord** : `compareClubs` (data/clubs.ts) épingle Padelta en tête de toutes les
+  listes joueurs (décision du porteur) ; les tris « Sponsorisé d'abord » restent prioritaires.
 
 ## 10. État actuel / à faire
 
 - **Build #34** livré (auto-submit TestFlight) : audit complet (lots A/B/C/D/E) + amis-demande, contacts, badge Partenaire, actu
   serveur, uploads réparés, sécurité stockage, animations, diagnostics, **Universal Links actifs**
   (profil de provisioning régénéré avec « Associated Domains »).
+- **Depuis le #34 (poussé, en attente du build #35)** : audit n°2 appliqué (1 HIGH
+  reset-password + 13 moyens + ~90 finitions basses, SQL 37), demandes porteur (« Créneaux
+  disponibles », « Clubs près de toi » remonté, **Padelta premier partout**), et la grosse
+  feature **Coachs & cours + photos club** (SQL 38, Espace Coach, réservation de cours,
+  cover + photo par terrain).
 - Serveur appliqué le 2026-07-01 (confirmé par le porteur) : SQL `30` → `36` (dont
   `34_level_integrity` anti-triche et `36_audit_hardening` : niveau borné [1,7] à l'inscription
   + anti-collision de noms à la clôture), webhook `friend_requests`, notify-club redéployé
-  (push des demandes d'ami renvoyées). **Reste à faire (choix du porteur, plus tard)** :
-  poser `WEBHOOK_SECRET` + en-tête `x-webhook-secret` sur les webhooks (docs/AUDIT-SERVEUR.md §3).
+  (push des demandes d'ami renvoyées).
+- **Reste à faire par le porteur (docs/AUDIT-SERVEUR.md §1)** : coller SQL `37` + `38`,
+  redéployer notify-club, créer le **webhook `lessons`** (INSERT + UPDATE). Optionnel plus
+  tard : `WEBHOOK_SECRET` + en-tête `x-webhook-secret` sur les webhooks (§3).
 
 ### Feuille de route (décidée avec le porteur le 2026-07-01)
 

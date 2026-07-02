@@ -67,9 +67,15 @@ Dashboard Supabase → **Database → Webhooks** → *Create a new hook* :
     INSERT) → re-notifie le **destinataire** (« Nouvelle demande d'ami »). C'est pour CE cas
     aussi qu'il faut cocher UPDATE, pas seulement pour l'acceptation.
   - UPDATE `→ accepted` (la personne accepte) → notifie l'**expéditeur** (« Demande acceptée »).
+- **Cours avec un coach** : table `lessons`, événements **INSERT _et_ UPDATE** (coche les
+  deux) → même fonction `notify-club`.
+  - INSERT d'une demande (`pending`) → notifie le **coach** (« Nouvelle demande de cours 🎾 »).
+  - UPDATE `→ accepted` (le coach accepte, le terrain est réservé) → notifie l'**élève**
+    (« Cours accepté ✅ »).
+  - UPDATE `→ declined` (le coach refuse) → notifie l'**élève** (« Cours non disponible »).
 
 La fonction lit la table + le type d'événement et envoie au bon destinataire (gérant du club,
-joueur, auteur de la réservation, opérateur, organisateur du tournoi, ou ami invité).
+joueur, auteur de la réservation, opérateur, organisateur du tournoi, ami invité, coach ou élève).
 
 ## 4 bis. (Recommandé) Sécuriser le webhook
 

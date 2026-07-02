@@ -1,27 +1,62 @@
 # Audit — actions serveur (sans terminal)
 
-État au 2026-07-02 : les migrations `30 → 37` sont appliquées, `notify-club` est redéployée
-(confirmé par le porteur). **Il ne reste qu'une action optionnelle : le §2 (WEBHOOK_SECRET).**
+État au 2026-07-02 : les migrations `30 → 36` sont appliquées, `notify-club` est redéployée
+(confirmé par le porteur). **Reste à faire : le §1 (coachs & photos, avec la 37 au passage) —
+puis, optionnel, le §3.**
 
 ---
 
-## 1) Migration `37_audit2_hardening.sql` — ✅ à coller si pas déjà fait
+## 1) Activer « Coachs & cours » + photos club (10 min) — ⏳ À FAIRE
 
-Corrige deux points (audit n°2) :
+La nouvelle version de l'app permet : photo « de profil » du club + une photo par terrain,
+et la **réservation de cours avec un coach** (le club déclare ses coachs ; le terrain n'est
+réservé que quand le coach accepte ; le club confirme ensuite comme d'habitude — ta commission
+sur le terrain ne change pas).
 
-- **Avis des invités** : un ami invité qui a accepté et joué peut désormais noter le club
+### a. Coller les migrations `37` puis `38`
+
+1. Dashboard Supabase → **SQL Editor** → **New query**.
+2. Ouvre `supabase/37_audit2_hardening.sql` du dépôt, copie **tout** → colle → **Run**.
+   (Si tu l'avais déjà passée, la relancer ne casse rien : elle est idempotente.)
+3. Même chose avec `supabase/38_coaches_lessons.sql` : copie **tout** → colle → **Run**.
+   Attendu à chaque fois : « Success. No rows returned ».
+
+### b. Redéployer la fonction `notify-club` (push des cours)
+
+1. Dashboard → **Edge Functions** → **notify-club** → **Edit**.
+2. Remplace tout le code par le contenu de `supabase/functions/notify-club/index.ts` du dépôt.
+3. **Deploy**. (La fonction envoie maintenant aussi : « Nouvelle demande de cours 🎾 » au coach,
+   « Cours accepté ✅ » / « Cours non disponible » à l'élève.)
+
+### c. Créer le webhook « lessons »
+
+1. Dashboard → **Database** → **Webhooks** → **Create a new hook**.
+2. **Name** : `lessons` · **Table** : `public.lessons` · **Events** : coche **Insert** ET **Update**.
+3. **Type** : Supabase Edge Functions → **notify-club** (mêmes réglages que les webhooks
+   existants `reservations`, `friend_requests`…).
+4. **Create**. (Si tu as déjà posé `WEBHOOK_SECRET` (§3), ajoute aussi l'en-tête
+   `x-webhook-secret` à ce webhook.)
+
+### d. Vérifier (2 min)
+
+- Espace Club → **Mon club** → carte **« Coachs réservables »** : déclare un compte de test
+  par son numéro → il voit « Espace Coach » dans son Profil.
+- Avec un autre compte : fiche du club → « Réserver un cours » → envoie une demande →
+  le coach reçoit le push, accepte → le terrain apparaît réservé (« Cours avec X »)
+  dans le planning du club, à confirmer comme d'habitude.
+
+---
+
+## 2) Rappel — ce que corrige la migration `37_audit2_hardening.sql`
+
+- **Avis des invités** : un ami invité qui a accepté et joué peut noter le club
   (avant, l'app le proposait mais le serveur refusait systématiquement).
 - **Anti double-occupation** : un club ne peut plus créer/valider un tournoi par-dessus des
   créneaux déjà réservés par des joueurs.
 
-**Étapes :**
-1. Dashboard Supabase → **SQL Editor** → **New query**.
-2. Ouvre `supabase/37_audit2_hardening.sql` du dépôt, copie **tout** son contenu.
-3. Colle → **Run**. Idempotent (relançable sans risque). Attendu : « Success. No rows returned ».
-
 ---
 
-## 2) (Recommandé, quand tu veux) Sécuriser le webhook push (3 min)
+## 3) (Recommandé, quand tu veux) Sécuriser le webhook push (3 min)
 
 Tant qu'aucun secret n'est posé, **n'importe qui** connaissant l'URL de la fonction peut
 déclencher des notifications. Le code de la fonction gère déjà le secret : dès qu'il est posé,
@@ -32,7 +67,7 @@ il devient **obligatoire** — rien à redéployer.
 2. Dashboard → **Edge Functions** → **notify-club** → **Settings** (ou « Secrets ») → ajoute :
    **Nom** `WEBHOOK_SECRET`, **Valeur** = ton secret → **Save**.
 3. Dashboard → **Database → Webhooks** → pour **chaque** webhook qui appelle `notify-club`
-   (`reservations`, `reservation_participants`, `competitions`, `friend_requests`) :
+   (`reservations`, `reservation_participants`, `competitions`, `friend_requests`, `lessons`) :
    **Edit** → **HTTP Headers** → ajoute **`x-webhook-secret`** = **le même secret** → **Save**.
 4. Vérifie : une action qui envoie un push (ex. réservation de test) → la notification arrive
    toujours. Si plus rien n'arrive, un webhook n'a pas le bon en-tête.
