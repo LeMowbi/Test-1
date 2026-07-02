@@ -14,9 +14,13 @@
 //   • friend_requests UPDATE (→ pending) → notif au DESTINATAIRE (demande RENVOYÉE après un refus :
 //     send_friend_request fait un UPDATE on conflict, pas un INSERT).
 //   • friend_requests UPDATE (→ accepted) → notif à l'EXPÉDITEUR (demande acceptée).
+//   • lessons INSERT (pending) → notif au COACH (nouvelle demande de cours).
+//   • lessons UPDATE (→ accepted) → notif à l'ÉLÈVE (cours accepté, terrain réservé) — le club
+//     reçoit la notif « nouvelle réservation » via le webhook reservations, automatiquement.
+//   • lessons UPDATE (→ declined) → notif à l'ÉLÈVE (cours refusé, aucun terrain réservé).
 // L'envoi passe par l'API Push d'Expo (pas besoin de gérer APNs soi-même : Expo route vers
-// Apple/Google). Les webhooks « reservations », « reservation_participants » et « competitions »
-// doivent écouter INSERT **et** UPDATE (cf. docs/PUSH-SETUP.md).
+// Apple/Google). Les webhooks « reservations », « reservation_participants », « competitions »
+// et « lessons » doivent écouter INSERT **et** UPDATE (cf. docs/PUSH-SETUP.md).
 //
 // Aucune clé secrète ici — on lit les jetons en base via la SERVICE ROLE (injectée par
 // Supabase dans les variables d'environnement de la fonction).
@@ -33,7 +37,7 @@ type Notif = {
   targets: string[];
   title: string;
   body: string;
-  data?: { kind: 'friend_request' | 'reservation' | 'tournament'; id?: string };
+  data?: { kind: 'friend_request' | 'reservation' | 'tournament' | 'lesson'; id?: string };
 };
 
 Deno.serve(async (req) => {
@@ -197,6 +201,31 @@ Deno.serve(async (req) => {
         title: 'Demande acceptée ✅',
         body: `${await userName(record.to_user)} a accepté ta demande d’ami.`,
         data: { kind: 'friend_request' },
+      });
+    } else if (table === 'lessons' && type === 'INSERT' && record.status === 'pending') {
+      // Nouvelle DEMANDE DE COURS → prévenir le COACH (il accepte/refuse depuis son Espace Coach).
+      notifs.push({
+        targets: await userToken(record.coach_id),
+        title: 'Nouvelle demande de cours 🎾',
+        body: `${record.student_name ?? 'Un joueur'} — ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''} (${record.court ?? ''}).`,
+        data: { kind: 'lesson' },
+      });
+    } else if (table === 'lessons' && type === 'UPDATE' && record.status === 'accepted' && oldRecord.status !== 'accepted') {
+      // Le coach a ACCEPTÉ → prévenir l'ÉLÈVE (le terrain vient d'être réservé ; le club
+      // recevra la notif « nouvelle réservation » via le webhook reservations, comme d'habitude).
+      notifs.push({
+        targets: await userToken(record.student_id),
+        title: 'Cours accepté ✅',
+        body: `${await userName(record.coach_id)} a accepté ton cours du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''} — terrain réservé.`,
+        data: { kind: 'reservation' },
+      });
+    } else if (table === 'lessons' && type === 'UPDATE' && record.status === 'declined' && oldRecord.status === 'pending') {
+      // Le coach a REFUSÉ → prévenir l'élève (aucun terrain n'a été réservé).
+      notifs.push({
+        targets: await userToken(record.student_id),
+        title: 'Cours non disponible',
+        body: `${await userName(record.coach_id)} ne peut pas assurer le cours du ${record.date_label ?? record.date_key ?? ''} à ${record.time ?? ''}. Aucun terrain n’a été réservé.`,
+        data: { kind: 'lesson' },
       });
     }
 

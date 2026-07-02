@@ -60,7 +60,9 @@ export type ClubConfig = {
   courts?: string[];
   offers?: ClubOffer[];
   coaches?: ClubCoach[];
-  photos?: string[];
+  photos?: string[]; // photos GÉNÉRALES du club (galerie)
+  coverUrl?: string; // photo « de profil » : celle de la carte, avant d'ouvrir la fiche
+  courtPhotos?: Record<string, string>; // une photo PAR TERRAIN → { nom du terrain: url }
 };
 
 type ClubConfigRow = {
@@ -70,6 +72,8 @@ type ClubConfigRow = {
   offers: ClubOffer[] | null;
   coaches: ClubCoach[] | null;
   photos: string[] | null;
+  cover_url: string | null;
+  court_photos: Record<string, string> | null;
 };
 
 // Toutes les configs de club → { clubId: config } pour fusion dans le store au chargement.
@@ -85,6 +89,8 @@ export async function fetchClubConfigs(): Promise<Record<string, ClubConfig> | n
       offers: r.offers ?? undefined,
       coaches: r.coaches ?? undefined,
       photos: r.photos ?? undefined,
+      coverUrl: r.cover_url ?? undefined,
+      courtPhotos: r.court_photos ?? undefined,
     };
   }
   return out;
@@ -100,6 +106,8 @@ export async function upsertClubConfig(clubId: string, c: ClubConfig): Promise<b
     p_offers: c.offers ?? null,
     p_coaches: c.coaches ?? null,
     p_photos: c.photos ?? null,
+    p_cover_url: c.coverUrl ?? null,
+    p_court_photos: c.courtPhotos ?? null,
   });
   return !error && data === true;
 }
